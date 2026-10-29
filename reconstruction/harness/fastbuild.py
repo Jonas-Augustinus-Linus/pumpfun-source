@@ -47,10 +47,11 @@ def stage(src: Path, ws: Path):
     crate_text = text[:ps].rstrip() + '\n'
     crate = ws / 'programs/pump'
     crate.mkdir(parents=True, exist_ok=True)
-    # mirror .rs sources (+ any non-target files) with rsync --checksum so unchanged files keep mtimes;
+    # Exclude only the crate-root build directory; nested target directories can contain source.
+    # Mirror inputs with rsync --checksum so unchanged files keep mtimes;
     # only the crate-root manifest/lock are excluded (rewritten below), nested path crates keep their Cargo.toml
     subprocess.run(['rsync', '-a', '--checksum', '--delete',
-                    '--exclude', 'target', '--exclude', '/Cargo.toml', '--exclude', '/Cargo.lock',
+                    '--exclude', '/target/', '--exclude', '/Cargo.toml', '--exclude', '/Cargo.lock',
                     str(src) + '/', str(crate) + '/'], check=True)
     def put(p, t):
         if not p.exists() or p.read_text() != t:
