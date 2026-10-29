@@ -323,6 +323,9 @@ jobs:
               python -B research/metaplex-utilize-exact-recovery/test_verify.py
               python -B research/metaplex-exact-independent/verify.py --execute
               python -B research/metaplex-exact-independent/test_verify.py
+          - suite: offline-cargo-cache
+            commands: |
+              python -I -B scripts/test_prepare_locked_cargo_home.py
           - suite: evidence
             commands: |
               python scripts/verify_evidence.py
