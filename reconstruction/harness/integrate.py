@@ -25,9 +25,10 @@ def make_patch(base: Path, part: Path, out: Path, tmp: Path):
     ign = shutil.ignore_patterns('target', '*.orig', '*.rej', '.DS_Store')
     shutil.copytree(base, tmp / 'a/pump', ignore=ign)
     shutil.copytree(part, tmp / 'b/pump', ignore=ign)
-    d = subprocess.run(['diff', '-ruN', 'a/pump', 'b/pump'], cwd=tmp, capture_output=True, text=True)
-    out.write_text(d.stdout)
-    return d.stdout
+    d = subprocess.run(['diff', '-ruN', 'a/pump', 'b/pump'], cwd=tmp, capture_output=True)
+    out.write_bytes(d.stdout)
+    # Decode only for report metadata; patch must receive the original diff bytes.
+    return d.stdout.decode('utf-8', errors='surrogateescape')
 
 
 def main():
