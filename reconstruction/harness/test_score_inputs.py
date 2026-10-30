@@ -1,3 +1,4 @@
+# Regression cases retained from wallaceplayfrog PR #1285, commit 9c44b70.
 #!/usr/bin/env python3
 """Exercise original-window reads with the real captured ELF and inventory."""
 import csv

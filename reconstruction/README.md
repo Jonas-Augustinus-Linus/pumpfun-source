@@ -45,9 +45,10 @@ worktree shares. The crates come from `~/.cargo/registry` (builds run offline).
 
 ## Build and score
 
-Analysis tools select `llvm-objdump` from the installed v1.52 SDK first, then
+The scorer reads candidate function symbols directly from the ELF without an SDK.
+Disassembly tools select `llvm-objdump` from the installed v1.52 SDK first, then
 the documented v1.44 SDK, then `PATH`. Set `PUMP_OBJDUMP` to an executable path
-or command name to override that choice for both symbol listing and disassembly.
+or command name to override disassembly tool selection.
 An invalid explicit override fails rather than silently selecting another tool.
 This selection does not change the compiler or the identity build recipe.
 
@@ -97,3 +98,17 @@ PYTHONDONTWRITEBYTECODE=1 python3 reconstruction/harness/test_integrate.py
 This test substitutes the builder and subprocess boundary with synthetic
 in-memory results. It does not compile source, read ELF/cache/pickle data, run a
 target program, or establish a new matched-window count.
+
+## Gate saved score reports
+
+After scoring a trial, compare its per-window memberships with the pinned baseline:
+
+```bash
+python3 reconstruction/harness/compare_scores.py reconstruction/pump-main/baseline/score.json /tmp/pump-out/score.json --json /tmp/pump-out/regressions.json
+```
+
+Exit status is 0 only when every normalized and raw membership is preserved and
+both inventories have identical addresses and lengths; 1 means a regression or
+inventory change, and 2 means malformed input. Gains cannot offset losses in other
+windows. Both harness score reports and inventory-format window lists are accepted.
+This gate checks saved results, not their provenance or the candidate binary itself.

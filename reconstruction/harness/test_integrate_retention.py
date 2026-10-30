@@ -12,6 +12,12 @@ import integrate
 
 
 class IntegrationRetentionTests(unittest.TestCase):
+    def crate(self, base):
+        (base / 'src').mkdir(parents=True)
+        (base / 'Cargo.toml').write_text('[package]\nname="fixture"\n')
+        (base / 'Cargo.lock').write_text('version = 3\n')
+        return base
+
     def invoke(self, root, base):
         argv = ['integrate.py', '--name', 'trial', '--base-src', str(base), '--no-build']
         with patch.object(integrate, 'SC', root), patch.object(sys, 'argv', argv), \
@@ -26,7 +32,7 @@ class IntegrationRetentionTests(unittest.TestCase):
             marker = output / 'report.json'
             marker.write_bytes(b'prior evidence')
             base = root / 'base'
-            base.mkdir()
+            self.crate(base)
             with self.assertRaises(SystemExit) as error:
                 self.invoke(root, base)
             self.assertEqual(error.exception.code, 2)
@@ -40,7 +46,7 @@ class IntegrationRetentionTests(unittest.TestCase):
             output = root / 'integ/trial'
             output.symlink_to(root / 'missing', target_is_directory=True)
             with self.assertRaises(SystemExit):
-                self.invoke(root, root / 'base')
+                self.invoke(root, self.crate(root / 'base'))
             self.assertTrue(output.is_symlink())
             self.assertFalse((root / 'missing').exists())
 
@@ -48,7 +54,7 @@ class IntegrationRetentionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             base = root / 'base'
-            base.mkdir()
+            self.crate(base)
             (base / 'lib.rs').write_bytes(b'// source\n')
             self.invoke(root, base)
             self.assertEqual((root / 'integ/trial/src/lib.rs').read_bytes(), b'// source\n')

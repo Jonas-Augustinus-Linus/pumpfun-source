@@ -1,4 +1,4 @@
-"""Analysis tool selection and both subprocess consumers, without an SDK."""
+"""SDK discovery for disassembly and independent native symbol reading."""
 import os
 import tempfile
 import unittest
@@ -8,6 +8,8 @@ from unittest.mock import patch
 import llvm_tools
 import score
 import win
+from test_elf_symbols import fixture
+from elf_symbols import function_symbols
 
 
 class ObjdumpTests(unittest.TestCase):
@@ -62,10 +64,13 @@ class ObjdumpTests(unittest.TestCase):
         selected = self.sdk('v1.44')
         self.assertEqual(llvm_tools.objdump(), str(selected))
 
-    def test_symbol_and_disassembly_consumers_use_same_override(self):
+    def test_native_symbols_and_disassembly_override_coexist(self):
         selected = self.executable(self.root / 'tool with spaces')
         os.environ['PUMP_OBJDUMP'] = str(selected)
-        self.assertEqual(score.candidate_functions(self.root / 'candidate.so'), [(0x120, 16, 'example')])
+        candidate = self.root / 'candidate.so'
+        candidate.write_bytes(fixture())
+        with patch.object(llvm_tools, 'objdump', side_effect=AssertionError('symbols must not discover SDK')):
+            self.assertEqual(score.candidate_functions(candidate), function_symbols(fixture()))
         self.assertEqual(win.objdump_text(self.root / 'candidate.so', 0x120, 0x130), {0x120: 'exit'})
 
 
