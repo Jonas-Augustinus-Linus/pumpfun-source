@@ -130,6 +130,31 @@ class CapturePublicationTests(unittest.TestCase):
             self.assertFalse(output.exists())
             self.assertEqual(list(output.parent.iterdir()), [])
 
+    def test_success_does_not_remove_reused_staging_name(self):
+        import deep_disassembly as publication
+
+        payload = (Path(__file__).resolve().parents[1]
+                   / 'evidence/dependencies/associated_token/deployed.so').read_bytes()
+        account = self.account(payload)
+        native_rename = publication.rename_directory
+        reused = []
+        def publish_then_reuse(source, destination):
+            native_rename(source, destination)
+            source.mkdir()
+            (source / 'other-writer').write_bytes(b'retained')
+            reused.append(source)
+        with tempfile.TemporaryDirectory(prefix='capture-staging-owner-') as directory:
+            output = Path(directory) / 'associated_token'
+            with (
+                mock.patch.object(capture, 'account', side_effect=[(account, payload), (account, payload)]),
+                mock.patch.object(capture, 'rpc', return_value='genesis'),
+                mock.patch.object(publication, 'rename_directory', side_effect=publish_then_reuse),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                capture.capture('https://rpc.invalid', 'associated_token', 'program', output)
+            self.assertEqual((output / 'deployed.so').read_bytes(), payload)
+            self.assertEqual((reused[0] / 'other-writer').read_bytes(), b'retained')
+
 
 if __name__ == "__main__":
     unittest.main()

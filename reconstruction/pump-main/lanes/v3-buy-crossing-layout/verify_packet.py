@@ -30,8 +30,10 @@ def check_sections(audit):
     all() over the mapping is true when the mapping is empty or when a section
     key is missing, so the expected key set is pinned before the comparison.
     """
-    require(set(audit['sections_equal']) == set(SECTIONS), 'applied data section set changed')
-    require(all(audit['sections_equal'].values()), 'applied data sections changed')
+    sections = audit.get('sections_equal')
+    require(isinstance(sections, dict) and set(sections) == set(SECTIONS),
+            'applied data section set changed')
+    require(all(value is True for value in sections.values()), 'applied data sections changed')
 
 
 def main():

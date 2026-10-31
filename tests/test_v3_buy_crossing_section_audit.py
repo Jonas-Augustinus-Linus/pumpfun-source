@@ -27,6 +27,15 @@ class SectionComparisonTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'applied data sections changed'):
             self.verify.check_sections(self.audit({'.rodata': True, '.data.rel.ro': False}))
 
+    def test_truthy_non_boolean_comparison_is_rejected(self):
+        for value in (1, 'true', ['equal'], {'.text': True}):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, 'applied data sections changed'):
+                self.verify.check_sections(self.audit({'.rodata': True, '.data.rel.ro': value}))
+
+    def test_section_name_list_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, 'applied data section set changed'):
+            self.verify.check_sections(self.audit(['.rodata', '.data.rel.ro']))
+
     def test_empty_comparison_is_rejected(self):
         # all({}.values()) is True, so an emptied audit used to pass the check.
         with self.assertRaisesRegex(ValueError, 'applied data section set changed'):
