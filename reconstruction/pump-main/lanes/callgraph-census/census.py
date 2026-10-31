@@ -364,7 +364,9 @@ def main():
                     extra.append((j1, k, ck[k], ccalls[k][0] - c))
         omult, cmult = Counter(ok), Counter(ck)
         multiset_diff = []
-        for k in sorted(set(omult) | set(cmult), key=lambda k: kname(k)):
+        # Distinct monomorphizations can have the same display name. Use their
+        # identity as a tiebreak so hash randomization cannot reorder reports.
+        for k in sorted(set(omult) | set(cmult), key=lambda k: (kname(k), k)):
             if omult[k] != cmult[k]:
                 d = {'callee': kname(k), 'key': k, 'orig': omult[k], 'ours': cmult[k]}
                 # classification

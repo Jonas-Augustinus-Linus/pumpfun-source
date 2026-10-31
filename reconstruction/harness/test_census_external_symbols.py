@@ -44,10 +44,15 @@ class ExternalSymbolTests(unittest.TestCase):
             candidate = root / 'symbols.so'
             candidate.write_bytes(gzip.decompress(ARCHIVE.read_bytes()))
             output, markdown = root / 'census.json', root / 'census.md'
-            result = subprocess.run([sys.executable, '-B', str(LANE / 'census.py'),
-                '--cand', str(candidate), '--only', '0x22a10,0x72810',
-                '--json', str(output), '--md', str(markdown)], capture_output=True, text=True)
-            self.assertEqual(result.returncode, 0, result.stderr)
+            reports = []
+            for seed in ('0', '1'):
+                result = subprocess.run([sys.executable, '-B', str(LANE / 'census.py'),
+                    '--cand', str(candidate), '--only', '0x22a10,0x72810',
+                    '--json', str(output), '--md', str(markdown)], capture_output=True, text=True,
+                    env=dict(os.environ, PYTHONHASHSEED=seed))
+                self.assertEqual(result.returncode, 0, result.stderr)
+                reports.append((output.read_bytes(), markdown.read_bytes()))
+            self.assertEqual(reports[0], reports[1], 'report ordering depends on hash seed')
             targets = {t['original']: t for t in json.loads(output.read_text())['targets']}
             cto = targets['0x22a10']['calls']
             self.assertEqual(cto['orig_syscalls'], {'symbol:abort': 1, 'symbol:sol_log_': 2})

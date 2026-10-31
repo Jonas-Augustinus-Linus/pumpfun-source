@@ -75,3 +75,5 @@ repository's pinned `pyelftools` dependency. Internal-call graph refinement and
 score acceptance remain unchanged. `test_census_external_symbols.py` compares
 the captured CTO window with the retained multihop-sell-fees compiler artifact;
 its real census CLI test additionally runs when `PUMP_OBJDUMP` names an SBF tool.
+That CLI control also compares JSON and Markdown across Python hash seeds;
+callee identities break ties between identical display names in report rows.
