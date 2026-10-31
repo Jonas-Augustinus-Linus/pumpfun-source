@@ -187,7 +187,9 @@ class FrozenV3TradeCapturedTests(unittest.TestCase):
         self.assertTrue(any(e == '17' and t == 'done' for _, _, t, e in seen))
 
     def test_truncated_accounting_answers_are_rejected(self):
-        with mock.patch.object(base, 'model', return_value=[]), \
+        cases = base.fixed_cases()
+        with mock.patch.object(base, 'fixed_cases', return_value=cases), \
+                mock.patch.object(base, 'model', return_value=[]), \
                 self.assertRaisesRegex(AssertionError, 'one accounting answer'):
             self.test_fixed_cases()
 
