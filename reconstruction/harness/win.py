@@ -63,10 +63,21 @@ def insns(raw, addr, secs):
 
 
 def objdump_text(path, start, end):
-    txt = subprocess.check_output([objdump(), '-d', '--no-show-raw-insn', f'--start-address={start:#x}', f'--stop-address={end:#x}', str(path)], text=True)
+    command = [objdump(), '-d', '--no-show-raw-insn', f'--start-address={start:#x}', f'--stop-address={end:#x}', str(path)]
+    run = subprocess.run(command, capture_output=True, text=True)
+    if run.returncode and "can't find target" in run.stderr:
+        # Distribution LLVM has no SBF target for e_machine 263 (elf64-unknown);
+        # its BPF decoder reads the same encoding. Platform-tools never reach this.
+        command.insert(1, '--triple=bpfel')
+        run = subprocess.run(command, capture_output=True, text=True)
+    sys.stderr.write(run.stderr)
+    if run.returncode:
+        raise subprocess.CalledProcessError(run.returncode, command, run.stdout, run.stderr)
+    txt = run.stdout
     # Labels are byte addresses or instruction-slot indices, depending on the
     # LLVM build (both report elf64-sbf): platform-tools v1.52 prints hex byte
-    # addresses, v1.44 decimal slots. The first label is at `start`; use it to choose.
+    # addresses, v1.44 decimal slots, distribution LLVM (bpfel) decimal slots.
+    # The first label is at `start`; use it to choose.
     rows = [m.groups() for m in (re.match(r'^\s*([0-9a-f]+):\s+(.*)$', line) for line in txt.splitlines()) if m]
     if not rows:
         return {}
