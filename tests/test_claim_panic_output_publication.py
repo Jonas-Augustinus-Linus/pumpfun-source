@@ -18,8 +18,8 @@ DATA = (
     'evidence/original/pump/deployed.so',
     'evidence/dependencies/spl_token_2022/deployed.so',
     'evidence/dependencies/associated_token/deployed.so',
-    'research/imported-lab/analysis/pump_fun/token-incentives-claim-fixture.json',
-    'scripts/fixtures/pump-claim-token-incentives/idl.json',
+    'research/imported-lab/analysis/pump_fun/curve-fresh-trades-v3-signed-surfpool.json',
+    'evidence/upstream/pump.json',
 )
 DRIVER = r'''
 import os,sys
@@ -36,6 +36,25 @@ def fsync(fd):
     if mode=='late-file':output.write_bytes(b'concurrent receipt')
     if mode=='late-alias':os.link(root/'candidate.so',output)
 publisher.os.fsync=fsync
+if mode=='candidate-replaced':
+    publisher.os.fsync=real_fsync
+    real_capture=module.full_capture
+    def capture():
+        real_run,source=real_capture()
+        count=0
+        def run(binary,case):
+            nonlocal count
+            count+=1
+            if count!=2:return real_run(binary,case)
+            candidate=root/'candidate.so';original=candidate.read_bytes()
+            candidate.write_bytes((root/'wrong.so').read_bytes())
+            try:
+                result=real_run(binary,case)
+                (root/'replacement-reached').write_text('actual candidate VM executed')
+                return result
+            finally:candidate.write_bytes(original)
+        return run,source
+    module.full_capture=capture
 if mode=='link':
     def fail_link(*args,**kwargs):raise OSError('controlled link failure')
     publisher.os.link=fail_link
@@ -45,6 +64,16 @@ raise SystemExit(module.main())
 
 
 class ClaimPanicOutputPublicationTests(unittest.TestCase):
+    def copy_inputs(self, root):
+        (root / 'scripts').mkdir()
+        for p in (ROOT / 'scripts').glob('*.py'):
+            shutil.copyfile(p, root / 'scripts' / p.name)
+        for relative in DATA:
+            target = root / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / relative, target)
+        shutil.copyfile(root / DATA[0], root / 'candidate.so')
+
     def invoke(self, output, candidate=None):
         return subprocess.run(
             [sys.executable, '-B', str(SCRIPT), '--candidate', str(candidate or CANDIDATE),
@@ -103,24 +132,28 @@ class ClaimPanicOutputPublicationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             wrong_candidate = ROOT / 'evidence/original/pump_fees/deployed.so'
-            output = root / 'failed.json'
-            result = self.invoke(output, candidate=wrong_candidate)
-            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-            self.assertTrue(output.exists())
-            report = json.loads(output.read_bytes())
-            self.assertEqual(report['case_count'], 2)
-            self.assertEqual(report['candidate_sha256'], hashlib.sha256(wrong_candidate.read_bytes()).hexdigest())
+            for suffix in ('.json', '.json.gz'):
+                output = root / ('failed' + suffix)
+                result = self.invoke(output, candidate=wrong_candidate)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                raw = output.read_bytes()
+                report = json.loads(gzip.decompress(raw) if suffix.endswith('.gz') else raw)
+                self.assertEqual(report['case_count'], 2)
+                self.assertEqual(len(report['cases']), 2)
+                self.assertEqual(report['candidate_sha256'], hashlib.sha256(wrong_candidate.read_bytes()).hexdigest())
+                self.assertEqual(report['mismatches'], ['accrual-add-overflow', 'claimed-add-overflow'])
+                for row in report['cases']:
+                    self.assertIsNone(row['candidate_panic'])
+                    self.assertIn('panic_message', row['differences'])
+                    self.assertEqual(row['original_panic']['message'], row['expected_message'])
 
     def test_all_consumed_input_aliases_are_rejected(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            for relative in DATA:
-                target = root / relative
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(ROOT / relative, target)
+            self.copy_inputs(root)
             candidate = root / 'candidate.so'
-            shutil.copyfile(root / DATA[0], candidate)
             protected = [candidate] + [root / relative for relative in DATA]
+            before = {path: path.read_bytes() for path in protected}
             for source in protected:
                 for kind in ('direct', 'symlink', 'hardlink'):
                     with self.subTest(source=source.name, kind=kind):
@@ -133,7 +166,7 @@ class ClaimPanicOutputPublicationTests(unittest.TestCase):
                             else:
                                 os.link(source, output)
                         result = subprocess.run(
-                            [sys.executable, '-B', str(SCRIPT), '--candidate', str(candidate),
+                            [sys.executable, '-B', str(root / 'scripts' / SCRIPT.name), '--candidate', str(candidate),
                              '--output', str(output)],
                             capture_output=True, text=True, timeout=30)
                         self.assertNotEqual(result.returncode, 0)
@@ -143,18 +176,14 @@ class ClaimPanicOutputPublicationTests(unittest.TestCase):
                             'choose a fresh path' in result.stderr or
                             'output must be fresh' in result.stderr
                         )
+                        self.assertEqual({path: path.read_bytes() for path in protected}, before)
 
     def test_failed_staging_and_late_collisions_preserve_inputs(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
-            (root / 'scripts').mkdir()
-            for p in (ROOT / 'scripts').glob('*.py'):
-                shutil.copyfile(p, root / 'scripts' / p.name)
-            for relative in DATA:
-                t = root / relative
-                t.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(ROOT / relative, t)
-            shutil.copyfile(root / DATA[0], root / 'candidate.so')
+            self.copy_inputs(root)
+            protected = [root / 'candidate.so', *(root / relative for relative in DATA)]
+            before = {path: path.read_bytes() for path in protected}
             controls = ['fsync', 'late-file', 'late-alias']
             if os.name != 'nt':
                 controls.append('link')
@@ -166,6 +195,7 @@ class ClaimPanicOutputPublicationTests(unittest.TestCase):
                     result = subprocess.run(
                         [sys.executable, '-B', '-c', DRIVER, str(root), str(output), mode],
                         cwd=root, env=env, text=True, capture_output=True, timeout=120)
+                    self.assertEqual({path: path.read_bytes() for path in protected}, before)
                     self.assertNotEqual(result.returncode, 0)
                     self.assertEqual((root / 'publication-reached').read_text(), mode)
                     if mode == 'late-file':
@@ -177,6 +207,24 @@ class ClaimPanicOutputPublicationTests(unittest.TestCase):
                     else:
                         self.assertFalse(os.path.lexists(output))
                         self.assertIn('controlled ' + mode + ' failure', result.stderr)
+
+    def test_candidate_path_replacement_cannot_change_executed_snapshot(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            self.copy_inputs(root)
+            shutil.copyfile(ROOT / 'evidence/original/pump_fees/deployed.so', root / 'wrong.so')
+            candidate_bytes = (root / 'candidate.so').read_bytes()
+            output = root / 'snapshot.json'
+            result = subprocess.run(
+                [sys.executable, '-B', '-c', DRIVER, str(root), str(output), 'candidate-replaced'],
+                cwd=root, text=True, capture_output=True, timeout=120)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertTrue((root / 'replacement-reached').is_file())
+            self.assertEqual((root / 'candidate.so').read_bytes(), candidate_bytes)
+            report = json.loads(output.read_bytes())
+            self.assertEqual(report['candidate_sha256'], hashlib.sha256(candidate_bytes).hexdigest())
+            self.assertEqual(report['case_count'], 2)
+            self.assertEqual(report['mismatches'], [])
 
 
 if __name__ == '__main__':
