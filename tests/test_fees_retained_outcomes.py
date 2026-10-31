@@ -20,7 +20,7 @@ def consumer_functions():
              if (isinstance(node, ast.Assign) and any(
                  isinstance(target, ast.Name) and target.id in names for target in node.targets))
              or isinstance(node, ast.FunctionDef) and node.name in (
-                 'validate_outcomes', 'validate_suite_receipt')]
+                 'exact_json_equal', 'validate_outcomes', 'validate_suite_receipt')]
     namespace = {}
     exec(compile(ast.fix_missing_locations(ast.Module(body=nodes, type_ignores=[])), str(path), 'exec'),
          namespace)
@@ -61,6 +61,20 @@ class FeesRetainedOutcomeTests(unittest.TestCase):
                     del document['cases'][0]['candidate'][field]
                     with self.assertRaises(AssertionError):
                         validate(name, document)
+
+    def test_recursive_json_types_are_not_coerced(self):
+        equal = self.consumer['exact_json_equal']
+        for left, right in ((False, 0), (True, 1), (0, 0.0), ({'x': [True]}, {'x': [1]})):
+            with self.subTest(left=left, right=right):
+                self.assertFalse(equal(left, right))
+        validate = self.consumer['validate_suite_receipt']
+        for name, suite in self.suites.items():
+            for field in self.consumer['OUTCOME_FIELDS'][name]:
+                document = copy.deepcopy(suite)
+                del document['cases'][0]['original'][field]
+                del document['cases'][0]['candidate'][field]
+                with self.subTest(suite=name, missing_both=field), self.assertRaises(AssertionError):
+                    validate(name, document)
 
     def test_query_and_missing_outcomes_cannot_use_an_empty_difference_flag(self):
         validate = self.consumer['validate_suite_receipt']

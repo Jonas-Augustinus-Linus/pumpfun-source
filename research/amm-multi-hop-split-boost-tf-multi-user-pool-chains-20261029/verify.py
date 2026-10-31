@@ -576,7 +576,8 @@ def main():
                 # all() is true for an empty result list, so a receipt whose
                 # signature vector was stripped would pass the bare all().
                 results = tx.verify_with_results()
-                if not results or not all(results):
+                required = tx.message.header.num_required_signatures
+                if required <= 0 or len(tx.signatures) != required or len(results) != required or not all(results):
                     fail(f"{tag}: signature verification failed")
                 if exp["error"] is None:
                     if rec["error"] is not None:

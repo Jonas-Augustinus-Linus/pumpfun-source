@@ -58,6 +58,31 @@ def strip_signatures(packet):
     return stripped
 
 
+def add_excess_signature(packet):
+    """Rebind an actual retained signed receipt carrying an extra signature."""
+    report_path = packet / 'runtime/report.json.gz'
+    report = json.loads(gzip.decompress(report_path.read_bytes()))
+    part = report['parts'][0]
+    path = packet / part['file']
+    records = [json.loads(line) for line in gzip.decompress(path.read_bytes()).splitlines()]
+    tx = Transaction.from_bytes(base64.b64decode(records[0]['transaction_base64']))
+    tx = Transaction.populate(tx.message, [*tx.signatures, tx.signatures[0]])
+    records[0]['transaction_base64'] = base64.b64encode(bytes(tx)).decode()
+    data = gzip.compress(b''.join(json.dumps(record, separators=(',', ':')).encode() + b'\n' for record in records), mtime=0)
+    path.write_bytes(data)
+    part['sha256'], part['bytes'] = hashlib.sha256(data).hexdigest(), len(data)
+    report_data = gzip.compress(json.dumps(report, separators=(',', ':')).encode(), mtime=0)
+    report_path.write_bytes(report_data)
+    manifest_path = packet / 'MANIFEST.json'
+    manifest = json.loads(manifest_path.read_text())
+    for entry in manifest['files']:
+        if entry['path'] == part['file']:
+            entry['sha256'] = part['sha256']
+        if entry['path'] == 'runtime/report.json.gz':
+            entry['sha256'] = hashlib.sha256(report_data).hexdigest()
+    manifest_path.write_text(json.dumps(manifest, indent=1) + '\n')
+
+
 class SignatureAdmissionTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix='chain-signatures-')
@@ -78,6 +103,12 @@ class SignatureAdmissionTests(unittest.TestCase):
         result = self.verify()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn('PASS:', result.stdout)
+
+    def test_excess_signature_is_rejected(self):
+        add_excess_signature(self.packet)
+        result = self.verify()
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('signature verification failed', result.stdout + result.stderr)
 
     def test_a_receipt_without_signatures_is_rejected(self):
         self.assertEqual(strip_signatures(self.packet), 396)

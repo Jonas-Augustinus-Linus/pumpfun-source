@@ -44,6 +44,11 @@ OUTCOME_FIELDS={
  'sharing_admin_cto':('error','before','after','events','inner','return'),
 }
 EVENT_LOG_SUITES={'donation_crank','social_create','buyback'}
+def exact_json_equal(left,right):
+ if type(left) is not type(right):return False
+ if type(left) is dict:return left.keys()==right.keys() and all(exact_json_equal(left[key],right[key]) for key in left)
+ if type(left) is list:return len(left)==len(right) and all(exact_json_equal(a,b) for a,b in zip(left,right))
+ return left==right
 def validate_outcomes(name,index,row):
  original,candidate=row.get('original'),row.get('candidate')
  assert isinstance(original,dict) and isinstance(candidate,dict),f'{name} case {index}: incomplete original/candidate outcome'
@@ -51,9 +56,9 @@ def validate_outcomes(name,index,row):
   assert set(original) in ({'fees'},{'error'}) and set(candidate) in ({'fees'},{'error'}),f'{name} case {index}: query outcome is missing'
  for field in OUTCOME_FIELDS[name]:
   assert field in original and field in candidate,f'{name} case {index}: missing retained {field}'
-  assert original[field]==candidate[field],f'{name} case {index}: retained {field} differs'
+  assert exact_json_equal(original[field],candidate[field]),f'{name} case {index}: retained {field} differs'
  if name in ('queries','deprecated'):
-  assert original==candidate,f'{name} case {index}: retained outcomes differ'
+  assert exact_json_equal(original,candidate),f'{name} case {index}: retained outcomes differ'
  if name in EVENT_LOG_SUITES:
   events=[]
   for outcome in (original,candidate):

@@ -1,7 +1,7 @@
 //! Host driver for `frozen_v3_exact_quote.rs`, used by
 //! `tests/test_frozen_v3_exact_quote_captured.py`.
 //! One request per line:
-//! `account,outcome,invokes,base_gross,quote_gross,buyback_gross,token_2022`
+//! `account,outcome,invoked_legs,base_gross,quote_gross,buyback_gross,token_2022`
 //! where `account` is `user_base|curve_base|user_quote|curve_quote|
 //! recipient`, `outcome` is `done` or a custom code, and the remaining
 //! fields are the unfrozen twin's execution record (`0`/`1` for the flag).
@@ -25,7 +25,7 @@ fn answer(line: &str) -> String {
         code => Unfrozen::Code(code.parse().unwrap()),
     };
     let exec = Execution {
-        invokes: fields[2].parse().unwrap(),
+        invoked_legs: fields[2].parse().unwrap(),
         base_gross: fields[3].parse().unwrap(),
         quote_gross: fields[4].parse().unwrap(),
         buyback_gross: fields[5].parse().unwrap(),

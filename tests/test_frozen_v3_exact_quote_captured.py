@@ -5,7 +5,7 @@ Every fixed and random case of `tests/test_v3_exact_quote_captured.py`
 `evidence/original/pump/deployed.so` once as written and once per token
 account it holds with that account frozen (state byte 2): the user's and
 the curve's base accounts, and on token-quote routes also the user's and
-the curve's quote accounts and the buyback recipient's. The frozen run's
+the curve's quote accounts and the buyback recipient's. The unfrozen twin's
 ending goes to `programs/pump/recovered/frozen_v3_exact_quote_host.rs`,
 whose answer must equal it. The host model judges each leg by its gross
 transfer amount — the amount its transfer helper is invoked with, before
@@ -45,6 +45,7 @@ class Recorder:
     """The base module's LiteSVM, keeping the last transaction's logs."""
 
     logs = []
+    transfers = []
 
     def __init__(self, real):
         self.vm = real()
@@ -66,6 +67,20 @@ class Recorder:
         result = self.vm.send_transaction(tx)
         meta = result.meta() if hasattr(result, 'meta') else result
         Recorder.logs = list(meta.logs())
+        keys = list(tx.message.account_keys)
+        Recorder.transfers = []
+        for group in meta.inner_instructions():
+            for inner in group:
+                ix = inner.instruction()
+                data = bytes(ix.data)
+                if str(ix.program_id(keys)) not in TOKEN_IDS or not data:
+                    continue
+                # Transfer and TransferChecked identify source/destination.
+                if data[0] not in (3, 12):
+                    continue
+                indices = list(ix.accounts)
+                destination = 2 if data[0] == 12 else 1
+                Recorder.transfers.append((keys[indices[0]], keys[indices[destination]]))
         return result
 
 
@@ -90,9 +105,20 @@ def ending(captured):
     return code.group(1) if code else str(error)
 
 
-def token_invokes(logs):
-    return sum(1 for line in logs if line.startswith('Program ') and line.split()[1] in TOKEN_IDS
-               and line.split()[2] == 'invoke')
+def invoked_legs(c, transfers):
+    """Identify physical transfer legs from the unfrozen twin's actual CPIs."""
+    r = base.roles(c)
+    mask = 0
+    for source, destination in transfers:
+        if source == r['curve_base'] and destination == r['user_base']:
+            mask |= 1
+        elif not r['native'] and source == r['user_quote'] and destination == r['curve_quote']:
+            mask |= 2
+        elif not r['native'] and source == r['user_quote'] and destination == r['recipient']:
+            mask |= 4
+        else:
+            raise AssertionError(('unrecognized transfer leg', source, destination))
+    return mask
 
 
 def slots(c):
@@ -178,11 +204,11 @@ class FrozenV3ExactQuoteCapturedTests(unittest.TestCase):
                 twin = base.run_captured(c)
                 twin_end = ending(twin)
                 self.assertTrue(twin_end == 'done' or twin_end.isdigit(), (label, twin_end))
-                invokes = token_invokes(Recorder.logs)
+                legs = invoked_legs(c, Recorder.transfers)
                 gross = gross_amounts(answer) if answer[0] == 'ok' else (0, 0, 0)
                 self.assertGreaterEqual(gross[2], 0, (label, gross))
                 for name, mint, owner, key_name in slots(c):
-                    line = (f"{name},{twin_end},{invokes},{gross[0]},{gross[1]},{gross[2]},"
+                    line = (f"{name},{twin_end},{legs},{gross[0]},{gross[1]},{gross[2]},"
                             f"{int(r['program'] == base.TOKEN22)}")
                     expected = self.answer(line)
                     with self.subTest(label=label, account=name, twin=twin_end):
@@ -208,6 +234,17 @@ class FrozenV3ExactQuoteCapturedTests(unittest.TestCase):
         self.assertIn(('recipient', '1', '1'), seen)            # Token-2022 destination of the failing leg
         self.assertTrue(any(e == '17' and t == 'done' for _, t, e in seen))
 
+    def test_zero_base_leg_before_insufficient_quote(self):
+        cases = [(label + '-insufficient-quote', dict(c, user_quote=0))
+                 for label, c in base.fixed_cases()
+                 if label in ('wsol-cross-rtr-zero-mayhem', 'usdc-cross-rtr-zero-mayhem')]
+        self.assertEqual(len(cases), 2)
+        seen, runs = self.run_cases(cases)
+        self.assertEqual(runs, 10)
+        self.assertIn(('user_base', '1', '1'), seen)
+        self.assertIn(('user_quote', '1', '17'), seen)
+        self.assertIn(('curve_quote', '1', '17'), seen)
+
     def test_random_cases(self):
         seen, runs = self.run_cases(base.random_cases())
         self.assertGreater(runs, 500)
@@ -231,9 +268,9 @@ class FrozenV3ExactQuoteCapturedTests(unittest.TestCase):
         # InsufficientFunds: earlier legs turn frozen, later legs are never reached
         self.assertEqual(self.answer('curve_base,1,1,0,0,0,0'), '17')
         self.assertEqual(self.answer('user_quote,1,1,0,0,0,0'), '1')
-        self.assertEqual(self.answer('curve_quote,1,3,0,0,0,0'), '17')
-        self.assertEqual(self.answer('recipient,1,3,0,0,0,0'), '17')
-        self.assertEqual(self.answer('recipient,1,3,0,0,0,1'), '1')
+        self.assertEqual(self.answer('curve_quote,1,7,0,0,0,0'), '17')
+        self.assertEqual(self.answer('recipient,1,7,0,0,0,0'), '17')
+        self.assertEqual(self.answer('recipient,1,7,0,0,0,1'), '1')
         self.assertEqual(self.answer('user_quote,1,2,0,0,0,1'), '17')
         self.assertEqual(self.answer('curve_quote,1,2,0,0,0,1'), '1')
 

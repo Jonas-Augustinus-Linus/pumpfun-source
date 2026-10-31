@@ -47,8 +47,8 @@
 //! `tests/test_token2022_bodies_multi_captured.py`. Not linked into the
 //! SBF crate. This is not a byte-identity claim.
 //!
-//! Unconfirmed (미확인, outside the checked inputs): a load body in a
-//! three-or-more-fault trade, the v2 recipient-creation faults
+//! Unconfirmed (미확인, outside the checked inputs): three-or-more-fault combinations beyond the checked
+//! single-body-plus-two-fault conditional probes (which include load bodies), the v2 recipient-creation faults
 //! (`associated_*.missing`) next to two bodies, body pairs on routes
 //! outside the pair routes the admission packet uses, and faults whose
 //! place the place table does not name beyond the admission bucket.

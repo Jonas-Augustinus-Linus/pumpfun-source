@@ -17,7 +17,7 @@ it is not a byte-identity claim.
 Unconfirmed: the events of a route that fails after an earlier hop (they
 appear in the failed transaction's logs but commit nothing, so they are not
 compared), and a completion event for a buy that drains a curve whose real
-reserves were already zero. The fee recipient, the volume accumulator,
+reserves were already zero, and exact-drain/no-post-completion routes not exercised here. The fee recipient, the volume accumulator,
 cashback, holder rewards and the shareholder list are pinned at what these
 fixtures emit: the fixture Global never sets a fee recipient, no volume
 account is seeded, and a cashback coin that would charge the creator fee is
@@ -67,6 +67,19 @@ RANDOM_EVENTS = (616, 67, 67, 61)
 
 def flat(data):
     return bytes(data[1:]) if data and isinstance(data[0], list) else bytes(data)
+
+
+def self_cpi_payloads(inner, keys):
+    """Only Pump-targeted instructions are Pump self-CPI copies."""
+    out = []
+    for item in inner:
+        ix = item['instruction']
+        if keys[ix['programIdIndex']] != PUMP:
+            continue
+        data = flat(ix['data'])
+        if data.startswith(EVENT_IX_TAG):
+            out.append(data)
+    return out
 
 
 _HOST = None
@@ -174,7 +187,7 @@ class Chain(t22.Chain):
                     recipient=vm.get_account(recipient).lamports - TOKEN_RENT if r['recipient'] == 0 else amount(recipient),
                     recipient_withheld=t22.withheld_of(raw(recipient)), user_lamports=vm.get_account(user).lamports - USER_LAMPORTS,
                     events=[base64.b64decode(line[14:]) for line in logs if line.startswith('Program data: ')],
-                    self_cpi=[d for d in (flat(i['instruction']['data']) for i in inner) if d.startswith(EVENT_IX_TAG)])
+                    self_cpi=self_cpi_payloads(inner, list(tx.message.account_keys)))
 
 
 def trade_bytes(values):
@@ -317,6 +330,14 @@ class MultiHopEventsCaptured(unittest.TestCase):
                 self.assertNotEqual(event_problems(r, line, dict(got, events=[want[1], want[0]] + want[2:])), [])
             self.assertNotEqual(event_problems(r, line, dict(got, self_cpi=[])), [])
             self.assertNotEqual(event_problems(r, 'error:6024', got), [])
+
+
+class SelfCpiTargetTests(unittest.TestCase):
+    def test_same_payload_under_another_program_is_not_a_self_cpi(self):
+        payload = EVENT_IX_TAG + b'event'
+        ix = lambda index: {'instruction': {'programIdIndex': index, 'data': list(payload)}}
+        self.assertEqual(self_cpi_payloads([ix(0), ix(1)], [TOKEN, PUMP]), [payload])
+        self.assertEqual(self_cpi_payloads([ix(0)], [TOKEN]), [])
 
 
 if __name__ == '__main__':

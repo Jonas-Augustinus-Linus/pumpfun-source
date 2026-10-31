@@ -282,7 +282,7 @@ class Token2022BodiesMultiCapturedTests(unittest.TestCase):
                             got = self.alone(family, ix, quote, slot, table, label)
                             self.assertEqual(got, 'ok', (family, ix, quote, slot, label))
                             count += 1
-        self.assertGreater(count, 300)
+        self.assertEqual(count, 351)
 
     def standard_pair_cases(self):
         cases = []
@@ -297,7 +297,7 @@ class Token2022BodiesMultiCapturedTests(unittest.TestCase):
 
     def test_two_bodies_match_captured_program(self):
         kept, answers = self.compare(self.standard_pair_cases())
-        self.assertGreater(len(kept), 4000)
+        self.assertEqual(len(kept), 4752)
         self.assertTrue({'17', '36', '42', '67', '6063', 'InvalidAccountData', 'UninitializedAccount'} <= set(answers))
 
     def new_pair_cases(self):
@@ -315,7 +315,7 @@ class Token2022BodiesMultiCapturedTests(unittest.TestCase):
 
     def test_two_bodies_next_to_a_new_extension_match_captured_program(self):
         kept, _ = self.compare(self.new_pair_cases())
-        self.assertGreater(len(kept), 2500)
+        self.assertEqual(len(kept), 3420)
 
     def trio_cases(self):
         cases = []
@@ -343,7 +343,7 @@ class Token2022BodiesMultiCapturedTests(unittest.TestCase):
 
     def test_two_bodies_and_a_fault_match_captured_program(self):
         kept, _ = self.compare(self.trio_cases())
-        self.assertGreater(len(kept), 2000)
+        self.assertEqual(len(kept), 2727)
 
     def duo_cases(self):
         cases = []
@@ -374,7 +374,7 @@ class Token2022BodiesMultiCapturedTests(unittest.TestCase):
 
     def test_a_body_and_two_faults_match_captured_program(self):
         kept, _ = self.compare(self.duo_cases())
-        self.assertGreater(len(kept), 500)
+        self.assertEqual(len(kept), 1050)
 
     def test_checker_rejects_a_different_outcome(self):
         # Negative controls: the same inputs with another body give another answer.

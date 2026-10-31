@@ -4,7 +4,7 @@ Every fixed case of `tests/test_v3_trade_accounting_captured.py` runs on the
 captured `evidence/original/pump/deployed.so` once as written and once per
 token account it holds with that account frozen (state byte 2): the user's
 and the curve's base accounts, and on token-quote routes also the user's and
-the curve's quote accounts and the buyback recipient's. The frozen run's
+the curve's quote accounts and the buyback recipient's. The unfrozen twin's
 ending goes to `programs/pump/recovered/frozen_v3_trade_host.rs`, whose
 answer must equal it. A frozen run that fails must also leave every watched
 account byte-identical (only the 5,000-lamport transaction fee is paid), and
@@ -150,6 +150,7 @@ class FrozenV3TradeCapturedTests(unittest.TestCase):
     def test_fixed_cases(self):
         cases = base.fixed_cases()
         answers = base.model([c for _, c in cases])
+        self.assertEqual(len(answers), len(cases), 'one accounting answer is required per captured case')
         real = base.LiteSVM
         seen = set()
         with mock.patch.object(base, 'LiteSVM', lambda: Recorder(real)):
@@ -184,6 +185,11 @@ class FrozenV3TradeCapturedTests(unittest.TestCase):
         self.assertIn(('buy', 'curve_quote', '1', '1'), seen)            # Token-2022 destination
         self.assertIn(('buy', 'recipient', '1', '17'), seen)             # SPL Token failing leg
         self.assertTrue(any(e == '17' and t == 'done' for _, _, t, e in seen))
+
+    def test_truncated_accounting_answers_are_rejected(self):
+        with mock.patch.object(base, 'model', return_value=[]), \
+                self.assertRaisesRegex(AssertionError, 'one accounting answer'):
+            self.test_fixed_cases()
 
     def test_model_answers(self):
         self.assertEqual(self.answer('buy,user_base,done,3,1,1,0'), '17')

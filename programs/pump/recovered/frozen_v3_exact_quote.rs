@@ -33,6 +33,9 @@
 //! Judging a leg by the net delta of the account it touches gets all
 //! three wrong, which is why this model takes the execution record —
 //! each leg's gross amount — instead of the accounting model's deltas.
+//! Failing twins supply actual invoked-leg identities from their inner
+//! instructions: zero-amount earlier legs may have been skipped. This is
+//! conditional on the unfrozen captured twin, not an independent handler.
 //! It is the companion of `frozen_v3_trade.rs`, which covers `buy_v3` /
 //! `sell_v3` over the trade-accounting cases; the handlers share
 //! `v3_execute_buy`, but that model's inputs are net deltas, and on the
@@ -89,10 +92,9 @@ pub struct Execution {
     pub quote_gross: u64,
     /// Gross buyback transfer (before the transfer fee is withheld).
     pub buyback_gross: u64,
-    /// Token-program invocations the twin started. A failing twin's last
-    /// invocation is the transfer that failed; a Pump error raised after
-    /// some transfers leaves that many invocations behind it.
-    pub invokes: u32,
+    /// Actual unfrozen token CPI legs: bit 0 base, bit 1 quote, bit 2 buyback.
+    /// A skipped zero leg is absent; invocation count cannot identify it.
+    pub invoked_legs: u8,
     /// Whether the quote legs run under Token-2022 (the base leg always
     /// runs under SPL Token).
     pub token_2022: bool,
@@ -130,10 +132,15 @@ pub fn frozen(account: Account, unfrozen: Unfrozen, exec: Execution) -> Unfrozen
             // The twin died inside a token transfer, the last one it
             // started. An earlier leg's frozen account fails first; a later
             // leg is never reached.
-            if leg < exec.invokes {
+            let bit = 1 << (leg - 1);
+            if exec.invoked_legs & bit == 0 {
+                return Unfrozen::Code(code);
+            }
+            let last_leg = 8 - exec.invoked_legs.leading_zeros();
+            if leg < last_leg {
                 return Unfrozen::Code(ACCOUNT_FROZEN);
             }
-            if leg > exec.invokes {
+            if leg > last_leg {
                 return Unfrozen::Code(code);
             }
             // The frozen account sits on the failing leg itself. SPL Token
@@ -153,7 +160,7 @@ pub fn frozen(account: Account, unfrozen: Unfrozen, exec: Execution) -> Unfrozen
             // is raised after a transfer — the base leg, one invocation —
             // so exactly that leg turns frozen and the later legs keep the
             // error. Every other failing twin starts no transfer at all.
-            if exec.invokes > 0 && leg <= exec.invokes {
+            if exec.invoked_legs & (1 << (leg - 1)) != 0 {
                 Unfrozen::Code(ACCOUNT_FROZEN)
             } else {
                 Unfrozen::Code(code)

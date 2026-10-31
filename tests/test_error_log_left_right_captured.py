@@ -397,6 +397,8 @@ class ErrorLogLeftRightCapturedTests(unittest.TestCase):
         form_answers = self.answers(form_queries)
         block_queries = [('block', *site, left, right) for site, left, right, _ in paired]
         block_answers = self.answers(block_queries)
+        self.assertEqual(len(form_answers), len(paired), 'one form answer is required per paired block')
+        self.assertEqual(len(block_answers), len(paired), 'one block answer is required per paired block')
         wrong = []
         for (site, left, right, record), forms_answer, block_answer in zip(paired, form_answers, block_answers):
             if site in EXCLUDED:
@@ -416,6 +418,14 @@ class ErrorLogLeftRightCapturedTests(unittest.TestCase):
             if block_answer != f'Left:\t{left}\tRight:\t{right}':
                 wrong.append((site, f'block answer {block_answer!r}'))
         self.assertEqual(wrong[:6], [], f'{len(wrong)} of {len(paired)} paired blocks differ')
+
+    def test_truncated_paired_answers_are_rejected(self):
+        count = sum(left is not None for _site, left, _right in self.events)
+        for forms, blocks in (([], ['unused'] * count), (['unused'] * count, [])):
+            with self.subTest(forms=len(forms), blocks=len(blocks)), \
+                    mock.patch.object(self, 'answers', side_effect=[forms, blocks]), \
+                    self.assertRaisesRegex(AssertionError, 'one .* answer is required'):
+                self.test_every_paired_block_matches_the_model()
 
     def test_unpaired_sites_log_no_pair(self):
         unpaired = {site for site, left, _ in self.events if left is None}

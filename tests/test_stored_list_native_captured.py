@@ -23,6 +23,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 from solders.account import Account
 from solders.compute_budget import set_compute_unit_limit
@@ -52,7 +53,6 @@ FEE_PAYER = Keypair.from_seed(bytes([242]) * 32)
 IX = base.IX['distribute_creator_fees_v2']
 SHARING_HEADER, SHARING_ROW = 80, 34
 KEYS = [Pubkey.from_bytes(i.to_bytes(4, 'big') * 8) for i in range(1, 1300)]
-base.HOLDERS = KEYS
 FLAWS = {'creator': dict(curve_creator='other'), 'mint': dict(config_mint='other')}
 
 
@@ -199,7 +199,10 @@ class StoredListNativeCapturedTests(unittest.TestCase):
         subprocess.run(['rustc', '--edition=2021', '-O', '-D', 'warnings', str(HOST_SOURCE), '-o', str(host)],
                        check=True)
         cls.host = host
-        cls.rows = run_shapes(Harness())
+        # Keep the enlarged key vocabulary local to this fixture. Importing
+        # this module must not change the ordinary distribution test suite.
+        with mock.patch.object(base, 'HOLDERS', KEYS):
+            cls.rows = run_shapes(Harness())
         text = ''.join(row['line'] + '\n' for row in cls.rows)
         cls.answers = subprocess.run([str(host)], input=text, capture_output=True, text=True,
                                      check=True).stdout.splitlines()

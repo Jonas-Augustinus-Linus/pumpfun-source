@@ -123,7 +123,7 @@ def holder_key(i, h):
     return OTHER if h['key'] == 'other' else holder_address(i, h)
 
 
-def run_captured(item):
+def run_captured(item, *, include_failed_state=False):
     vm = LiteSVM().with_sigverify(True).with_transaction_history(0)
     vm.add_program_from_file(PUMP, PUMP_ELF)
     vm.set_clock(Clock(100, TIMESTAMP, 0, 0, TIMESTAMP))
@@ -149,11 +149,20 @@ def run_captured(item):
     before = [lamports(key) for key in watched]
     tx = Transaction.new_signed_with_payer([Instruction(PUMP, bytes(ix['discriminator']), metas)], PAYER.pubkey(),
                                            [PAYER], vm.latest_blockhash())
+    def snapshot():
+        keys = {PAYER.pubkey(), *(meta.pubkey for meta in metas)}
+        return {str(key): json.loads(account.to_json()) if (account := vm.get_account(key)) else None
+                for key in keys}
+    failed_before = snapshot() if include_failed_state else None
     result = vm.send_transaction(tx)
     if isinstance(result, FailedTransactionMetadata):
         text = str(result.err())
         code = re.search(r'Custom\((\d+)\)', text)
-        return {'error': int(code.group(1)) if code else text}
+        outcome = {'error': int(code.group(1)) if code else text}
+        if include_failed_state:
+            outcome.update(before=failed_before, after=snapshot(),
+                           events=[line for line in result.meta().logs() if line.startswith('Program data: ')])
+        return outcome
     # Signed after - before for every watched account.
     delta = [lamports(k) - b for k, b in zip(watched, before)]
     events = [base64.b64decode(line[14:]) for line in result.logs() if line.startswith('Program data: ')]

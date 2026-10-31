@@ -245,7 +245,9 @@ def run_case(item):
     final = apart.snap()
     together = Chain(**item['setup'])
     limit = '-' if item['limit'] is None else item['limit']
-    return dict(line=';'.join([str(limit), *steps]), before=before, apart=final, emitted=emitted,
+    builtins = sum(op[0] == 'pay' for op in item['ops'])
+    declared = f'{limit},{len(item["ops"]) - builtins},{builtins}'
+    return dict(line=';'.join([declared, *steps]), before=before, apart=final, emitted=emitted,
                 joined=together.send(item['ops'], item['limit']), after=together.snap())
 
 
@@ -491,6 +493,13 @@ class SameTxTradesCapturedTests(unittest.TestCase):
         at_head = Chain(quote='spl').send(ops, LEAD_UNITS + sum(units[:7]) + 1)
         self.assertEqual(label(at_head['err']), 'budget')
         self.assertEqual(answer(LEAD_UNITS + sum(units[:7]) + 1), 'fail,8,budget,5000')
+
+    def test_default_budget_counts_instructions_after_a_failing_prefix(self):
+        cases = [case(ops, limit=None, quote='spl', missing=MISSING4, user_quote=0)
+                 for ops in ([BUY2, SELL2], [PAY, BUY2, SELL2], [BUY2, SELL2, PAY])]
+        answers = self.run_cases(cases)
+        self.assertEqual([answer.split(',')[2] for answer in answers], ['c1'] * 3)
+        self.assertEqual([int(answer.split(',')[1]) for answer in answers], [0, 1, 0])
 
     def test_seeded_random_cases_match_captured_program(self):
         answers = self.run_cases(random_cases())

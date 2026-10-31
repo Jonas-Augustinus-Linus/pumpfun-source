@@ -1,3 +1,5 @@
+//! Harvested rows include open observations; only answered rows are compared.
+//! Send-limited base-suite prefixes are not complete base-suite executions.
 //! Captured reading of accounts past the declared list of Pump commands,
 //! on the wider harvest.
 //!
@@ -6,7 +8,7 @@
 //! of its arms are marked unconfirmed there and several more rest on few rows.
 //! This model is the same reading checked by `tests/test_trailing_accounts_deep_captured.py`,
 //! which runs 26 base tests, lets each send up to 300 transactions and keeps
-//! eight rows per class: 16,404 recorded comparisons. Every arm the first
+//! eight rows per class: a finite harvest of recorded rows; open rows are excluded from prediction counts. Every arm the first
 //! model left unconfirmed is confirmed here, and where the wider harvest
 //! disagrees with an arm, this file carries the corrected answer and says why.
 //! The first model is unchanged; where the two disagree, the answers here are

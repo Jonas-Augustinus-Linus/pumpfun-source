@@ -1,8 +1,8 @@
 """Captured-program checks for accounts past the declared list, wider harvest.
 
 The deep companion of `tests/test_trailing_accounts_captured.py`: the same
-wrapper around LiteSVM, run over 26 base tests with up to 300 sends each and
-eight rows kept per class, for 16,404 recorded comparisons. Each row goes to
+wrapper around LiteSVM, collecting prefixes of 26 base modules with up to 300 sends each and
+eight rows kept per class, for a wider recorded harvest. Open rows are observations excluded from native prediction counts. Each row goes to
 `programs/pump/recovered/trailing_accounts_deep_host.rs`, whose model
 confirms the arms the first test leaves unconfirmed and carries the
 corrections the wider harvest forces. An answer of `same` must match the
@@ -172,7 +172,7 @@ class Twin:
 
     def send_transaction(self, tx):
         if Twin.sends >= SENDS:
-            finish()
+            finish(stopped_at_send_limit=True)
         Twin.sends += 1
         call = pump_call(tx)
         if call is not None:
@@ -200,10 +200,10 @@ class Twin:
             })
 
 
-def finish():
+def finish(stopped_at_send_limit=False):
     """Report and leave: subtests would otherwise walk every remaining base case."""
     result = Twin.result
-    print(json.dumps({'rows': Twin.rows, 'failures': len(result.failures), 'errors': len(result.errors)}), flush=True)
+    print(json.dumps({'rows': Twin.rows, 'failures': len(result.failures), 'errors': len(result.errors), 'sends': Twin.sends, 'stopped_at_send_limit': stopped_at_send_limit, 'base_suite_completed': not stopped_at_send_limit}), flush=True)
     os._exit(0)
 
 
@@ -260,6 +260,8 @@ def mismatches(rows, answers):
     return wrong
 
 
+# Open rows are harvested observations, not matched native predictions.
+# A stopped prefix is not completion of the underlying base suite.
 class TrailingAccountsDeepCapturedTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -273,11 +275,12 @@ class TrailingAccountsDeepCapturedTests(unittest.TestCase):
         cls.rows = [row for run in cls.runs.values() for row in run['rows']]
         cls.answers = ask_host(cls.host, cls.rows)
 
-    def test_base_tests_still_pass_under_the_wrapper(self):
+    def test_collected_prefix_has_no_reported_failures(self):
         self.assertEqual({k: (v['failures'], v['errors']) for k, v in self.runs.items() if v['failures'] or v['errors']}, {})
 
-    def test_every_case_matches_captured_program(self):
+    def test_every_answered_case_matches_captured_program(self):
         self.assertGreater(len(self.rows), 1000)
+        self.assertGreater(sum(a != 'open' for a in self.answers), 0)
         wrong = mismatches(self.rows, self.answers)
         self.assertEqual(wrong[:5], [], f'{len(wrong)} mismatches')
 

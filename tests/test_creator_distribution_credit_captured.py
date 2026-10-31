@@ -1,5 +1,6 @@
 """Native creator-fee credit limits compared with signed captured-program runs."""
 import hashlib
+import copy
 import json
 from pathlib import Path
 import subprocess
@@ -67,10 +68,14 @@ def records():
                        else alias.DistributionAliasCapturedTests())
             vm = alias.Vm() if name == 'aliases' else None
             for case, answer in zip(cases, answers):
-                captured = ordinary.run_captured(case) if vm is None else vm.run(case)
+                captured = ordinary.run_captured(case, include_failed_state=True) if vm is None else vm.run(case)
                 try:
                     if name == 'ordinary' and answer == 'ArithmeticOverflow':
                         checker.assertIn('ArithmeticOverflow', str(captured['error']))
+                        expected = copy.deepcopy(captured['before'])
+                        expected[str(ordinary.PAYER.pubkey())]['lamports'] -= 5000
+                        checker.assertEqual(captured['after'], expected)
+                        checker.assertEqual(captured['events'], [])
                     else:
                         checker.assert_matches(case, answer, captured)
                 except AssertionError:

@@ -1,3 +1,4 @@
+//! Scope excludes exact-drain/no-post-completion cases not exercised by the adapter.
 //! The events `multi_hop_curve_swap` emits, recorded alongside the settlement
 //! `multi_hop_token2022.rs` already models: one `TradeEvent` per hop, a
 //! `CompleteEvent` when a hop's fill drains the curve, and a

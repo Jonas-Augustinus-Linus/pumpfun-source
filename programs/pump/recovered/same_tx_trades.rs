@@ -82,19 +82,23 @@ pub enum Outcome {
     Failed { index: u64, failure: String, fee: u64 },
 }
 
-fn default_limit(steps: &[Step]) -> u64 {
-    let builtin = steps.iter().filter(|s| s.builtin).count() as u64;
-    let programs = steps.len() as u64 - builtin;
+fn default_limit(steps: &[Step], declared: Option<(u64, u64)>) -> u64 {
+    let (programs, builtin) = declared.unwrap_or_else(|| {
+        let builtin = steps.iter().filter(|s| s.builtin).count() as u64;
+        (steps.len() as u64 - builtin, builtin)
+    });
     (programs * DEFAULT_PROGRAM_UNITS + builtin * DEFAULT_BUILTIN_UNITS).min(MAX_UNITS)
 }
 
 /// `limit` is the value of a leading `SetComputeUnitLimit`, which takes
 /// index 0. The steps are trades from the checked fixtures, so the
 /// transaction carries one signature throughout.
-pub fn run(steps: &[Step], limit: Option<u64>) -> Outcome {
+/// `declared` counts all message instructions, including those never executed
+/// after an earlier failure. Their outcomes and compute usage are not invented.
+pub fn run(steps: &[Step], limit: Option<u64>, declared: Option<(u64, u64)>) -> Outcome {
     let fee = SIGNATURE_FEE;
     let lead = u64::from(limit.is_some());
-    let budget = limit.unwrap_or_else(|| default_limit(steps));
+    let budget = limit.unwrap_or_else(|| default_limit(steps, declared));
     let mut units = lead * BUDGET_INSTRUCTION_UNITS;
     let mut trace = lead;
     for (position, step) in steps.iter().enumerate() {

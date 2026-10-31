@@ -7,9 +7,7 @@ required the quote-control header to claim 507 cases and 0 mismatches and
 the multi-hop header to claim 56 of 56 passed, but never opened the lists
 the generators ship beside those claims (``results`` for quote-control,
 ``cases`` for multi-hop). A receipt claiming full counts while shipping a
-3-entry list with a hidden failure passed as a full regression run. When a
-receipt includes its list, its header must match a recount of that list.
-Count-only shapes retain their previous claimed-count checks.
+3-entry list with a hidden failure passed as a full regression run. Each receipt must retain its typed list and match a recount of that list.
 """
 
 import ast
@@ -27,23 +25,14 @@ if str(SCRIPTS) not in sys.path:
 
 
 def load_verifier():
-    # The verifier imports solders and the differential modules at module
-    # level; stub them so the recount helpers load without those packages.
-    for name in ("pump_set_mayhem_params_synthetic_cpi",
-                 "verify_pump_set_mayhem_params_synthetic"):
-        stub = types.ModuleType(name)
-        stub.__file__ = str(SCRIPTS / "stub.py")
-        sys.modules.setdefault(name, stub)
-    solders = types.ModuleType("solders")
-    transaction = types.ModuleType("solders.transaction")
-    transaction.VersionedTransaction = object
-    solders.transaction = transaction
-    sys.modules.setdefault("solders", solders)
-    sys.modules.setdefault("solders.transaction", transaction)
-    spec = importlib.util.spec_from_file_location("mayhem_8099_verifier", VERIFIER)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    # Load just the production recount functions; do not pollute sys.modules
+    # with fake solders/producer modules during combined test discovery.
+    tree = ast.parse(VERIFIER.read_text())
+    functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)
+                 and node.name in ('assert_quote_regression_recount', 'assert_curve_regression_recount')]
+    namespace = {}
+    exec(compile(ast.fix_missing_locations(ast.Module(body=functions, type_ignores=[])), str(VERIFIER), 'exec'), namespace)
+    return types.SimpleNamespace(**namespace)
 
 
 verifier = load_verifier()
@@ -85,8 +74,12 @@ class QuoteRegressionRecountTests(unittest.TestCase):
         quote_recount({"cases": 3, "mismatches": 1,
                        "results": quote_results([True, False, True])})
 
-    def test_count_only_shape_preserved(self):
-        quote_recount({"cases": 507, "mismatches": 0})
+    def test_missing_or_wrong_type_results_are_rejected(self):
+        for results in (None, {}, "missing"):
+            with self.subTest(results=results), self.assertRaises(AssertionError):
+                quote_recount({"cases": 507, "mismatches": 0, "results": results})
+        with self.assertRaises(AssertionError):
+            quote_recount({"cases": 1, "mismatches": 0, "results": [{"matches": "true"}]})
 
 
 class CurveRegressionRecountTests(unittest.TestCase):
@@ -114,8 +107,15 @@ class CurveRegressionRecountTests(unittest.TestCase):
         curve_recount({"case_count": 3, "passed": 2, "mismatches": [1],
                        "cases": curve_cases(failing=(1,))})
 
-    def test_count_only_shape_preserved(self):
-        curve_recount({"case_count": 56, "passed": 56, "mismatches": []})
+    def test_actual_producer_header_does_not_require_an_invented_mismatch_index(self):
+        curve_recount({'case_count': 3, 'passed': 3, 'cases': curve_cases()})
+        with self.assertRaises(AssertionError):
+            curve_recount({'case_count': 3, 'passed': 3, 'cases': curve_cases(failing=(1,))})
+
+    def test_missing_or_wrong_type_cases_are_rejected(self):
+        for cases in (None, {}, "missing"):
+            with self.subTest(cases=cases), self.assertRaises(AssertionError):
+                curve_recount({"case_count": 56, "passed": 56, "mismatches": [], "cases": cases})
 
 
 class RecountWiringTests(unittest.TestCase):

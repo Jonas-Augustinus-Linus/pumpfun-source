@@ -1,4 +1,4 @@
-//! Host for `same_tx_trades.rs`: one line = limit, then
+//! Host for `same_tx_trades.rs`: one line = limit[,programs,builtins], then
 //! `failure:units:trace:fill:builtin` per step, split by `;`
 //! (`-` = no limit, `ok` = no failure).
 #[path = "same_tx_trades.rs"]
@@ -22,10 +22,12 @@ fn main() {
     for line in std::io::stdin().lock().lines() {
         let line = line.unwrap();
         let mut parts = line.split(';');
-        let limit = parts.next().unwrap();
+        let header: Vec<&str> = parts.next().unwrap().split(',').collect();
+        let limit = header[0];
         let limit = (limit != "-").then(|| limit.parse().unwrap());
+        let declared = (header.len() == 3).then(|| (header[1].parse().unwrap(), header[2].parse().unwrap()));
         let steps: Vec<Step> = parts.map(step).collect();
-        match run(&steps, limit) {
+        match run(&steps, limit, declared) {
             Outcome::Passed { fee, saved, units, trace } => println!("ok,{fee},{saved},{units},{trace}"),
             Outcome::Failed { index, failure, fee } => println!("fail,{index},{failure},{fee}"),
         }

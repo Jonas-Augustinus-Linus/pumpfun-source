@@ -375,8 +375,15 @@ def check(c, got, answer):
     uva = got['uva']
     if (bytes(uva.owner), len(uva.data), uva.data[:8]) != (bytes(PUMP), 137, ACCOUNT_DISC['UserVolumeAccumulator']):
         bad.append('accumulator account')
-    elif struct.unpack_from('<Q', uva.data, UVA_EARNED)[0] != m['earned']:
-        bad.append('cashback_earned')
+    else:
+        before = got['before'].get(USER_VOLUME)
+        expected = bytearray(before[1] if before and len(before[1]) == 137 else bytes(137))
+        if not before or len(before[1]) != 137:
+            expected[:8] = ACCOUNT_DISC['UserVolumeAccumulator']
+            expected[8:40] = bytes(USER.pubkey())
+        struct.pack_into('<Q', expected, UVA_EARNED, m['earned'])
+        if bytes(uva.data) != bytes(expected):
+            bad.append('accumulator bytes')
     for field, value in got['event'].items():
         want = c['mayhem'] if field == 'mayhem_mode' else m[field]
         if value != want:
@@ -521,7 +528,9 @@ class V2CashbackCaptured(unittest.TestCase):
         return results
 
     def test_fixed_cases(self):
-        results = self.run_all(fixed_cases())
+        cases = fixed_cases()
+        self.assertEqual(len(cases), 839)
+        results = self.run_all(cases)
         outcomes = {a[1] if a[0] == 'error' else a[0] for a in results}
         for want in ('ok', 'panic', 102, 2005, 3002, 3007, 6000, 6002, 6003, 6005, 6020, 6021, 6022, 6023, 6024, 6025, 6026,
                      6041, 6042, 6057):
@@ -530,7 +539,9 @@ class V2CashbackCaptured(unittest.TestCase):
         self.assertTrue(any(a[0] == 'ok' and a[1]['cashback'] and a[1]['holder_rewards'] for a in results))
 
     def test_random_cases(self):
-        self.assertGreaterEqual(sum(a[0] == 'ok' for a in self.run_all(random_cases())), 60)
+        cases = random_cases()
+        self.assertEqual(len(cases), 300)
+        self.assertGreaterEqual(sum(a[0] == 'ok' for a in self.run_all(cases)), 60)
 
     def test_checker_rejects_tampered_outcomes(self):
         for op in OPS:
@@ -541,6 +552,11 @@ class V2CashbackCaptured(unittest.TestCase):
             for field in answer[1]:
                 self.assertNotEqual(check(c, got, ('ok', dict(answer[1], **{field: answer[1][field] + 1}))), [], field)
             self.assertNotEqual(check(c, got, ('error', 6024)), [])
+            for offset in (8, 40, 82, 136):
+                data = bytearray(got['uva'].data)
+                data[offset] ^= 1
+                changed = dict(got, uva=Account(got['uva'].lamports, bytes(data), got['uva'].owner))
+                self.assertNotEqual(check(c, changed, answer), [], ('accumulator byte', offset))
 
     def test_model_response_count_and_format_are_strict(self):
         case = default_case()
