@@ -1,0 +1,134 @@
+{
+  "base": "9120883a957d7d9b2cab6140f66fb5bc9e6774d5",
+  "method": "actual standalone CLI with retained score/rescore JSON; child RLIMIT_FSIZE=64",
+  "input_sha256": {
+    "reconstruction/pump-main/baseline/score.json": "d8b94e211ab43543f8c36bcc566440dec73d8c1c590df3fcb33536c88a21727d",
+    "reconstruction/pump-main/baseline/rescore.json": "24fe5efbe4c0b2a959b1e9c273dd76bdae610d7caef215be9f1d4c8b27c083c8"
+  },
+  "input_window_counts": [
+    1035,
+    1035
+  ],
+  "base_cli_sha256": "f6e0c2a90d4e7b34a163d0044e84f55d59a8347e5edee45e0eb1aa0431f109fa",
+  "fixed_cli_sha256": "e59024567db9b2373fe01d377f42308554434d182f5981153cd6814412245b74",
+  "before": {
+    "failed_write": {
+      "exit": 2,
+      "stderr": "cannot create comparison report: [Errno 27] File too large\n",
+      "report_exists": true,
+      "report_bytes": 64,
+      "files": [
+        "comparison.json"
+      ]
+    },
+    "same_command_retry": {
+      "exit": 2,
+      "stderr": "cannot create comparison report: [Errno 17] File exists: '${TMP}/reports/comparison.json'\n",
+      "report_exists": true,
+      "report_bytes": 64,
+      "files": [
+        "comparison.json"
+      ]
+    },
+    "unlimited_control": {
+      "exit": 0,
+      "stderr": "",
+      "report_exists": true,
+      "report_bytes": 274,
+      "files": [
+        "comparison.json",
+        "control.json"
+      ]
+    },
+    "existing_report": {
+      "exit": 2,
+      "stderr": "cannot create comparison report: [Errno 17] File exists: '${TMP}/reports/existing.json'\n",
+      "report_exists": true,
+      "report_bytes": 22,
+      "files": [
+        "comparison.json",
+        "control.json",
+        "existing.json"
+      ],
+      "unchanged": true
+    },
+    "input_aliases": [
+      {
+        "exit": 2,
+        "report_bytes": 351868
+      },
+      {
+        "exit": 2,
+        "report_bytes": 323071
+      }
+    ]
+  },
+  "after": {
+    "failed_write": {
+      "exit": 2,
+      "stderr": "cannot create comparison report: [Errno 27] File too large\n",
+      "report_exists": false,
+      "report_bytes": null,
+      "files": []
+    },
+    "same_command_retry": {
+      "exit": 0,
+      "stderr": "",
+      "report_exists": true,
+      "report_bytes": 274,
+      "files": [
+        "comparison.json"
+      ]
+    },
+    "unlimited_control": {
+      "exit": 0,
+      "stderr": "",
+      "report_exists": true,
+      "report_bytes": 274,
+      "files": [
+        "comparison.json",
+        "control.json"
+      ]
+    },
+    "existing_report": {
+      "exit": 2,
+      "stderr": "cannot create comparison report: [Errno 17] File exists: '${TMP}/reports/.comparison-76146-35f3c642339f1863' -> '${TMP}/reports/existing.json'\n",
+      "report_exists": true,
+      "report_bytes": 22,
+      "files": [
+        "comparison.json",
+        "control.json",
+        "existing.json"
+      ],
+      "unchanged": true
+    },
+    "input_aliases": [
+      {
+        "exit": 2,
+        "report_bytes": 351868
+      },
+      {
+        "exit": 2,
+        "report_bytes": 323071
+      }
+    ]
+  },
+  "control_stdout_sha256": "1dc7d67900efd02c2ff1c4f2b8fc02563356327f836dffa271054515c39b6d65",
+  "control_output_identical": true,
+  "inputs_unchanged": true,
+  "validation": {
+    "new_tests": {
+      "passed": 3,
+      "skipped": 0
+    },
+    "existing_compare_scores_tests": {
+      "passed": 11,
+      "skipped": 0
+    },
+    "tooling_tests": {
+      "passed": 250
+    },
+    "captures_verified": 9
+  },
+  "limits": "POSIX filesystem failure reproduction; no build, scorer rerun, VM or program execution; native Windows and non-hard-link filesystems not qualified"
+}
