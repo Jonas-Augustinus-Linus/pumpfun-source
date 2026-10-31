@@ -1,4 +1,4 @@
-# Saved-score comparison publication
+# Saved-score and diagnostic report publication
 
 Base: `9120883a957d7d9b2cab6140f66fb5bc9e6774d5`.
 
@@ -50,3 +50,38 @@ This qualifies local report publication, not a new score or program match.
 The limit test is explicitly skipped where POSIX file-size limits are
 unavailable; native Windows execution and filesystems without hard-link
 support were not qualified. No crash/power-loss durability claim is made.
+
+## Same-cause diagnostic consumers
+
+`control_flow.py` and `target_metric.py` used the same direct exclusive-write
+pattern. They now call the existing `compare_scores.publish_report` helper;
+the standalone saved-score probe remains self-contained. This is one grouped
+publication fix, with no changes to instruction analysis, ranking or scoring.
+
+`diagnostic_probe.py` runs both actual CLIs, with the original Pump ELF and
+the retained multihop candidate's compressed symbol ELF. The control-flow
+range is the existing 176-byte window at address 288. The metric selects the
+retained `try_accounts` symbol for that window. No binary is executed, built
+or altered; the symbol ELF is decompressed into an owned temporary file.
+
+| Diagnostic | Base limited write / retry | Fixed limited write / retry | Unchanged complete output |
+| --- | --- | --- | --- |
+| `control_flow.py` | 64 bytes; exit 2 / 2 | no output; exit 2 / 0 | 1,319 bytes |
+| `target_metric.py` | 64 bytes; exit 2 / 2 | no output; exit 2 / 0 | 787 bytes |
+
+Existing report and binary-alias destinations remain untouched, and no
+staging files remain after failure. The probe records exact CLI, dependency,
+inventory and input hashes. Its `--revision` mode copies the chosen CLI only;
+the unchanged harness dependencies come from the checkout and are hashed.
+
+```sh
+python -B research/runtime-score-publication-20261101/diagnostic_probe.py . \
+  --revision 9120883a957d7d9b2cab6140f66fb5bc9e6774d5
+python -B research/runtime-score-publication-20261101/diagnostic_probe.py .
+python -B tests/test_diagnostic_report_publication.py
+```
+
+Two additional test methods exercise both real diagnostic CLIs. Final
+affected-suite and mandatory gate counts for the grouped patch are recorded
+in `results.json`; the earlier three-test saved-score result above remains
+the original bounded proof, not the total after grouping.
