@@ -1,5 +1,27 @@
 # Completion and remaining work
 
+## Current maintained selections
+
+Use the [repository overview](../README.md) for the selected source/build recipes,
+complete scoring reports and qualified runtime evidence. The overview currently
+links [completion checkpoint 105](../reconstruction/pump-main/checkpoints/completion-pass105-20261031/README.md)
+and its [machine-readable summary](../reconstruction/pump-main/checkpoints/completion-pass105-20261031/summary.json).
+Those receipts describe their recorded revisions; a later working tree still
+needs its own source/build bindings and validation.
+
+Meaningful ELF equality, full loader-allocation bytes, raw or normalized window
+matches and finite runtime comparisons remain separate claims. Unlinked native
+reference models do not increase compiled completion. Follow the overview's
+selected receipt rather than treating an older checkpoint's counts as current.
+
+The pass-26 selection and older notes below are preserved for provenance. Their
+hashes, counts and uses of “current” or “latest” describe those historical
+checkpoints. The removed `repro/` references are historical links, not current
+selection files. Previously stopped executions listed below remain excluded;
+this status clarification does not reopen them or establish security clearance.
+
+## Historical pass-26 selection
+
 > The `repro/` tree these links point to was removed from `main` in `fce9f28d`; every
 > `../repro/...` path below is historical and resolves at `fce9f28d^`.
 

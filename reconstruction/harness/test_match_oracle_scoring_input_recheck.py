@@ -16,6 +16,7 @@ stubbed scorer would otherwise report a match.
 """
 
 from pathlib import Path
+import hashlib
 import json
 import tempfile
 import subprocess
@@ -35,13 +36,16 @@ class MatchOracleScoringInputRecheckTests(unittest.TestCase):
                 subprocess.run([sys.executable, '-c',
                     'from pathlib import Path; import sys; Path(sys.argv[1]).write_bytes(b"doctored")',
                     str(root / 'work' / 'scoring-inputs' / name)], check=True)
-            return {'ok': True}
+            artifact = output / 'unstripped.so'
+            artifact.write_bytes(b'fixture')
+            return {'ok': True, 'unstripped_sha256': hashlib.sha256(artifact.read_bytes()).hexdigest()}
 
         with patch.object(oracle.score, 'BASE', root), \
                 patch.object(oracle.score, 'original_windows', return_value=[{'start': 8}]), \
                 patch.object(oracle.fastbuild, 'build', side_effect=build), \
                 patch.object(oracle.score, 'score', return_value={8: {'normalized': True}}) as scoring:
-            code = oracle.evaluate(root, root / 'work', out, 8, 'normalized', 'identity')
+            source = root / 'source'; source.mkdir()
+            code = oracle.evaluate(source, root / 'work', out, 8, 'normalized', 'identity')
         return code, scoring
 
     def test_build_rewriting_scoring_inputs_is_refused_a_verdict(self):

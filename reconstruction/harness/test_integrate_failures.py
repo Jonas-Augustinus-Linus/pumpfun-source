@@ -1,5 +1,6 @@
 """Exercise composition failure status without a compiler or scorer."""
 import contextlib
+import hashlib
 import io
 import json
 import subprocess
@@ -29,8 +30,13 @@ class CompositionFailures(unittest.TestCase):
             if no_build:
                 argv.append('--no-build')
             response = subprocess.CompletedProcess(['scorer'], score_code, stdout=score_stdout, stderr='diagnostic')
+            def synthetic_build(source, work, output, **kwargs):
+                output.mkdir(parents=True, exist_ok=True)
+                artifact = output / 'unstripped.so'
+                artifact.write_bytes(b'synthetic compiler output, not an ELF')
+                return {'ok': build_ok, 'unstripped_sha256': hashlib.sha256(artifact.read_bytes()).hexdigest()}
             with patch.object(integrate, 'SC', root), patch.object(sys, 'argv', argv), \
-                 patch.object(integrate, 'build_source', return_value={'ok': build_ok}) as build, \
+                 patch.object(integrate, 'build_source', side_effect=synthetic_build) as build, \
                  patch.object(integrate.subprocess, 'run', return_value=response) as run, \
                  contextlib.redirect_stdout(io.StringIO()):
                 status = integrate.main()

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Synthetic orchestration tests; never run the builder, scorer or a subprocess."""
 import contextlib
+import hashlib
 import importlib.util
 import io
 import json
@@ -25,7 +26,13 @@ class IntegrationBaselineTests(unittest.TestCase):
         # Replace integrate's lazy builder adapter so no compiler
         # configuration or artifact/cache access is needed.
         builder = types.ModuleType('fastbuild')
-        builder.build = Mock(return_value={'ok': build_ok, 'runtime_valid': True})
+        def synthetic_build(source, work, output, **kwargs):
+            output.mkdir(parents=True, exist_ok=True)
+            artifact = output / 'unstripped.so'
+            artifact.write_bytes(b'synthetic compiler output, not an ELF')
+            return {'ok': build_ok, 'runtime_valid': True,
+                    'unstripped_sha256': hashlib.sha256(artifact.read_bytes()).hexdigest()}
+        builder.build = Mock(side_effect=synthetic_build)
         spec = importlib.util.spec_from_file_location('test_subject_integrate', SOURCE)
         module = importlib.util.module_from_spec(spec)
         original_path = sys.path[:]
@@ -87,6 +94,8 @@ class IntegrationBaselineTests(unittest.TestCase):
         self.assertTrue(calls[0][2].endswith('/build/unstripped.so'))
         self.assertIn('--json', calls[0])
         self.assertIn('--quiet', calls[0])
+        self.assertEqual(calls[0][calls[0].index('--expect-sha256') + 1],
+                         hashlib.sha256(b'synthetic compiler output, not an ELF').hexdigest())
         # The orchestration report preserves losses; it does not accept/reject them.
         self.assertEqual(report['score'], SYNTHETIC_SCORE)
 

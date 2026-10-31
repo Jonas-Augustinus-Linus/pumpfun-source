@@ -127,14 +127,17 @@ def stage(src: Path, ws: Path, expected_inputs=None):
     # Mirror inputs with rsync --checksum so unchanged files keep mtimes;
     # only the crate-root manifest/lock are excluded (rewritten below), nested path crates keep their Cargo.toml
     subprocess.run(['rsync', '-a', '--checksum', '--delete',
-                    '--exclude', '/target/', '--exclude', '/Cargo.toml', '--exclude', '/Cargo.lock',
+                    '--exclude', '/target/', '--exclude', '/Cargo.toml',
+                    # Sender-only hiding lets --delete remove a stale crate-local lock.
+                    # The admitted root lock is generated at the workspace root below.
+                    '--filter', 'H /Cargo.lock',
                     str(src) + '/', str(crate) + '/'], check=True)
     # Cargo metadata is generated from admitted buffers below. Bind every other
     # selected input in the copy, including nested path-crate Cargo metadata.
     generated = {'Cargo.toml', 'Cargo.lock'}
     expected = {row['path']: row for row in expected_inputs['files'] if row['path'] not in generated}
     staged_inputs = snapshot(crate)
-    actual = {row['path']: row for row in staged_inputs['files'] if row['path'] not in generated}
+    actual = {row['path']: row for row in staged_inputs['files'] if row['path'] != 'Cargo.toml'}
     changed_dirs = set(staged_inputs['directories']) ^ set(expected_inputs['directories'])
     if actual != expected or changed_dirs:
         changed_files = {name for name in actual.keys() | expected.keys() if actual.get(name) != expected.get(name)}
@@ -227,17 +230,44 @@ def archive_previous_outputs(out: Path):
         path.rename(archive / path.name)
 
 
+def contains_path(parent, child):
+    """Check lexical and existing physical ancestry before creating build paths."""
+    if parent == child or parent in child.parents:
+        return True
+    try:
+        identity = parent.stat()
+    except FileNotFoundError:
+        return False
+    # resolve() removes symlinks but can retain alternate case spellings.
+    # A not-yet-created destination can still have an existing aliased parent.
+    for path in (child, *child.parents):
+        try:
+            if os.path.samestat(identity, path.stat()):
+                return True
+        except FileNotFoundError:
+            continue
+    return False
+
+
+def require_separate(src: Path, work: Path, out: Path):
+    """Reject a workspace or output that overlaps the source tree.
+
+    Reject overlap before workspace_lock can create a directory or lock in
+    the source tree (and thereby change its source-input receipt). The output
+    directory must not contain the source either: publishing into a parent of
+    src archives and writes inside the tree that holds it. Callers that write
+    near the workspace before building must preflight with this first.
+    """
+    src = src.resolve(); work = work.resolve(); out = out.resolve()
+    if any(contains_path(src, path) or contains_path(path, src) for path in (work, out)):
+        raise ValueError('source must not overlap the build workspace or contain output')
+    return src, work, out
+
+
 def build(src: Path, work: Path, out: Path, quiet=False, recipe=None, timeout=None):
     validate_timeout(timeout)
     validate_slots()
-    src = src.resolve(); work = work.resolve(); out = out.resolve()
-    # Reject overlap before workspace_lock can create a directory or lock in
-    # the source tree (and thereby change its source-input receipt). The
-    # output directory must not contain the source either: publishing into a
-    # parent of src archives and writes inside the tree that holds it.
-    if (src == work or src in work.parents or work in src.parents
-            or src == out or src in out.parents or out in src.parents):
-        raise ValueError('source must not overlap the build workspace or contain output')
+    src, work, out = require_separate(src, work, out)
     # Staging uses rsync --delete before prior outputs are archived.
     staged = (work / 'ws/programs/pump').resolve()
     if out == staged or staged in out.parents:
@@ -264,6 +294,9 @@ def _build_locked(src: Path, work: Path, out: Path, quiet=False, recipe=None, ti
     ws = work / 'ws'
     crate = stage(src, ws, expected_inputs=source_inputs)
     assert_unchanged(src, source_inputs)
+    # Bind the transformed copy that Cargo actually reads. A build script may
+    # generate Rust in src/; that must not be attributed to the admitted tree.
+    staged_inputs = snapshot(crate)
     manifest = tomllib.loads((crate / 'Cargo.toml').read_text(encoding='utf-8'))
     library = manifest.get('lib', {}).get('name', manifest['package']['name'].replace('-', '_'))
     target = work / ('target' if recipe == 'mac' else f'target-{recipe}')
@@ -341,6 +374,7 @@ def _build_locked(src: Path, work: Path, out: Path, quiet=False, recipe=None, ti
                 'source_sha256': source_inputs['sha256'],
                 'recipe': recipe, 'triple': triple, 'seconds': round(dt, 1),
                 'log': str(out / 'build.log')}
+    assert_unchanged(crate, staged_inputs, phase='compilation')
     if link_record:
         if not receipt.is_file():
             raise RuntimeError('pinned link script configured but the linker hook did not run')

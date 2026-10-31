@@ -16,12 +16,14 @@ class PreservationTests(unittest.TestCase):
                                   16: {'bytes': 8, 'normalized': True, 'raw': True}}
             raw = json.dumps({'windows': {str(k): v for k, v in before.items()}}).encode()
             path = root / 'reference.json'; path.write_bytes(raw)
+            source = root / 'source'; source.mkdir()
+            (out / 'unstripped.so').write_bytes(b'fixture')
             with patch.object(oracle.score, 'BASE', root), patch.object(oracle.score, 'original_windows',
                     return_value=[{'start': 8, 'bytes': 8}, {'start': 16, 'bytes': 8}]), \
-                 patch.object(oracle.fastbuild, 'build', return_value={'ok': True}) as build, \
+                 patch.object(oracle.fastbuild, 'build', return_value={'ok': True, 'unstripped_sha256': hashlib.sha256(b'fixture').hexdigest()}) as build, \
                  patch.object(oracle.score, 'score', return_value=candidate):
                 try:
-                    code = oracle.evaluate(root, root / 'work', out, 8, 'normalized', 'identity', path)
+                    code = oracle.evaluate(source, root / 'work', out, 8, 'normalized', 'identity', path)
                 except ValueError:
                     self.assertFalse(build.called)
                     raise
