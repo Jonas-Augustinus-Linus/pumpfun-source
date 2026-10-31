@@ -73,6 +73,7 @@ class PumpReport:
         """Publish complete bytes; failed staging never truncates a prior report."""
         self.check()
         staged = None
+        staged_identity = None
         try:
             for _ in range(100):
                 path = self.output.with_name('.' + self.output.name[:32] + '.' + secrets.token_hex(8))
@@ -85,6 +86,8 @@ class PumpReport:
             else:
                 raise FileExistsError('could not create a unique report staging file')
             with stream:
+                metadata = os.fstat(stream.fileno())
+                staged_identity = (metadata.st_dev, metadata.st_ino)
                 stream.write(payload)
                 stream.flush()
                 os.fsync(stream.fileno())
@@ -100,7 +103,13 @@ class PumpReport:
             self._sync_directory(self.output.parent)
         finally:
             if staged is not None:
-                staged.unlink(missing_ok=True)
+                try:
+                    metadata = staged.lstat()
+                except FileNotFoundError:
+                    pass
+                else:
+                    if staged_identity == (metadata.st_dev, metadata.st_ino):
+                        staged.unlink(missing_ok=True)
 
     @staticmethod
     def _sync_directory(directory):

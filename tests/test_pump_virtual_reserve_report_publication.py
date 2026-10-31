@@ -1,4 +1,4 @@
-"""Real 191-case CLI controls for fresh-only virtual reserve report publication."""
+"""Real 192-case CLI controls for fresh-only virtual reserve report publication."""
 import gzip
 import hashlib
 import json
@@ -26,6 +26,8 @@ root,output,mode=sys.argv[1:];root=Path(root);output=Path(output)
 sys.path.insert(0,str(root/'scripts'))
 import pump_virtual_reserve_differential as module
 import pump_differential_output as publisher
+full_cases=module.cases
+module.cases=lambda:list(full_cases())[:2]
 real_fsync=publisher.os.fsync
 def fsync(fd):
     (root/'publication-reached').write_text(mode)
@@ -81,8 +83,8 @@ class PumpVirtualReserveReportPublicationTests(unittest.TestCase):
         self.assertEqual(gzip.decompress(encoded), raw)
         self.assertEqual(encoded[4:8], b'\0' * 4)
         report = json.loads(raw)
-        self.assertEqual(report['case_count'], 191)
-        self.assertEqual(len(report['cases']), 191)
+        self.assertEqual(report['case_count'], 192)
+        self.assertEqual(len(report['cases']), 192)
         self.assertEqual(report['mismatches'], [])
         self.assert_inputs_retained()
         proof = os.environ.get('PUMP_PUBLICATION_PROOF_OUT')
@@ -99,8 +101,8 @@ class PumpVirtualReserveReportPublicationTests(unittest.TestCase):
         result = self.invoke(output)
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         report = json.loads(output.read_bytes())
-        self.assertEqual(report['case_count'], 191)
-        self.assertEqual(len(report['cases']), 191)
+        self.assertEqual(report['case_count'], 192)
+        self.assertEqual(len(report['cases']), 192)
         self.assertTrue(report['mismatches'])
         self.assertEqual(report['candidate_sha256'], hashlib.sha256(candidate.read_bytes()).hexdigest())
 

@@ -100,6 +100,45 @@ class DirectorySyncTests(unittest.TestCase):
                 publisher.write(b'complete')
             self.assertEqual(output.read_bytes(), b'complete')
 
+    @unittest.skipIf(os.name == 'nt', 'fresh publication uses rename on Windows')
+    def test_fresh_publication_preserves_a_recreated_staging_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / 'report.json'
+            publisher = publication.PumpReport(output, root, None, __file__, overwrite=False)
+            real_sync = os.fsync
+            replacements = []
+            def replace_stage(descriptor):
+                if stat.S_ISDIR(os.fstat(descriptor).st_mode):
+                    stage = next(root.glob('.report.json.*'))
+                    stage.unlink()
+                    stage.write_bytes(b'new staging owner')
+                    replacements.append(stage)
+                return real_sync(descriptor)
+            with mock.patch.object(publication.os, 'fsync', side_effect=replace_stage):
+                publisher.write(b'complete receipt')
+            self.assertEqual(output.read_bytes(), b'complete receipt')
+            self.assertEqual(replacements[0].read_bytes(), b'new staging owner')
+
+    @unittest.skipIf(os.name == 'nt', 'fresh publication uses rename on Windows')
+    def test_disappearing_owned_stage_does_not_fail_complete_publication(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / 'report.json'
+            publisher = publication.PumpReport(output, root, None, __file__, overwrite=False)
+            real_lstat, real_unlink = Path.lstat, Path.unlink
+            removed = []
+            def lstat_then_remove(path, *args, **kwargs):
+                metadata = real_lstat(path, *args, **kwargs)
+                if path.name.startswith('.report.json.') and output.exists():
+                    real_unlink(path)
+                    removed.append(path)
+                return metadata
+            with mock.patch.object(Path, 'lstat', lstat_then_remove):
+                publisher.write(b'complete receipt')
+            self.assertEqual(len(removed), 1)
+            self.assertEqual(output.read_bytes(), b'complete receipt')
+
 
 if __name__ == '__main__':
     unittest.main()

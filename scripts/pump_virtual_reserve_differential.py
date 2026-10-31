@@ -109,40 +109,38 @@ def run(binary, case, *, programs=None, capture=None):
 
 
 def cases():
-    def _generate():
-        for index, case in enumerate(f.cases()):
-            yield {'name': f'prior-{index}', **case}
-        base = f.cases()[0]
-        def row(name, **values):
-            return {**base, 'name': name, **values}
-        for supply in (0, 1, U64//2, U64//2+1, U64):
-            for mode in (False, True):
-                yield row(f'supply-{supply}-{mode}', tts=supply, mayhem=mode)
-        for reserve in (0, 9_999_999, 10_000_000, U64//2, U64-1, U64):
-            for token_reserve in (0, 1, 10**15, U64):
-                for spl in (False, True):
-                    yield row(f'arithmetic-{reserve}-{token_reserve}-{spl}', rqr=reserve, vtr=token_reserve, spl=spl)
-        for denominator in (0, 1, 10**12-1, 10**12, 10**12+1):
-            for reserve in (9_999_999, 10_000_000, U64):
-                yield row(f'denominator-{denominator}-{reserve}', tts=10**15, irtr=0,
-                          vault=2*10**15-denominator, rqr=reserve)
-        for role in ('global', 'curve', 'mint', 'vault'):
-            for label, mutation in (
-                ('owner', {'owner': str(f.Pubkey.default())}),
-                ('empty', {'length': 0}), ('zero-lamports', {'lamports': 0}),
-                ('discriminator', {'patches': [(0, 'ff')]})):
-                yield row(f'{role}-{label}', mutations={role: mutation})
-        for length in (7, 8, 48, 80, 81, 82, 83, 115, 125, 165):
-            yield row(f'curve-length-{length}', mutations={'curve': {'length': length}})
-        for role in ('authority', 'vault', 'curve'):
-            yield row(f'readonly-{role}', readonly=role)
-        yield row('direct-without-pda-signature', direct=True)
-        yield row('completed-curve', mutations={'curve': {'patches': [(48, '01')]}})
-        yield row('completed-curve-overflowing-supply', tts=U64,
-                  mutations={'curve': {'patches': [(48, '01')]}})
-        for reserve in (999_999, 1_000_000, 1_000_001):
-            yield row(f'non-native-threshold-{reserve}', spl=True, rqr=reserve)
-    return list(_generate())
+    for index, case in enumerate(f.cases()):
+        yield {'name': f'prior-{index}', **case}
+    base = f.cases()[0]
+    def row(name, **values):
+        return {**base, 'name': name, **values}
+    for supply in (0, 1, U64//2, U64//2+1, U64):
+        for mode in (False, True):
+            yield row(f'supply-{supply}-{mode}', tts=supply, mayhem=mode)
+    for reserve in (0, 9_999_999, 10_000_000, U64//2, U64-1, U64):
+        for token_reserve in (0, 1, 10**15, U64):
+            for spl in (False, True):
+                yield row(f'arithmetic-{reserve}-{token_reserve}-{spl}', rqr=reserve, vtr=token_reserve, spl=spl)
+    for denominator in (0, 1, 10**12-1, 10**12, 10**12+1):
+        for reserve in (9_999_999, 10_000_000, U64):
+            yield row(f'denominator-{denominator}-{reserve}', tts=10**15, irtr=0,
+                      vault=2*10**15-denominator, rqr=reserve)
+    for role in ('global', 'curve', 'mint', 'vault'):
+        for label, mutation in (
+            ('owner', {'owner': str(f.Pubkey.default())}),
+            ('empty', {'length': 0}), ('zero-lamports', {'lamports': 0}),
+            ('discriminator', {'patches': [(0, 'ff')]})):
+            yield row(f'{role}-{label}', mutations={role: mutation})
+    for length in (7, 8, 48, 80, 81, 82, 83, 115, 125, 165):
+        yield row(f'curve-length-{length}', mutations={'curve': {'length': length}})
+    for role in ('authority', 'vault', 'curve'):
+        yield row(f'readonly-{role}', readonly=role)
+    yield row('direct-without-pda-signature', direct=True)
+    yield row('completed-curve', mutations={'curve': {'patches': [(48, '01')]}})
+    yield row('completed-curve-overflowing-supply', tts=U64,
+              mutations={'curve': {'patches': [(48, '01')]}})
+    for reserve in (999_999, 1_000_000, 1_000_001):
+        yield row(f'non-native-threshold-{reserve}', spl=True, rqr=reserve)
 
 
 def report_output(candidate, output):
