@@ -4,6 +4,12 @@ import sys,json,gzip,hashlib,types,re,argparse
 from pathlib import Path
 HERE=Path(__file__).resolve().parent;ROOT=HERE.parents[3]
 p=argparse.ArgumentParser();p.add_argument('--control',type=Path,required=True);p.add_argument('--candidate',type=Path,required=True);p.add_argument('--output',type=Path,required=True);args=p.parse_args()
+# The report binds the hash of every input below; writing it over any of
+# them would destroy the evidence it certifies. Reject a resolved collision
+# before any case runs, not after the run overwrites the input.
+inputs=[args.control,args.candidate,ROOT/'evidence/original/pump/deployed.so',HERE/'fixture.json.gz',ROOT/'scripts/pump_trade_fixture.py',ROOT/'scripts/pump_v3_configured_fee_differential.py']
+if any(args.output.resolve()==path.resolve() for path in inputs):
+    p.error('output overlaps an input; choose a separate --output path')
 sys.path.insert(0,str(ROOT/'scripts'))
 # Only relocate the historical fixture input; execute the unchanged fixture logic.
 p=ROOT/'scripts/pump_trade_fixture.py'

@@ -345,6 +345,7 @@ jobs:
               python -B reconstruction/harness/test_census_external_symbols.py
               python -B reconstruction/harness/test_census_disassembly_snapshot.py
               python -B reconstruction/pump-main/lanes/callgraph-census/test_blocksim.py
+              python -B reconstruction/pump-main/lanes/execute-payment-result/test_replay_output_preservation.py
               python -B reconstruction/harness/test_census_call_barriers.py
               python -B reconstruction/harness/test_census_original_input.py
               python -B reconstruction/harness/test_dataref_length.py
