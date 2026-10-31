@@ -30,13 +30,20 @@ def source_receipt(repo):
     for entry in (repo, repo / 'programs', repo / 'programs/pump'):
         _reject_directory_link(entry)
     repo = repo.resolve(strict=True)
-    toplevel = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', '--show-toplevel'], text=True).rstrip('\r\n')
-    if Path(toplevel).resolve(strict=True) != repo:
+    # -C does not override repository routing inherited from a Git hook/shell.
+    # All receipt queries must describe this explicitly selected checkout.
+    git_env = {key: value for key, value in os.environ.items()
+               if not key.upper().startswith('GIT_')}
+    # Repository paths use the filesystem codec, independently of text locale.
+    toplevel = os.fsdecode(subprocess.check_output(
+        ['git', '-C', str(repo), 'rev-parse', '--show-toplevel'], env=git_env)).rstrip('\r\n')
+    if not Path(toplevel).samefile(repo):
         raise ValueError('Pump source checkout must be a Git worktree root')
-    revision = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True).strip()
+    revision = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'],
+                                      text=True, env=git_env).strip()
     dirty = subprocess.check_output(
         ['git', '-C', str(repo), 'status', '--porcelain=v1', '-z',
-         '--untracked-files=all', '--ignored=traditional', '--', 'programs/pump'])
+         '--untracked-files=all', '--ignored=traditional', '--', 'programs/pump'], env=git_env)
     if any(not entry.startswith(b'!! programs/pump/target/')
            for entry in dirty.split(b'\0') if entry):
         raise ValueError('Pump source checkout must be clean')
@@ -51,6 +58,8 @@ def source_receipt(repo):
 def require_valid_build(result):
     if not result.get('ok') or not result.get('runtime_valid') or result.get('stack_warnings'):
         raise ValueError('build failed or reported invalid stack frames; refusing to score')
+    if not result.get('unstripped_sha256'):
+        raise ValueError('build report has no published digest; refusing to score')
 
 
 def bound_inputs(scoring_inputs, sdk, hybrid):
@@ -65,7 +74,10 @@ def bound_inputs(scoring_inputs, sdk, hybrid):
             'sdk_inventory_sha256': sha(canonical.parent / 'toolchain/v1.44-macos-inventory.json'),
             'target_library_manifest_sha256': sha(Path(__file__).parent / 'linux144-sbpf-target-libs.sha256'),
             'compiler_sha256': sha(hybrid / 'rust/bin/rustc'),
-            'objdump_sha256': sha(sdk / 'llvm/bin/llvm-objdump')}
+            'cargo_sha256': sha(sdk / 'rust/bin/cargo'),
+            'clang_sha256': sha(sdk / 'llvm/bin/clang'),
+            'objdump_sha256': sha(sdk / 'llvm/bin/llvm-objdump'),
+            'objcopy_sha256': sha(sdk / 'llvm/bin/llvm-objcopy')}
 
 
 def run_pair(base, candidate, out, sdk, hybrid, timeout=None):
@@ -125,7 +137,7 @@ def _run_pair(base, candidate, out, sdk, hybrid, timeout):
             require_valid_build(result)
             if source_receipt(repo) != before[name]:
                 raise ValueError('source changed during build')
-            windows = score.score(out / name / 'unstripped.so')
+            windows = score.score(out / name / 'unstripped.so', result['unstripped_sha256'])
             reports[name] = windows
             (out / (name + '-score.json')).write_text(
                 json.dumps({'windows': windows}, indent=2) + '\n',

@@ -16,6 +16,7 @@ import match_oracle as oracle
 
 class VerdictStagingTests(unittest.TestCase):
     def run_evaluate(self, root, out, work_name='work'):
+        source = root / 'source'; source.mkdir(exist_ok=True)
         for name in ['original.so', 'functions.tsv']:
             (root / name).write_bytes(b'fixture')
         with patch.object(oracle.score, 'BASE', root), \
@@ -23,7 +24,7 @@ class VerdictStagingTests(unittest.TestCase):
                              return_value=[{'start': 8}]), \
                 patch.object(oracle.fastbuild, 'build',
                              return_value={'ok': False}):
-            return oracle.evaluate(root, root / work_name, out, 8,
+            return oracle.evaluate(source, root / work_name, out, 8,
                                    'normalized', 'identity')
 
     def test_planted_verdict_symlink_is_replaced_not_followed(self):

@@ -75,6 +75,9 @@ def publish_verdict(path, text):
 
 
 def evaluate(source, work, output, target, kind, recipe, baseline=None):
+    # The scoring snapshot is written beside the workspace; refuse an overlap
+    # first so a rejected invocation leaves the source tree untouched.
+    fastbuild.require_separate(source, work, output)
     scoring = work / 'scoring-inputs'
     scoring.mkdir(parents=True)
     copy_original_inputs(score.BASE, scoring)
@@ -96,7 +99,8 @@ def evaluate(source, work, output, target, kind, recipe, baseline=None):
             raise ValueError('target absent from selected original inventory')
         bound = bound_scoring_inputs(scoring)
         built = fastbuild.build(source, work / 'build', output, quiet=True, recipe=recipe)
-        if not built.get('ok') or built.get('runtime_valid') is False or built.get('stack_warnings'):
+        if (not built.get('ok') or built.get('runtime_valid') is False
+                or built.get('stack_warnings') or not built.get('unstripped_sha256')):
             result = {'status': 'error', 'build': built}
             code = 2
         elif bound_scoring_inputs(scoring) != bound:
@@ -104,7 +108,7 @@ def evaluate(source, work, output, target, kind, recipe, baseline=None):
                       'score_error': 'scoring inputs changed during build; refusing to score'}
             code = 2
         else:
-            windows = score.score(output / 'unstripped.so')
+            windows = score.score(output / 'unstripped.so', built['unstripped_sha256'])
             matched = windows[target][kind]
             result = {'status': 'pass' if matched else 'fail', 'build': built,
                       'target': target, 'kind': kind, 'window': windows[target]}
