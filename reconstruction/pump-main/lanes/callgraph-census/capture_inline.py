@@ -49,7 +49,12 @@ def parse(a, res):
         kind, text = m.group(1) or 'passed', m.group(2)
         q = re.findall(r"'([^']+)'", text)
         if len(q) < 2:
-            continue
+            # LLVM's unavailable-definition remark omits the quotes used by
+            # cost-based decisions. Its symbols are still callee then caller.
+            unavailable = re.match(r'(\S+) will not be inlined into (\S+) because ', text)
+            if unavailable is None:
+                continue
+            q = unavailable.groups()
         callee, caller = q[0], q[1]
         if not re.search(a.caller, demangle(caller)):
             continue
