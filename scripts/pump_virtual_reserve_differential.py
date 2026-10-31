@@ -17,6 +17,7 @@ import json
 import struct
 from pathlib import Path
 
+from pump_differential_output import PumpReport
 import pump_set_mayhem_virtual_params_differential as f
 from build_source_manifest import source_manifest
 from pump_amm_reusable_harness import pin_program
@@ -108,38 +109,50 @@ def run(binary, case, *, programs=None, capture=None):
 
 
 def cases():
-    for index, case in enumerate(f.cases()):
-        yield {'name': f'prior-{index}', **case}
-    base = f.cases()[0]
-    def row(name, **values):
-        return {**base, 'name': name, **values}
-    for supply in (0, 1, U64//2, U64//2+1, U64):
-        for mode in (False, True):
-            yield row(f'supply-{supply}-{mode}', tts=supply, mayhem=mode)
-    for reserve in (0, 9_999_999, 10_000_000, U64//2, U64-1, U64):
-        for token_reserve in (0, 1, 10**15, U64):
-            for spl in (False, True):
-                yield row(f'arithmetic-{reserve}-{token_reserve}-{spl}', rqr=reserve, vtr=token_reserve, spl=spl)
-    for denominator in (0, 1, 10**12-1, 10**12, 10**12+1):
-        for reserve in (9_999_999, 10_000_000, U64):
-            yield row(f'denominator-{denominator}-{reserve}', tts=10**15, irtr=0,
-                      vault=2*10**15-denominator, rqr=reserve)
-    for role in ('global', 'curve', 'mint', 'vault'):
-        for label, mutation in (
-            ('owner', {'owner': str(f.Pubkey.default())}),
-            ('empty', {'length': 0}), ('zero-lamports', {'lamports': 0}),
-            ('discriminator', {'patches': [(0, 'ff')]})):
-            yield row(f'{role}-{label}', mutations={role: mutation})
-    for length in (7, 8, 48, 80, 81, 82, 83, 115, 125, 165):
-        yield row(f'curve-length-{length}', mutations={'curve': {'length': length}})
-    for role in ('authority', 'vault', 'curve'):
-        yield row(f'readonly-{role}', readonly=role)
-    yield row('direct-without-pda-signature', direct=True)
-    yield row('completed-curve', mutations={'curve': {'patches': [(48, '01')]}})
-    yield row('completed-curve-overflowing-supply', tts=U64,
-              mutations={'curve': {'patches': [(48, '01')]}})
-    for reserve in (999_999, 1_000_000, 1_000_001):
-        yield row(f'non-native-threshold-{reserve}', spl=True, rqr=reserve)
+    def _generate():
+        for index, case in enumerate(f.cases()):
+            yield {'name': f'prior-{index}', **case}
+        base = f.cases()[0]
+        def row(name, **values):
+            return {**base, 'name': name, **values}
+        for supply in (0, 1, U64//2, U64//2+1, U64):
+            for mode in (False, True):
+                yield row(f'supply-{supply}-{mode}', tts=supply, mayhem=mode)
+        for reserve in (0, 9_999_999, 10_000_000, U64//2, U64-1, U64):
+            for token_reserve in (0, 1, 10**15, U64):
+                for spl in (False, True):
+                    yield row(f'arithmetic-{reserve}-{token_reserve}-{spl}', rqr=reserve, vtr=token_reserve, spl=spl)
+        for denominator in (0, 1, 10**12-1, 10**12, 10**12+1):
+            for reserve in (9_999_999, 10_000_000, U64):
+                yield row(f'denominator-{denominator}-{reserve}', tts=10**15, irtr=0,
+                          vault=2*10**15-denominator, rqr=reserve)
+        for role in ('global', 'curve', 'mint', 'vault'):
+            for label, mutation in (
+                ('owner', {'owner': str(f.Pubkey.default())}),
+                ('empty', {'length': 0}), ('zero-lamports', {'lamports': 0}),
+                ('discriminator', {'patches': [(0, 'ff')]})):
+                yield row(f'{role}-{label}', mutations={role: mutation})
+        for length in (7, 8, 48, 80, 81, 82, 83, 115, 125, 165):
+            yield row(f'curve-length-{length}', mutations={'curve': {'length': length}})
+        for role in ('authority', 'vault', 'curve'):
+            yield row(f'readonly-{role}', readonly=role)
+        yield row('direct-without-pda-signature', direct=True)
+        yield row('completed-curve', mutations={'curve': {'patches': [(48, '01')]}})
+        yield row('completed-curve-overflowing-supply', tts=U64,
+                  mutations={'curve': {'patches': [(48, '01')]}})
+        for reserve in (999_999, 1_000_000, 1_000_001):
+            yield row(f'non-native-threshold-{reserve}', spl=True, rqr=reserve)
+    return list(_generate())
+
+
+def report_output(candidate, output):
+    paths = program_paths()
+    config_path = f.ROOT / 'research/imported-lab/analysis/pump_fun/config-snapshot.json'
+    return PumpReport(output, f.ROOT, candidate, __file__,
+                      extra_inputs=[*paths.values(), config_path,
+                                    Path(f.__file__).resolve(),
+                                    Path(pin_program.__code__.co_filename).resolve()],
+                      overwrite=False)
 
 
 def main():
@@ -150,6 +163,7 @@ def main():
     args = p.parse_args()
     if args.output.exists() or args.output.is_symlink():
         raise FileExistsError('Refusing to overwrite existing output; choose a fresh path')
+    publisher = report_output(args.candidate, args.output)
     sha = lambda raw: hashlib.sha256(raw).hexdigest()
     candidate = pin_program(args.candidate).read_bytes()
     paths = program_paths()
@@ -195,11 +209,12 @@ def main():
     report = {'scope': __doc__, 'original_sha256': sha(programs['original']), 'candidate_sha256': sha(candidate),
               'inputs_sha256': inputs, 'compiled_source_sha256': build['source_sha256'] if supplied_build else None,
               'case_count': len(rows), 'mismatches': [r['case']['name'] for r in rows if r['differences']], 'cases': rows}
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    with args.output.open('xb') as stream:
-        stream.write(gzip.compress(json.dumps(report, separators=(',',':')).encode(),mtime=0))
-    print(json.dumps({'cases':len(rows), 'mismatches':report['mismatches']}))
-    if report['mismatches']:raise SystemExit(1)
+    raw = (json.dumps(report, indent=2) + '\n').encode('utf-8')
+    payload = gzip.compress(raw, mtime=0) if args.output.suffix == '.gz' else raw
+    publisher.write(payload)
+    print(json.dumps({'cases': len(rows), 'mismatches': report['mismatches']}))
+    if report['mismatches']:
+        raise SystemExit(1)
 
 
 if __name__ == '__main__':
