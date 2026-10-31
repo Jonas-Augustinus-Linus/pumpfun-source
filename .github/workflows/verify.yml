@@ -114,6 +114,7 @@ jobs:
               python -B scripts/test_pump_diagnostic_audit_umask_mode.py
               python -B scripts/test_pump_fresh_output_optimized.py
               python -B scripts/test_amm_harness_content_cache.py
+              python -B tests/test_amm_build_environment.py
               python -B scripts/test_search_dependency_commit.py
               python -B tests/test_amm_pinned_candidate.py
               python -B tests/test_pump_create_nested_pinned_image.py
@@ -283,6 +284,7 @@ jobs:
               python -B tests/test_roadmap_stable_attribution_publication.py
               python -B reconstruction/diagnostics/defined-dynamic-calls/test_generate.py
               python -B reconstruction/diagnostics/amm-ledger-best/test_read.py
+              python -B scripts/test_amm_sell_torn_tail_append.py
               python -B scripts/test_bytecode_signatures_publication.py
               python -B scripts/test_bytecode_signatures_atomic_publication.py
               python -B scripts/test_revalidate_all_publication.py
