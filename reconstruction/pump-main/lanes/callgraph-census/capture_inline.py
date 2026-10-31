@@ -13,6 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / 'harness'))
 import fastbuild  # noqa: E402
 from win import demangle  # noqa: E402
+from score_admission import report_destination  # noqa: E402
 
 
 def main():
@@ -23,6 +24,10 @@ def main():
     ap.add_argument('--parse-only', action='store_true', help='re-parse an existing <out>/build.log')
     ap.add_argument('--lines', action='store_true', help='add -C debuginfo=line-tables-only so remarks carry call-site file:line (diagnostic; may perturb codegen)')
     a = ap.parse_args()
+    try:
+        report_destination(a.out / 'inline-remarks.json', [a.out / 'build.log'])
+    except ValueError as error:
+        ap.error(str(error))
     a.out.mkdir(parents=True, exist_ok=True)
     if a.parse_only:
         return parse(a, {'ok': True})

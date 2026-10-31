@@ -341,6 +341,7 @@ jobs:
               python -B reconstruction/diagnostics/census-portability/test_output_guard.py
               python -B reconstruction/harness/test_census_argument_constants.py
               python -B reconstruction/harness/test_capture_inline_unavailable.py
+              python -B research/callid-inline-input-preservation-20261101/reproduce.py --checkout . --expect fixed --output work/callid-inline-preservation.json
               python -B reconstruction/harness/test_inline_locations.py
               python -B reconstruction/harness/test_census_external_symbols.py
               python -B reconstruction/harness/test_census_disassembly_snapshot.py

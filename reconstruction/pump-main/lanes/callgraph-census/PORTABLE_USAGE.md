@@ -14,6 +14,14 @@ is restored after the build, including failures. A failed build returns a nonzer
 status and retains its compiler log; it is not a successful remark capture.
 `--parse-only` only parses an existing log and does not rerun the compiler.
 
+The direct `callid_audit.py` CLI refuses a JSON destination that aliases its
+candidate, original pointer, resolved capture, or function inventory. The direct
+`capture_inline.py` CLI refuses an `inline-remarks.json` destination that aliases
+`build.log`, including parse-only runs. These are checks at CLI entry, covering
+existing path, symlink, and hardlink aliases; they do not guarantee protection
+against a destination changed later during execution. Ordinary report replacement
+and diagnostic contents are unchanged.
+
 The real offline SBF regression is available with
 `PUMP_INLINE_TEST_SDK=/absolute/path/to/platform-tools python -m unittest discover -s reconstruction/harness -p test_inline_capture_compiler.py`.
 It requires the official macOS v1.44 SDK and rsync. It compiles only a dependency-free
