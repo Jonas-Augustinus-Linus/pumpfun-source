@@ -61,7 +61,7 @@ def parse(a, res):
         if a.callee and not re.search(a.callee, demangle(callee)):
             continue
         cost = re.search(r'cost=(-?\d+|always|never)', text); thr = re.search(r'threshold=(-?\d+)', text)
-        loc = re.search(r'note: ([^\s]+?):(\d+):(\d+) inline', m.group(0))
+        loc = re.search(r'note: (.+?):(\d+):(\d+) inline', m.group(0))
         rows.append({'loc': (loc.group(1).split('/')[-1] + ':' + loc.group(2)) if loc else None, 'kind': kind, 'callee': demangle(callee), 'caller': demangle(caller),
                      'cost': cost.group(1) if cost else None, 'threshold': thr.group(1) if thr else None, 'text': text[:400]})
     (a.out / 'inline-remarks.json').write_text(json.dumps(rows, indent=1) + '\n')
