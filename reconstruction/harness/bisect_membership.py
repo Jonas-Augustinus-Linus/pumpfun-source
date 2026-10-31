@@ -91,6 +91,10 @@ def main():
     revisions = revision_chain(args.repo, args.good, args.bad)
     if len(revisions) < 2: parser.error('good and bad must be different revisions')
     config = load_oracle(args.oracle)
+    report_path = args.out / 'bisect.json'
+    protected = [args.oracle, *(Path(value) for value in config.get('inputs', []))]
+    if any(report_path.resolve() == path.resolve() for path in protected):
+        parser.error('bisection report overlaps an input; choose a separate --out directory')
     args.out.mkdir(parents=True, exist_ok=True)
     archive_errors = []
     def evaluate(revision):
@@ -111,7 +115,7 @@ def main():
     result = narrow(revisions, evaluate, args.max_trials)
     if archive_errors:
         result['archive_errors'] = archive_errors
-    atomic_json(args.out / 'bisect.json', result)
+    atomic_json(report_path, result)
     print(json.dumps(result, indent=2))
     return 0 if result['status'] == 'boundary-found' else 2
 
