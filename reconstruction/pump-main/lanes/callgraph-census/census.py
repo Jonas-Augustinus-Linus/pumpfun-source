@@ -22,6 +22,7 @@ sys.path.insert(0, str(H))
 from score import sections, normalize, body, candidate_functions, original_windows, BASE  # noqa: E402
 from win import demangle, insns, objdump_text  # noqa: E402
 from coords import sites as source_sites  # noqa: E402
+from score_admission import report_destination  # noqa: E402
 
 DEFAULT_CAND = BASE / 'current/unstripped.so'
 
@@ -199,6 +200,21 @@ def main():
     ap.add_argument('--pairs', type=Path, help='JSON object mapping original addresses to symbol regexes')
     ap.add_argument('--depth', type=int, default=6, help='identity refinement rounds (0 = body hash only)')
     a = ap.parse_args()
+
+    # Reject a report destination that aliases an input before any read:
+    # both reports are published with write_text, so an aliasing --json or
+    # --md would destroy the candidate (or the shared original / window
+    # inventory / pairs file) the census just read. Mirrors the harness
+    # report tools' destination check, extended with the pairs file.
+    inputs = [a.cand, BASE / 'original.so', ORIG_PATH, BASE / 'functions.tsv']
+    if a.pairs is not None:
+        inputs.append(a.pairs)
+    for output in (a.json, a.md):
+        if output is not None:
+            try:
+                report_destination(output, inputs)
+            except ValueError as error:
+                ap.error(str(error))
 
     pairs = PAIRS if a.pairs is None else load_pairs(a.pairs)
     wins = original_windows()
