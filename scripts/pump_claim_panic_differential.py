@@ -16,6 +16,7 @@ import inspect
 import json
 from pathlib import Path
 
+from pump_differential_output import PumpReport
 import pump_claim_token_incentives_differential as fixture
 from solders.transaction import Transaction
 
@@ -42,6 +43,17 @@ def panic(result):
     return {'source': source, 'message': message}
 
 
+def report_output(candidate, output, extra_inputs=()):
+    return PumpReport(output, ROOT, candidate, __file__,
+                      extra_inputs=[*extra_inputs,
+                                    Path(fixture.__file__).resolve(),
+                                    ROOT / 'evidence/original/pump/deployed.so',
+                                    fixture.FIXTURE, fixture.IDL,
+                                    ROOT / 'evidence/dependencies/spl_token_2022/deployed.so',
+                                    ROOT / 'evidence/dependencies/associated_token/deployed.so'],
+                      overwrite=False)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--candidate', type=Path, required=True)
@@ -56,6 +68,7 @@ def main():
              ROOT/'evidence/original/pump/deployed.so', args.candidate, fixture.FIXTURE, fixture.IDL,
              ROOT/'evidence/dependencies/spl_token_2022/deployed.so',
              ROOT/'evidence/dependencies/associated_token/deployed.so']
+    publisher = report_output(args.candidate, args.output, extra_inputs=paths)
     inputs = {str(p.resolve()): sha(p) for p in paths}
     run, source = full_capture()
     rows = []
@@ -80,13 +93,9 @@ def main():
               'candidate_sha256': sha(args.candidate), 'inputs_sha256': inputs,
               'capture_source': source, 'case_count': len(rows),
               'mismatches': [row['case']['name'] for row in rows if row['differences']], 'cases': rows}
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    raw = json.dumps(report, separators=(',', ':')).encode()
+    raw = (json.dumps(report, indent=2) + '\n').encode('utf-8')
     payload = gzip.compress(raw, mtime=0) if args.output.suffix == '.gz' else raw
-    # 'xb' keeps the receipt fresh if another writer creates the path after the
-    # preflight check, and refuses a symlink that appeared in between.
-    with args.output.open('xb') as stream:
-        stream.write(payload)
+    publisher.write(payload)
     print(json.dumps({'cases': len(rows), 'mismatches': report['mismatches']}))
     if report['mismatches']:
         raise SystemExit(1)
