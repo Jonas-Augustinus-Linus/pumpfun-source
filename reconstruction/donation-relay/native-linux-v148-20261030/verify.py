@@ -14,7 +14,14 @@ from replay import PACKAGE, check_assets, check_source, command, load, require, 
 def check_report_destination(repo, output):
     source = (Path(repo) / 'programs/donation-relay').resolve()
     output = Path(output)
-    require(not output.resolve().is_relative_to(source), 'verification output overlaps authenticated Relay source')
+    resolved = output.resolve()
+    message = 'verification output overlaps authenticated Relay source'
+    require(not resolved.is_relative_to(source), message)
+    # resolve() preserves spelling on case-insensitive filesystems. An existing
+    # output ancestor may still be the authenticated directory's physical alias.
+    for ancestor in (resolved, *resolved.parents):
+        if ancestor.exists():
+            require(not ancestor.samefile(source), message)
     # Exclusive creation below remains the final guard, including hard links
     # or other existing destinations introduced after this preflight check.
     if output.exists() or output.is_symlink():

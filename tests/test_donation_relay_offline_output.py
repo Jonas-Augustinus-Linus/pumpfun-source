@@ -77,6 +77,20 @@ class DonationRelayOfflineOutputTests(unittest.TestCase):
         self.assertTrue(alias.is_symlink())
         self.assertEqual(self.snapshot(), self.before)
 
+    def test_case_alias_ancestor_is_refused_without_creating_a_report(self):
+        alias = self.repo / 'PROGRAMS' / 'DONATION-RELAY'
+        if not alias.exists() or not alias.samefile(self.source):
+            self.skipTest('filesystem has no physical case alias for the source')
+        for relative in ('offline-report.json', 'new-parent/deeper/offline-report.json'):
+            with self.subTest(relative=relative):
+                output = alias / relative
+                result = self.invoke(output)
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn('verification output overlaps authenticated Relay source', result.stderr)
+                self.assertFalse(output.exists())
+                self.assertFalse((self.source / 'new-parent').exists())
+                self.assertEqual(self.snapshot(), self.before)
+
     def test_existing_external_hardlink_preserves_source_bytes(self):
         source = self.source / 'Cargo.toml'
         output = self.root / 'hardlink-report.json'
