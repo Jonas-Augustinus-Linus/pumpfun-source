@@ -49,6 +49,15 @@ class ImportedLabPublicationTests(unittest.TestCase):
         notes = snapshot / 'notes.txt'
         notes.write_text('lab notes\n')
         files.append({'path': 'notes.txt', 'sha256': sha(notes.read_bytes())})
+        # The verifier pins the manifest to the exact snapshot file set, so
+        # list the executed scripts and the trusted program-manifest too.
+        files.append({'path': 'analysis/pump_fun/program-manifest.json',
+                      'sha256': sha(json.dumps({
+                          'official_docs_commit': 'a' * 40,
+                      }).encode())})
+        for script in sorted((snapshot / 'scripts').glob('*.py')):
+            files.append({'path': f'scripts/{script.name}',
+                          'sha256': sha(script.read_bytes())})
         (self.root / 'research/import-manifest.json').write_text(json.dumps({
             'commit': 'fixture', 'files': files,
         }))
