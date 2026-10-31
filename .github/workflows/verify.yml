@@ -280,6 +280,7 @@ jobs:
               python -B reconstruction/mayhem/native-linux-qualification/test_vendor_membership.py
               python -B reconstruction/mayhem/native-linux-qualification/test_vendor_file_links.py
               python -B scripts/test_analyze_program_publication.py
+              python -B scripts/test_analyze_program_relocation_totals.py
               python -B scripts/test_reconstruction_roadmap_publication.py
               python -B tests/test_roadmap_string_references.py
               python -B tests/test_pump_planning_regressions.py
