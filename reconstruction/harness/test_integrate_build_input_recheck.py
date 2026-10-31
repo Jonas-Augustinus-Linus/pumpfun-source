@@ -15,6 +15,7 @@ runs the real diff binary on identical base/part trees, which yields an
 empty part. The fake SC/H roots keep the test off the real repo tree.
 """
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -82,7 +83,10 @@ class BuildInputRecheckTests(unittest.TestCase):
         return code, report
 
     def clean_build(self, src, work, out, **kwargs):
-        return {'ok': True}
+        out.mkdir(parents=True, exist_ok=True)
+        artifact = out / 'unstripped.so'
+        artifact.write_bytes(b'synthetic compiler output, not an ELF')
+        return {'ok': True, 'unstripped_sha256': hashlib.sha256(artifact.read_bytes()).hexdigest()}
 
     def test_unchanged_inputs_are_scored(self):
         code, report = self.run_main(self.clean_build)

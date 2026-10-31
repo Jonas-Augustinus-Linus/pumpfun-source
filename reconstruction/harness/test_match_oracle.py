@@ -1,4 +1,5 @@
 from pathlib import Path
+import hashlib
 import tempfile
 import subprocess
 import sys
@@ -9,12 +10,16 @@ import match_oracle as oracle
 
 class MatchOracleTests(unittest.TestCase):
     def test_build_errors_are_not_matching_failures(self):
-        for built, expected in [({'ok': False}, 2), ({'ok': True, 'stack_warnings': ['overflow']}, 2), ({'ok': True}, 0)]:
+        for built, expected in [({'ok': False}, 2), ({'ok': True, 'stack_warnings': ['overflow']}, 2),
+                                ({'ok': True}, 2),
+                                ({'ok': True, 'unstripped_sha256': hashlib.sha256(b'fixture').hexdigest()}, 0)]:
             with tempfile.TemporaryDirectory() as directory:
                 root = Path(directory); out = root / 'out'; out.mkdir()
                 for name in ['original.so', 'functions.tsv']: (root / name).write_bytes(b'fixture')
                 with patch.object(oracle.score, 'BASE', root), patch.object(oracle.score, 'original_windows', return_value=[{'start': 8}]), patch.object(oracle.fastbuild, 'build', return_value=built), patch.object(oracle.score, 'score', return_value={8: {'normalized': True}}) as scoring:
-                    self.assertEqual(oracle.evaluate(root, root / 'work', out, 8, 'normalized', 'identity'), expected)
+                    source = root / 'source'; source.mkdir()
+                    (out / 'unstripped.so').write_bytes(b'fixture')
+                    self.assertEqual(oracle.evaluate(source, root / 'work', out, 8, 'normalized', 'identity'), expected)
                     self.assertEqual(scoring.call_count, int(expected == 0))
                     self.assertEqual(oracle.score.BASE, root)
 
@@ -29,8 +34,10 @@ class MatchOracleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); out = root / 'out'; out.mkdir()
             for name in ['original.so', 'functions.tsv']: (root / name).write_bytes(b'fixture')
-            with patch.object(oracle.score, 'BASE', root), patch.object(oracle.score, 'original_windows', return_value=[{'start': 8}]), patch.object(oracle.fastbuild, 'build', return_value={'ok': True}), patch.object(oracle.score, 'score', return_value={8: {'raw': False}}):
-                self.assertEqual(oracle.evaluate(root, root / 'work', out, 8, 'raw', 'identity'), 1)
+            source = root / 'source'; source.mkdir()
+            (out / 'unstripped.so').write_bytes(b'fixture')
+            with patch.object(oracle.score, 'BASE', root), patch.object(oracle.score, 'original_windows', return_value=[{'start': 8}]), patch.object(oracle.fastbuild, 'build', return_value={'ok': True, 'unstripped_sha256': hashlib.sha256(b'fixture').hexdigest()}), patch.object(oracle.score, 'score', return_value={8: {'raw': False}}):
+                self.assertEqual(oracle.evaluate(source, root / 'work', out, 8, 'raw', 'identity'), 1)
 
     def test_verdict_bytes_do_not_follow_the_host_line_ending(self):
         # Simulate a CRLF platform's default using real file writes. Changing
@@ -44,10 +51,12 @@ class MatchOracleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); out = root / 'out'; out.mkdir()
             for name in ['original.so', 'functions.tsv']: (root / name).write_bytes(b'fixture')
+            source = root / 'source'; source.mkdir()
+            (out / 'unstripped.so').write_bytes(b'fixture')
             with patch.object(oracle.score, 'BASE', root), patch.object(oracle.score, 'original_windows', return_value=[{'start': 8}]), \
-                    patch.object(oracle.fastbuild, 'build', return_value={'ok': True}), patch.object(oracle.score, 'score', return_value={8: {'normalized': True}}), \
+                    patch.object(oracle.fastbuild, 'build', return_value={'ok': True, 'unstripped_sha256': hashlib.sha256(b'fixture').hexdigest()}), patch.object(oracle.score, 'score', return_value={8: {'normalized': True}}), \
                     patch.object(Path, 'write_text', crlf_default_write):
-                self.assertEqual(oracle.evaluate(root, root / 'work', out, 8, 'normalized', 'identity'), 0)
+                self.assertEqual(oracle.evaluate(source, root / 'work', out, 8, 'normalized', 'identity'), 0)
             raw = (out / 'verdict.json').read_bytes()
             self.assertNotIn(b'\r', raw)
             self.assertTrue(raw.endswith(b'\n'))
