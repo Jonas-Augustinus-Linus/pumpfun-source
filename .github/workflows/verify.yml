@@ -252,6 +252,7 @@ jobs:
               python -B scripts/test_pump_validate_sell_accounting_optimization.py
               python -B scripts/test_imported_lab_optimization.py
               python -B scripts/test_deep_section_analysis_publication.py
+              python -B scripts/test_deep_section_pattern_count.py
               python -B scripts/test_supported_policy_source_binding.py
               python -B scripts/test_pump_data_order_publication.py
               python -B scripts/test_pump_data_order_cli.py
