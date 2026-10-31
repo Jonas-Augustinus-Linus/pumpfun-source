@@ -339,14 +339,20 @@ jobs:
               python -B reconstruction/harness/test_bisect_membership.py
               python -B reconstruction/harness/test_bisect_git_context.py
               python -B reconstruction/harness/test_bisect_missing_source.py
+              python -B reconstruction/harness/test_bisect_archived_directory.py
+              python -B reconstruction/harness/test_bisect_input_preservation.py
               python -B reconstruction/harness/test_bisect_linked_source.py
               python -B reconstruction/harness/test_experiment_directory_identity.py
               python -B reconstruction/harness/test_experiment_output_directories.py
               python -B reconstruction/harness/test_experiment_output_walk_errors.py
               python -B reconstruction/harness/test_experiment_receipt_integrity.py
+              python -B reconstruction/harness/test_experiment_receipt_inputs.py
               python -B reconstruction/harness/test_minimize_initial_report.py
+              python -B reconstruction/harness/test_minimize_linked_patch.py
+              python -B reconstruction/harness/test_minimize_input_preservation.py
               python -B reconstruction/harness/test_minimize_oracle_encoding.py
               python -B reconstruction/harness/test_minimize_patch_list_encoding.py
+              python -B reconstruction/harness/test_minimize_physical_overlap.py
               python -B reconstruction/harness/test_treediff.py
               python -B reconstruction/harness/test_inventory_fidelity.py
               python -B reconstruction/harness/test_attempt_applicability.py
