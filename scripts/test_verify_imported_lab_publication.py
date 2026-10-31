@@ -153,6 +153,20 @@ class ImportedLabPublicationTests(unittest.TestCase):
                 verify.assert_not_called()
                 self.assertEqual(sorted(str(path.relative_to(self.root)) for path in self.root.rglob('*')), before)
 
+    def test_physical_case_alias_output_is_rejected_before_verification(self):
+        for source in (self.root / 'research/imported-lab', self.docs):
+            alias = source.with_name(source.name.upper())
+            if not alias.exists() or not alias.samefile(source):
+                self.skipTest('filesystem has no physical case alias')
+            before = sorted(str(path.relative_to(self.root)) for path in self.root.rglob('*'))
+            with self.subTest(source=source), mock.patch.object(self.tool, 'verify') as verify, \
+                    mock.patch.object(sys, 'argv', ['verify_imported_lab.py',
+                        '--docs-checkout', str(self.docs), '--output', str(alias / 'new-output')]):
+                with self.assertRaisesRegex(ValueError, 'output must not overlap'):
+                    self.tool.main()
+                verify.assert_not_called()
+            self.assertEqual(sorted(str(path.relative_to(self.root)) for path in self.root.rglob('*')), before)
+
     @unittest.skipUnless(os.name == 'posix', 'POSIX mode check')
     def test_new_output_follows_umask(self):
         output = self.root / 'verification'

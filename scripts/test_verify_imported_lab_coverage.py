@@ -14,12 +14,16 @@ exact snapshot file set before checking any hash.
 
 from pathlib import Path
 import hashlib
+import importlib.util
+import os
+import py_compile
 import json
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 SCRIPTS = Path(__file__).resolve().parent
@@ -156,6 +160,125 @@ class ImportedLabCoverageTests(unittest.TestCase):
                 temporary, tamper_listed_script=True)
             self.assertNotEqual(result.returncode, 0, result.stdout[-500:])
             self.assertFalse((root / "out").exists())
+
+
+class SnapshotAdmissionControls(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory(prefix='snapshot-admission-')
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.docs = build_tree(self.root)
+        self.snapshot = self.root / 'research/imported-lab'
+        self.manifest = self.root / 'research/import-manifest.json'
+        self.marker = self.root / 'executed-marker'
+        for name in VERIFIERS:
+            (self.snapshot / 'scripts' / (name + '.py')).write_text(
+                f'from pathlib import Path\nPath({str(self.marker)!r}).write_text("executed")\n')
+        self.repin()
+
+    def repin(self):
+        document = json.loads(self.manifest.read_text())
+        document['files'] = [
+            {'path': path.relative_to(self.snapshot).as_posix(), 'sha256': sha(path.read_bytes())}
+            for path in sorted(self.snapshot.rglob('*'))
+            if path.is_file() and '__pycache__' not in path.parts]
+        self.manifest.write_text(json.dumps(document))
+
+    def refuse(self, message, flags=()):
+        output = self.root / 'out'
+        result = subprocess.run(
+            [sys.executable, *flags, '-B', str(self.root / 'scripts' / SCRIPT),
+             '--docs-checkout', str(self.docs), '--output', str(output)],
+            capture_output=True, text=True, timeout=30)
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(message, result.stderr)
+        self.assertFalse(output.exists())
+        self.assertFalse(self.marker.exists(), 'an unadmitted verifier executed')
+        self.assertEqual(list(self.root.glob('.out.*')), [])
+
+    def test_listed_file_missing_on_disk_is_rejected_before_execution(self):
+        (self.snapshot / 'notes.txt').unlink()
+        self.refuse('listed but absent')
+
+    def test_listed_metadata_tamper_is_rejected_before_docs_checkout(self):
+        (self.snapshot / 'analysis/pump_fun/program-manifest.json').write_text(
+            json.dumps({'official_docs_commit': '0' * 40}))
+        self.refuse('program-manifest.json')
+
+    def test_duplicate_paths_cannot_inflate_import_count(self):
+        document = json.loads(self.manifest.read_text())
+        document['files'].append(document['files'][0])
+        self.manifest.write_text(json.dumps(document))
+        self.refuse('duplicate file paths')
+
+    def test_invalid_file_metadata_is_rejected(self):
+        document = json.loads(self.manifest.read_text())
+        document['files'][0]['path'] = False
+        self.manifest.write_text(json.dumps(document))
+        self.refuse('file metadata is invalid')
+
+    def test_unlisted_symlink_package_is_rejected(self):
+        package = self.root / 'unlisted-package'
+        package.mkdir()
+        (package / '__init__.py').write_text('value = 1\n')
+        (self.snapshot / 'scripts/unlisted_package').symlink_to(package, target_is_directory=True)
+        for flags in ((), ('-O',), ('-OO',)):
+            with self.subTest(flags=flags):
+                self.refuse('snapshot contains a symlink', flags)
+
+    def test_symlink_file_is_rejected_even_if_content_hash_matches(self):
+        notes = self.snapshot / 'notes.txt'
+        other = self.root / 'notes-copy'
+        other.write_bytes(notes.read_bytes())
+        notes.unlink()
+        notes.symlink_to(other)
+        self.refuse('snapshot contains a symlink')
+
+    def test_valid_timestamp_bytecode_cannot_override_a_listed_source(self):
+        helper = self.snapshot / 'scripts/checked_helper.py'
+        payload = f'from pathlib import Path\nPath({str(self.marker)!r}).write_text("cache executed")\n'
+        honest = 'value = 1\n'
+        size = max(len(payload), len(honest)) + 20
+        pad = lambda value: value + '#' * (size - len(value))
+        helper.write_text(pad(payload))
+        timestamp = helper.stat().st_mtime
+        py_compile.compile(str(helper), doraise=True, invalidation_mode=py_compile.PycInvalidationMode.TIMESTAMP)
+        helper.write_text(pad(honest))
+        os.utime(helper, (timestamp, timestamp))
+        for name in VERIFIERS:
+            (self.snapshot / 'scripts' / (name + '.py')).write_text('import checked_helper\n')
+        self.repin()
+        for flags in ((), ('-O',), ('-OO',)):
+            with self.subTest(flags=flags):
+                self.refuse('snapshot contains bytecode cache', flags)
+
+    @unittest.skipUnless(hasattr(os, 'mkfifo'), 'FIFO unavailable')
+    def test_non_regular_entry_is_rejected_without_reading_it(self):
+        os.mkfifo(self.snapshot / 'fifo')
+        self.refuse('snapshot contains a non-regular entry')
+
+    def test_copied_snapshot_is_readmitted_before_execution(self):
+        script = self.root / 'scripts' / SCRIPT
+        spec = importlib.util.spec_from_file_location('snapshot_copy_gate', script)
+        tool = importlib.util.module_from_spec(spec)
+        with mock.patch.object(sys, 'path', list(sys.path)):
+            spec.loader.exec_module(tool)
+        real_copy = tool.shutil.copytree
+
+        def mutate_copy(source, destination, *args, **kwargs):
+            answer = real_copy(source, destination, *args, **kwargs)
+            if Path(source).resolve() == self.snapshot.resolve():
+                (Path(destination) / 'scripts/pump_fun_verify_offline.py').write_text('raise SystemExit(0)\n')
+            return answer
+
+        with mock.patch.object(tool.shutil, 'copytree', side_effect=mutate_copy), \
+                mock.patch.object(sys, 'argv', [str(script), '--docs-checkout', str(self.docs),
+                                              '--output', str(self.root / 'out')]):
+            with self.assertRaisesRegex(AssertionError, 'pump_fun_verify_offline.py'):
+                tool.main()
+        self.assertFalse(self.marker.exists())
+        self.assertFalse((self.root / 'out').exists())
+        self.assertEqual(list(self.root.glob('.out.*')), [])
 
 
 if __name__ == "__main__":
