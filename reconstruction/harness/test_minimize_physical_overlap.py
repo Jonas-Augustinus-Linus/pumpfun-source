@@ -29,7 +29,9 @@ class MinimizePhysicalOverlapTests(unittest.TestCase):
                                encoding='utf-8')
 
     def bind_alias(self):
-        self.alias.mkdir()
+        mountpoint = self.root / 'bind-alias'
+        mountpoint.mkdir()
+        self.alias = mountpoint
         try:
             subprocess.run(['mount', '--bind', str(self.source), str(self.alias)],
                            check=True, capture_output=True, timeout=15)

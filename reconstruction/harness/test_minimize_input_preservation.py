@@ -27,6 +27,8 @@ class MinimizeInputPreservationTests(unittest.TestCase):
             result_path = out / 'minimized.json'
             paths = {kind: root / name for kind, name in
                      [('patch', 'unit.patch'), ('manifest', 'patches.json'), ('oracle', 'oracle.json')]}
+            if collision == 'oracle-case-alias':
+                paths['oracle'] = out / 'MINIMIZED.JSON'
             if collision in paths:
                 paths[collision] = result_path
             paths['patch'].write_bytes(PATCH)
@@ -48,6 +50,9 @@ class MinimizeInputPreservationTests(unittest.TestCase):
                 paths['declared-input'] = result_path
                 config['inputs'] = [str(result_path)]
             paths['oracle'].write_text(json.dumps(config), encoding='utf-8')
+            if collision == 'oracle-case-alias' and (not result_path.exists()
+                    or not result_path.samefile(paths['oracle'])):
+                self.skipTest('requires a case-insensitive filesystem')
             before = {kind: path.read_bytes() for kind, path in paths.items()}
             env = {name: value for name, value in os.environ.items() if not name.startswith('GIT_')}
             result = subprocess.run([sys.executable, '-B', str(H / 'minimize_experiment.py'),
@@ -78,6 +83,9 @@ class MinimizeInputPreservationTests(unittest.TestCase):
 
     def test_result_cannot_replace_an_aliased_patch(self):
         self.exercise('patch-alias')
+
+    def test_result_cannot_replace_case_alias_of_oracle(self):
+        self.exercise('oracle-case-alias')
 
 
 if __name__ == '__main__':

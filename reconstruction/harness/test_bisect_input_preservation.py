@@ -36,6 +36,8 @@ class BisectInputPreservationTests(unittest.TestCase):
             out = root / 'out'; out.mkdir()
             report = out / 'bisect.json'
             config_path = root / 'oracle.json'
+            if collision == 'oracle-case-alias':
+                config_path = out / 'BISECT.JSON'
             input_path = root / 'input.json'
             if collision in ('oracle', 'oracle-alias'):
                 config_path = report
@@ -52,6 +54,9 @@ class BisectInputPreservationTests(unittest.TestCase):
                        'sys.exit(0 if (Path(sys.argv[1])/"value").read_text()=="good" else 1)',
                        '{source}', str(launched), str(input_path)]
             config_path.write_text(json.dumps({'command': command, 'inputs': [str(input_path)]}), encoding='utf-8')
+            if collision == 'oracle-case-alias' and (not report.exists()
+                    or not report.samefile(config_path)):
+                self.skipTest('requires a case-insensitive filesystem')
             if collision == 'oracle-alias':
                 config_path = self.alias(root / 'oracle-alias.json', report)
             inputs = {p: p.read_bytes() for p in (config_path, input_path)}
@@ -97,6 +102,9 @@ class BisectInputPreservationTests(unittest.TestCase):
 
     def test_separate_inputs_still_find_the_real_boundary(self):
         self.exercise(None)
+
+    def test_physical_case_alias_of_oracle_is_protected(self):
+        self.exercise('oracle-case-alias')
 
 
 if __name__ == '__main__':

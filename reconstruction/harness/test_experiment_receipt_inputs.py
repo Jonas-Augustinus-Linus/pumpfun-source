@@ -30,7 +30,11 @@ class ReceiptInputTests(unittest.TestCase):
             destination = root / 'destination'; destination.mkdir()
             receipt = destination / 'latest.json'; receipt.write_bytes(SEED)
             input_path = receipt
-            if alias:
+            if alias == 'case':
+                input_path = destination / 'LATEST.JSON'
+                if not input_path.exists() or not input_path.samefile(receipt):
+                    self.skipTest('requires a case-insensitive filesystem')
+            elif alias:
                 input_path = root / 'input-alias.json'
                 try:
                     input_path.symlink_to(receipt)
@@ -55,6 +59,9 @@ class ReceiptInputTests(unittest.TestCase):
 
     def test_receipt_input_alias_is_rejected_before_trial(self):
         self.assert_trial_refused(True)
+
+    def test_receipt_input_case_alias_is_rejected_before_trial(self):
+        self.assert_trial_refused('case')
 
     def test_matrix_protects_later_input_before_earlier_trial(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -189,10 +189,20 @@ def separate_trees(source, destination):
     return source, destination
 
 
+def paths_alias(first, second):
+    """Include existing physical aliases without dropping absent-path checks."""
+    first, second = Path(first).resolve(), Path(second).resolve()
+    if first == second:
+        return True
+    try:
+        return first.samefile(second)
+    except FileNotFoundError:
+        return False
+
+
 def check_receipt_inputs(destination, inputs):
     receipt_path = Path(destination) / 'latest.json'
-    resolved = receipt_path.resolve()
-    if any(resolved == Path(path).resolve() for path in inputs):
+    if any(paths_alias(receipt_path, path) for path in inputs):
         raise ValueError('trial receipt overlaps a declared input')
     return receipt_path
 

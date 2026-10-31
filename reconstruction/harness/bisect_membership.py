@@ -8,7 +8,7 @@ from pathlib import Path
 import subprocess
 import tarfile
 import tempfile
-from experiment_runner import run_trial, atomic_json
+from experiment_runner import run_trial, atomic_json, paths_alias
 
 
 def narrow(revisions, evaluate, budget):
@@ -93,7 +93,7 @@ def main():
     config = load_oracle(args.oracle)
     report_path = args.out / 'bisect.json'
     protected = [args.oracle, *(Path(value) for value in config.get('inputs', []))]
-    if any(report_path.resolve() == path.resolve() for path in protected):
+    if any(paths_alias(report_path, path) for path in protected):
         parser.error('bisection report overlaps an input; choose a separate --out directory')
     args.out.mkdir(parents=True, exist_ok=True)
     archive_errors = []

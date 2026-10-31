@@ -7,7 +7,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
-from experiment_runner import run_trial, atomic_json, digest, stage_ignore, manifest, separate_trees
+from experiment_runner import run_trial, atomic_json, digest, stage_ignore, manifest, separate_trees, paths_alias
 
 
 def minimize(count, evaluate, budget, wanted='pass'):
@@ -72,7 +72,7 @@ def main():
     result_path = args.out / 'minimized.json'
     protected = [args.patches, args.oracle, *paths,
                  *(Path(value) for value in config.get('inputs', []))]
-    if any(result_path.resolve() == path.resolve() for path in protected):
+    if any(paths_alias(result_path, path) for path in protected):
         parser.error('result overlaps an input; choose a separate --out directory')
     # -C alone does not override GIT_DIR/GIT_WORK_TREE inherited from a shell
     # or Git hook. These commands must operate only on our private stage.

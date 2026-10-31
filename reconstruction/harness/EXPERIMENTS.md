@@ -2,6 +2,8 @@
 
 Source/output separation checks existing filesystem identities as well as
 resolved paths, including alternate case spellings on case-insensitive volumes.
+Result/input collision checks likewise include existing physical aliases while
+retaining resolved-path checks for destinations that do not yet exist.
 
 `python reconstruction/harness/experiment_runner.py matrix.json --out /tmp/trials --max-trials 20`
 
