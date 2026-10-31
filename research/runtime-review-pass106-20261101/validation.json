@@ -1,7 +1,7 @@
 {
   "integration_pr": 3815,
   "review_base": "9120883a957d7d9b2cab6140f66fb5bc9e6774d5",
-  "composition_before_receipt_commit": "9442b7585fb625f0a803b5281d5304afdb68f56c",
+  "composition_before_receipt_commit": "fbbcdf00b06b1a63d8a70724337eb2316bbfd918",
   "reviewed_original_heads": {
     "3809": "3870db96f7338dca22c47a45f815394bbe462a23",
     "3808": "e054fb27e58337de2ac4b79db146ca42e14d8379",
@@ -175,13 +175,13 @@
       "command": [
         "/tmp/pump-pr-pass102-20261031/test-env/bin/python",
         "-B",
-        "/private/tmp/pump-pr-pass106-20261101/runtime/observed_unittest.py",
-        "/Users/shawwalters/.codex/worktrees/pump-pass6-runtime-tools/pumpfun-source/tests/test_creator_distribution_credit_captured.py",
-        "/private/tmp/pump-pr-pass106-20261101/runtime/3761/repaired-test-observer.json",
+        "/tmp/pump-pr-pass106-20261101/runtime/observed_unittest.py",
+        "tests/test_creator_distribution_credit_captured.py",
+        "/tmp/pump-pr-pass106-20261101/runtime/3761/compact-test-observer.json",
         "-v"
       ],
-      "log": "/tmp/pump-pr-pass106-20261101/runtime/3761/repaired-tests.log",
-      "log_sha256": "b47c560132a1d731ed9355cccb405546a8f652d90e048f050e9463891463cff2"
+      "log": "/tmp/pump-pr-pass106-20261101/runtime/3761/compact-tests.log",
+      "log_sha256": "be5dd8118123d70a4b364994fa2133cb943e5f1a0acdf3794c211b2189bca3dd"
     },
     {
       "pr": 3771,
