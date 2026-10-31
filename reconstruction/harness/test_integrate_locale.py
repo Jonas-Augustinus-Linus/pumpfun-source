@@ -27,7 +27,8 @@ class CompositionLocaleTests(unittest.TestCase):
             contents = {'Cargo.toml': b'[package]\nname="fixture"\nversion="0.1.0"\n',
                         'Cargo.lock': b'version = 3\n',
                         'src/lib.rs': b'pub fn value() -> u64 { 1 }\n'}
-            name = 'src/caf\N{LATIN SMALL LETTER E WITH ACUTE}.rs'
+            name = ('src/caf\N{LATIN SMALL LETTER E WITH ACUTE}.rs'
+                    if kind == 'text' else 'src/payload.bin')
             before, after = ((b'// before\n', b'// after\n') if kind == 'text'
                              else (b'\x00before', b'\x00after'))
             for label, data in [('base', before), ('part', after)]:
@@ -40,6 +41,12 @@ class CompositionLocaleTests(unittest.TestCase):
             # Isolate this locale regression from unrelated Git caller overrides.
             env = {key: value for key, value in env.items()
                    if not key.upper().startswith('GIT_')}
+            if kind == 'text':
+                filesystem = subprocess.check_output(
+                    [sys.executable, '-c', 'import sys;print(sys.getfilesystemencoding())'],
+                    env=env).decode().strip().lower().replace('-', '')
+                if filesystem != 'utf8':
+                    self.skipTest('requires UTF-8 filenames with a non-UTF-8 text locale')
             result = subprocess.run(
                 [sys.executable, '-B', str(tool), '--name', 'locale',
                  '--base-src', str(root / 'base'), '--part', f'change={root / "part"}',
