@@ -68,6 +68,11 @@ def main():
         parser.error('patch list must name at least one patch')
     patches = [p.read_bytes() for p in paths]
     config = load_oracle(args.oracle)
+    result_path = args.out / 'minimized.json'
+    protected = [args.patches, args.oracle, *paths,
+                 *(Path(value) for value in config.get('inputs', []))]
+    if any(result_path.resolve() == path.resolve() for path in protected):
+        parser.error('result overlaps an input; choose a separate --out directory')
     # -C alone does not override GIT_DIR/GIT_WORK_TREE inherited from a shell
     # or Git hook. These commands must operate only on our private stage.
     git_env = {name: value for name, value in os.environ.items()
@@ -93,7 +98,7 @@ def main():
     result['source'] = source_identity
     result['patch_errors'] = patch_errors
     result['patches'] = [{'index': i, 'sha256': digest(raw)} for i, raw in enumerate(patches)]
-    atomic_json(args.out / 'minimized.json', result)
+    atomic_json(result_path, result)
     print(json.dumps(result, indent=2))
     return 0 if result['status'] == 'complete' else 2
 
