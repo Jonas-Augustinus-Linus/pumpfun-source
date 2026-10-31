@@ -124,6 +124,8 @@ jobs:
               python -B scripts/test_amm_harness_content_cache.py
               python -B tests/test_amm_nested_target.py
               python -B tests/test_amm_build_environment.py
+              python -B tests/test_amm_native_fingerprints.py
+              python -B tests/test_amm_native_lane_lock.py
               python -B tests/test_amm_input_binding.py
               python -B scripts/test_search_dependency_commit.py
               python -B tests/test_amm_pinned_candidate.py
@@ -149,6 +151,7 @@ jobs:
               python -B tests/test_pump_differentials_normal_python.py
               python -B tests/test_pump_creator_collect_normal_python.py
               python -B tests/test_pump_repinned_receipts.py
+              python -B tests/test_quote_control_repinned_receipt.py
               python -B tests/test_build_normal_python.py
               python -B tests/test_pump_probes_normal_python.py
               python -B tests/test_mismatch_normal_python.py
@@ -226,6 +229,7 @@ jobs:
               python -B scripts/test_mayhem_report_encoding.py
               python -B scripts/test_mayhem_zero_creator_case.py
               python -B scripts/test_mayhem_synthetic_regression_recount.py
+              python -B scripts/test_verify_pump_set_mayhem_params_8099_recount.py
               python -B scripts/test_qualification_archive_determinism.py
               python -B scripts/test_rebuild_workflow_action_pins.py
               python -B scripts/test_macos_v144_qualification_optimization.py
@@ -408,6 +412,7 @@ jobs:
               python scripts/test_reconstruction_identity_audit.py
               python -B reconstruction/diagnostics/identity-audit-unoptimized/test_run.py
               python scripts/local_validation.py
+              python -B tests/test_fees_sharing_oracle_binding.py
               python -B research/tooling-interior-string-references-20261030/test_verify.py
               python -I -B scripts/test_verify_evidence_paths.py
               python research/tooling-disassembly-reproducibility-20261030/test_verify.py
@@ -455,6 +460,9 @@ jobs:
               python -B -m unittest discover -s tests -p 'test_global_*_captured.py' -v
               python -B tests/test_pump_amm_liquidity_captured.py
               python -B tests/test_pump_amm_caller_fixture_inputs.py
+              python -B tests/test_pump_amm_collect_coin_creator_fee_captured.py
+              python -B tests/test_amm_versioned_reset.py
+              python -B tests/test_curve_walk_funding_captured.py
               python -B scripts/test_fee_host_validation.py
               python -B scripts/test_native_host_receipt.py
               python -B tests/test_pump_loader_wrapped_artifacts.py
