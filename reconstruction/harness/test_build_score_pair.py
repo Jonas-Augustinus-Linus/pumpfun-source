@@ -17,7 +17,9 @@ class PairTests(unittest.TestCase):
         self.out = self.root / 'output'
         self.sdk = self.root / 'sdk'
         self.hybrid = self.root / 'hybrid'
-        for path in (self.sdk / 'llvm/bin/llvm-objdump', self.hybrid / 'rust/bin/rustc'):
+        for path in (self.sdk / 'llvm/bin/llvm-objdump', self.sdk / 'llvm/bin/llvm-objcopy',
+                     self.sdk / 'llvm/bin/clang', self.sdk / 'rust/bin/cargo',
+                     self.hybrid / 'rust/bin/rustc'):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(b'tool fixture')
         self.sources = patch.object(pair, 'source_receipt', return_value={'revision': 'fixture', 'files': {}, 'sha256': 'fixture'})
@@ -32,7 +34,8 @@ class PairTests(unittest.TestCase):
     def build(self, source, work, out, **kwargs):
         out.mkdir(parents=True)
         (out / 'unstripped.so').write_bytes(b'fixture, not a real ELF')
-        return {'ok': True, 'runtime_valid': True, 'stack_warnings': []}
+        return {'ok': True, 'runtime_valid': True, 'stack_warnings': [],
+                'unstripped_sha256': hashlib.sha256(b'fixture, not a real ELF').hexdigest()}
 
     def run_pair(self):
         return pair.run_pair(self.root / 'base', self.root / 'candidate', self.out, self.sdk, self.hybrid)
@@ -50,7 +53,8 @@ class PairTests(unittest.TestCase):
 
     def test_failed_or_stack_invalid_base_never_reaches_scoring(self):
         for result in ({'ok': False}, {'ok': True, 'runtime_valid': False},
-                       {'ok': True, 'runtime_valid': True, 'stack_warnings': ['overflow']}):
+                       {'ok': True, 'runtime_valid': True, 'stack_warnings': ['overflow']},
+                       {'ok': True, 'runtime_valid': True, 'stack_warnings': []}):
             with self.subTest(result=result):
                 self.out = self.root / str(len(list(self.root.iterdir())))
                 with patch.object(pair.fastbuild, 'build', return_value=result), \

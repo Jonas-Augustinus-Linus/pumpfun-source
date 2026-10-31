@@ -75,6 +75,7 @@ jobs:
           - suite: composition-patch-bytes
             commands: |
               python -B reconstruction/harness/test_integrate_failures.py
+              python -B reconstruction/harness/test_pair_case_alias.py
               python -B reconstruction/harness/test_integrate_no_build_cli.py
               python -B reconstruction/harness/test_integrate_build_input_recheck.py
               python -B reconstruction/harness/test_integrate_scoring_reference_recheck.py
@@ -87,6 +88,10 @@ jobs:
               python -B reconstruction/harness/test_integrate_binary_files.py
               python -B reconstruction/harness/test_integrate_file_directory.py
               python -B reconstruction/harness/test_integrate_git_metadata.py
+              python -B reconstruction/harness/test_integrate_git_context.py
+              python -B reconstruction/harness/test_pair_git_context.py
+              python -B reconstruction/harness/test_integrate_locale.py
+              python -B reconstruction/harness/test_pair_locale.py
               python -B reconstruction/harness/test_integrate_source_links.py
               python -B reconstruction/harness/test_integrate_orig_sources.py
               python -I -B tests/test_integrate_patch_bytes.py
@@ -109,6 +114,7 @@ jobs:
               python -B scripts/test_tooling_litesvm_collection.py
               python -B -m unittest discover -s scripts -p 'test_sbf_backend*.py'
               python -B scripts/test_pump_diagnostic_audit_coverage.py
+              python -B tests/test_diagnostic_pair_admission.py
               python -B scripts/test_pump_diagnostic_audit_publication.py
               python -B scripts/test_report_stage_collision.py
               python -B scripts/test_deep_analysis_capture_routes.py
@@ -185,6 +191,7 @@ jobs:
               python -B scripts/test_pump_compare_window_columns.py
               python -B scripts/test_pump_exact_body_inventory_columns.py
               python -I -B scripts/test_pump_exact_body_inventory_snapshot.py
+              python -I -B scripts/test_pump_exact_body_tool_snapshot.py
               python -B reconstruction/tooling/parallel-input-preservation-20261030/test_input_preservation.py
               python -B reconstruction/tooling/serial-input-preservation-20261030/test_serial_admission.py
               python -B scripts/test_pump_compare_window_strict_csv.py
@@ -205,6 +212,7 @@ jobs:
               python -B scripts/test_measure_relay13_v148_optimization.py
               python -B scripts/test_fees_withdraw_runtime_optimization.py
               python -B scripts/test_measure_relay_v148_optimization.py
+              python -B scripts/test_relay_measure_line_breaks.py
               python -B tests/test_verify_dependencies_optimization.py
               python -B tests/test_recovered_builds_optimization.py
               python -B scripts/test_mayhem_burn_sequence_optimization.py
@@ -252,14 +260,17 @@ jobs:
               python -B scripts/test_pump_validate_sell_accounting_optimization.py
               python -B scripts/test_imported_lab_optimization.py
               python -B scripts/test_deep_section_analysis_publication.py
+              python -B scripts/test_deep_section_pattern_count.py
               python -B scripts/test_supported_policy_source_binding.py
               python -B scripts/test_pump_data_order_publication.py
+              python -B scripts/test_pump_data_order_cli.py
               python -B scripts/test_pump_data_order_windows_publish.py
               python -B scripts/test_pump_data_order_umask_mode.py
               python -B scripts/test_deep_disassembly_syscall_usage.py
               python -B scripts/test_disassemble_output_mode.py
               python -B scripts/test_disassemble_tool_binding.py
               python -B scripts/test_disassemble_publication.py
+              python -B scripts/test_disassemble_no_replace.py
               python -B scripts/test_disassemble_staging_uniqueness.py
               python -B scripts/test_analyze_publication.py
               python -B scripts/test_analyze_inventory_order.py
@@ -282,6 +293,7 @@ jobs:
               python -B reconstruction/mayhem/native-linux-qualification/test_vendor_membership.py
               python -B reconstruction/mayhem/native-linux-qualification/test_vendor_file_links.py
               python -B scripts/test_analyze_program_publication.py
+              python -B scripts/test_analyze_program_relocation_totals.py
               python -B scripts/test_reconstruction_roadmap_publication.py
               python -B tests/test_roadmap_string_references.py
               python -B tests/test_pump_planning_regressions.py
@@ -315,6 +327,7 @@ jobs:
               python -O -B tests/test_function_body_file_ranges.py
               python -B reconstruction/harness/test_treediff_line_boundaries.py
               python -B reconstruction/harness/test_source_input_directories.py
+              python -B reconstruction/harness/test_source_input_execute_bits.py
               python -B reconstruction/harness/test_score_inputs.py
               python -B reconstruction/harness/test_score_empty_baseline.py
               python -B reconstruction/harness/test_score_baseline_option_conflict.py
@@ -323,6 +336,10 @@ jobs:
               python -B reconstruction/pump-main/test_ledger_negative_limit.py
               python -B reconstruction/diagnostics/census-portability/test_output_guard.py
               python -B reconstruction/harness/test_census_argument_constants.py
+              python -B reconstruction/harness/test_capture_inline_unavailable.py
+              python -B reconstruction/harness/test_inline_locations.py
+              python -B reconstruction/harness/test_census_external_symbols.py
+              python -B reconstruction/harness/test_census_disassembly_snapshot.py
               python -B reconstruction/pump-main/lanes/callgraph-census/test_blocksim.py
               python -B reconstruction/harness/test_census_call_barriers.py
               python -B reconstruction/harness/test_census_original_input.py
@@ -335,14 +352,20 @@ jobs:
               python -B reconstruction/harness/test_bisect_membership.py
               python -B reconstruction/harness/test_bisect_git_context.py
               python -B reconstruction/harness/test_bisect_missing_source.py
+              python -B reconstruction/harness/test_bisect_archived_directory.py
+              python -B reconstruction/harness/test_bisect_input_preservation.py
               python -B reconstruction/harness/test_bisect_linked_source.py
               python -B reconstruction/harness/test_experiment_directory_identity.py
               python -B reconstruction/harness/test_experiment_output_directories.py
               python -B reconstruction/harness/test_experiment_output_walk_errors.py
               python -B reconstruction/harness/test_experiment_receipt_integrity.py
+              python -B reconstruction/harness/test_experiment_receipt_inputs.py
               python -B reconstruction/harness/test_minimize_initial_report.py
+              python -B reconstruction/harness/test_minimize_linked_patch.py
+              python -B reconstruction/harness/test_minimize_input_preservation.py
               python -B reconstruction/harness/test_minimize_oracle_encoding.py
               python -B reconstruction/harness/test_minimize_patch_list_encoding.py
+              python -B reconstruction/harness/test_minimize_physical_overlap.py
               python -B reconstruction/harness/test_treediff.py
               python -B reconstruction/harness/test_inventory_fidelity.py
               python -B reconstruction/harness/test_attempt_applicability.py
