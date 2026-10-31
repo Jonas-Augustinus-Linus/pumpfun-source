@@ -34,8 +34,9 @@ def source_receipt(repo):
     # All receipt queries must describe this explicitly selected checkout.
     git_env = {key: value for key, value in os.environ.items()
                if not key.upper().startswith('GIT_')}
-    toplevel = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', '--show-toplevel'],
-                                      text=True, env=git_env).rstrip('\r\n')
+    # Repository paths use the filesystem codec, independently of text locale.
+    toplevel = os.fsdecode(subprocess.check_output(
+        ['git', '-C', str(repo), 'rev-parse', '--show-toplevel'], env=git_env)).rstrip('\r\n')
     if Path(toplevel).resolve(strict=True) != repo:
         raise ValueError('Pump source checkout must be a Git worktree root')
     revision = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'],
