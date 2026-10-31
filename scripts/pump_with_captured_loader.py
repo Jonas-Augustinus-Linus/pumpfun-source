@@ -30,10 +30,13 @@ def wrapped_artifact_paths(arguments):
         option=arguments[index]
         if option=='--':break
         name,separator,value=option.partition('=')
-        if name in ('--candidate','--output'):
-            if separator:values[name]=value
+        choices=[known for known in ('--candidate','--output')
+                 if name.startswith('--') and len(name)>2 and known.startswith(name)]
+        if len(choices)==1:
+            canonical=choices[0]
+            if separator:values[canonical]=value
             elif index+1<len(arguments) and not arguments[index+1].startswith('--'):
-                index+=1;values[name]=arguments[index]
+                index+=1;values[canonical]=arguments[index]
         index+=1
     return [Path(value).absolute() for value in values.values()]
 script=args.script.expanduser().resolve();paths=protected_inputs(script)

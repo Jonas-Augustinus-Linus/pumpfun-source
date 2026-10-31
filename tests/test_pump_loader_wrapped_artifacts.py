@@ -34,9 +34,10 @@ class WrappedArtifactBoundaryTests(unittest.TestCase):
                 self.skipTest(f'{kind} unavailable on this platform: {error}')
             raise
 
-    def invoke(self, receipt, *, equals=False, extra=()):
-        args = ([f'--candidate={self.candidate}', f'--output={self.report}'] if equals else
-                ['--candidate', str(self.candidate), '--output', str(self.report)])
+    def invoke(self, receipt, *, equals=False, extra=(), abbreviated=False):
+        candidate, output = ('--cand', '--out') if abbreviated else ('--candidate', '--output')
+        args = ([f'{candidate}={self.candidate}', f'{output}={self.report}'] if equals else
+                [candidate, str(self.candidate), output, str(self.report)])
         return subprocess.run([sys.executable, '-B', str(ROOT / 'scripts/pump_with_captured_loader.py'),
                                '--receipt', str(receipt), str(ROOT / 'scripts/pump_validate_admin.py'),
                                *extra, *args], cwd=self.work, capture_output=True, text=True, timeout=180)
@@ -92,6 +93,24 @@ class WrappedArtifactBoundaryTests(unittest.TestCase):
     def test_last_documented_path_option_wins(self):
         result = self.invoke(self.receipt, extra=('--candidate', str(self.receipt),
                                                  '--output=' + str(self.receipt)))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(json.loads(self.report.read_bytes())['case_count'], 93)
+        self.assertIs(json.loads(self.receipt.read_bytes())['ok'], True)
+
+    def test_argparse_abbreviations_preserve_candidate_and_report(self):
+        for equals in (False, True):
+            for receipt in (self.candidate, self.report):
+                with self.subTest(equals=equals, receipt=receipt.name):
+                    result = self.invoke(receipt, equals=equals, abbreviated=True)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn('receipt path aliases protected input', result.stderr)
+                    self.assertEqual(result.stdout, '')
+                    self.assertEqual(self.candidate.read_bytes(), self.candidate_bytes)
+                    self.assertFalse(self.report.exists())
+
+    def test_abbreviated_options_keep_last_occurrence_semantics(self):
+        result = self.invoke(self.receipt, extra=('--candidate', str(self.receipt),
+                                                 '--output=' + str(self.receipt)), abbreviated=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(json.loads(self.report.read_bytes())['case_count'], 93)
         self.assertIs(json.loads(self.receipt.read_bytes())['ok'], True)

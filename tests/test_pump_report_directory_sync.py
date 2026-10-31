@@ -5,6 +5,7 @@ link that publishes it is a directory update. Without a second fsync a crash
 after write() returned can leave the previous report visible, so the caller
 that observed success and the report on disk disagree.
 """
+import errno
 import os
 import stat
 import sys
@@ -60,6 +61,44 @@ class DirectorySyncTests(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 self.write_recording_syncs(publisher, b'{"cases": ["lost"]}')
             self.assertEqual(output.read_bytes(), b'{"cases": ["kept"]}')
+
+    def test_fresh_only_publication_flushes_bytes_then_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            publisher = publication.PumpReport(root / 'report.json', root, None, __file__, overwrite=False)
+            self.assertEqual(self.write_recording_syncs(publisher, b'complete'), [False, True])
+
+    @unittest.skipIf(os.name == 'nt', 'directory descriptors are not supported on Windows')
+    def test_directory_io_failure_is_reported_after_complete_publication(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / 'report.json'
+            publisher = publication.PumpReport(output, root, None, __file__)
+            real_sync = os.fsync
+            def failing(descriptor):
+                if stat.S_ISDIR(os.fstat(descriptor).st_mode):
+                    raise OSError(errno.EIO, 'controlled directory I/O failure')
+                return real_sync(descriptor)
+            with mock.patch.object(publication.os, 'fsync', side_effect=failing):
+                with self.assertRaisesRegex(OSError, 'controlled directory I/O failure'):
+                    publisher.write(b'complete')
+            self.assertEqual(output.read_bytes(), b'complete')
+            self.assertEqual(list(root.glob('.report.json.*')), [])
+
+    @unittest.skipIf(os.name == 'nt', 'directory descriptors are not supported on Windows')
+    def test_unsupported_directory_sync_preserves_publication(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / 'report.json'
+            publisher = publication.PumpReport(output, root, None, __file__)
+            real_sync = os.fsync
+            def unsupported(descriptor):
+                if stat.S_ISDIR(os.fstat(descriptor).st_mode):
+                    raise OSError(errno.ENOTSUP, 'directory sync unsupported')
+                return real_sync(descriptor)
+            with mock.patch.object(publication.os, 'fsync', side_effect=unsupported):
+                publisher.write(b'complete')
+            self.assertEqual(output.read_bytes(), b'complete')
 
 
 if __name__ == '__main__':

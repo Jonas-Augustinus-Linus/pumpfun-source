@@ -48,6 +48,16 @@ class ReportAliasTests(unittest.TestCase):
     def test_unrelated_path_is_not_an_alias(self):
         self.assertFalse(publication.aliases(self.root / 'report.json', self.inputs))
 
+    def test_absent_bound_file_is_still_protected(self):
+        absent = self.root / 'not-yet-created.json'
+        with self.assertRaisesRegex(ValueError, 'report output aliases an input'):
+            publication.PumpReport(absent, self.root, None, __file__, extra_inputs=[absent])
+
+    def test_absent_bound_directory_descendant_is_protected(self):
+        absent = self.root / 'not-yet-created-inputs'
+        with self.assertRaisesRegex(ValueError, 'report output aliases an input'):
+            publication.PumpReport(absent / 'report.json', self.root, None, __file__, extra_inputs=[absent])
+
 
 if __name__ == '__main__':
     unittest.main()

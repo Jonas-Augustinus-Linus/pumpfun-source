@@ -9,6 +9,7 @@ test that inherits the check.
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tests'))
@@ -25,7 +26,9 @@ class CaseCountPresenceTests(unittest.TestCase):
         completed = support.subprocess.CompletedProcess(args=[], returncode=0, stdout='', stderr='')
         case.invoke = lambda name, mode='full', output=None, cwd=None: completed
         case.report = lambda: report
-        support.PublicationCase.test_full_corpora(case)
+        with patch.dict(support.os.environ):
+            support.os.environ.pop(case.PROOF_ENV, None)
+            support.PublicationCase.test_full_corpora(case)
 
     def test_a_report_without_case_count_is_rejected(self):
         with self.assertRaisesRegex(AssertionError, 'case_count'):
@@ -37,6 +40,15 @@ class CaseCountPresenceTests(unittest.TestCase):
     def test_a_report_whose_count_disagrees_with_its_cases_is_rejected(self):
         with self.assertRaises(AssertionError):
             self.corpus({'mismatches': [], 'case_count': 3, 'cases': [{}, {}]})
+
+    def test_non_integer_counts_are_rejected(self):
+        for count in (2.0, True, '2'):
+            with self.subTest(count=count), self.assertRaises(AssertionError):
+                self.corpus({'mismatches': [], 'case_count': count, 'cases': [{}, {}]})
+
+    def test_case_objects_are_not_case_lists(self):
+        with self.assertRaises(AssertionError):
+            self.corpus({'mismatches': [], 'case_count': 2, 'cases': {'one': {}, 'two': {}}})
 
 
 if __name__ == '__main__':

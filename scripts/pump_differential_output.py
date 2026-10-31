@@ -1,4 +1,5 @@
 """Prepare and atomically publish Pump differential reports without input loss."""
+import errno
 import os
 from pathlib import Path
 import sys
@@ -59,7 +60,8 @@ class PumpReport:
         destination = self.output.resolve()
         for source in inputs:
             source = source.resolve()
-            if source.exists() and aliases(destination, source):
+            if (destination == source or destination.is_relative_to(source)
+                    or (source.exists() and aliases(destination, source))):
                 raise ValueError('report output aliases an input: ' + str(self.output))
         if not self.overwrite and self.output.exists():
             raise FileExistsError('Retain prior attempts; output must be fresh: ' + str(self.output))
@@ -107,16 +109,21 @@ class PumpReport:
         fsync on the staging file flushes its bytes but not the rename or
         hard link that names the report, so a crash after write() returned
         could leave the previous report in place. Flushing the directory once
-        per publication closes that window. Directory fsync is unsupported on
-        Windows and on some filesystems; those close the window as before.
+        per publication requests persistence of the published name. Directory
+        fsync is unsupported on Windows and on some filesystems; those retain
+        the previous publication behavior. Other I/O errors remain visible.
         """
         try:
             descriptor = os.open(directory, os.O_RDONLY | getattr(os, 'O_DIRECTORY', 0))
-        except OSError:
-            return
+        except OSError as error:
+            if os.name == 'nt' or error.errno in (errno.EINVAL, errno.ENOTSUP, errno.EOPNOTSUPP):
+                return
+            raise
         try:
             os.fsync(descriptor)
-        except OSError:
-            return
+        except OSError as error:
+            if error.errno in (errno.EINVAL, errno.ENOTSUP, errno.EOPNOTSUPP):
+                return
+            raise
         finally:
             os.close(descriptor)

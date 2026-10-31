@@ -31,6 +31,11 @@ def main():
     transition = json.loads((HERE / 'proposed-asset-transition.json').read_text())
     actual = {name: sha(ROOT / name) for name in transition['before']}
     stage = next((key for key in ('before','after') if actual == transition[key]), None)
+    current_pins = HERE / 'current-reviewed-inputs.json'
+    if stage is None and current_pins.is_file():
+        reviewed = json.loads(current_pins.read_text())
+        if actual == reviewed['producer_sha256']:
+            stage = 'current-reviewed'
     if stage is None:
         raise RuntimeError('producer source drift outside reviewed transition')
     OUT.mkdir(parents=True, exist_ok=False)
@@ -74,7 +79,7 @@ def main():
                 decoded = subprocess.run(decode_command, cwd=ROOT, capture_output=True, text=True, timeout=60)
                 row['plain_reader'] = {'command': decode_command, 'returncode': decoded.returncode,
                                       'stdout': decoded.stdout, 'stderr': decoded.stderr}
-                expected = 0 if stage == 'after' else 1
+                expected = 1 if stage == 'before' else 0
                 if decoded.returncode != expected or (expected and 'UnicodeDecodeError' not in decoded.stderr):
                     errors.append(script+': unexpected standard plain JSON-reader outcome')
             save(directory/(label+'-command.json'), row)

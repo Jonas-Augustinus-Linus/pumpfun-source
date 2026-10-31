@@ -78,3 +78,7 @@ aggregate failure is alleged. These captured-image controls prove report
 framing and preserve the existing finite fixture behavior. They do not prove
 rebuilt-source equivalence, new behavior coverage, full protocol behavior or
 security acceptance. Original captures and immutable evidence are unchanged.
+
+## Current metadata-compatible replay
+
+The retained before/after reports and their source hashes remain historical. `current-reviewed-inputs.json` separately pins the current producer cohort after adding an explicit `case_count` to the creation report. `reproduce.py` admits that exact cohort as `current-reviewed` and repeats the same complete plain/gzip framing checks. It does not rewrite or relabel either historical run.
