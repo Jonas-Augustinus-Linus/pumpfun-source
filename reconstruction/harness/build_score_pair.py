@@ -37,7 +37,7 @@ def source_receipt(repo):
     # Repository paths use the filesystem codec, independently of text locale.
     toplevel = os.fsdecode(subprocess.check_output(
         ['git', '-C', str(repo), 'rev-parse', '--show-toplevel'], env=git_env)).rstrip('\r\n')
-    if Path(toplevel).resolve(strict=True) != repo:
+    if not Path(toplevel).samefile(repo):
         raise ValueError('Pump source checkout must be a Git worktree root')
     revision = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'],
                                       text=True, env=git_env).strip()
