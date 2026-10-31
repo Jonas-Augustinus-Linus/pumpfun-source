@@ -7,7 +7,7 @@ import pump_trade_fixture as f
 from pump_differential_output import PumpReport
 
 p=argparse.ArgumentParser();p.add_argument('--host',type=f.pathlib.Path,required=True);p.add_argument('--output',type=f.pathlib.Path,required=True);a=p.parse_args()
-report_output=PumpReport(a.output,f.R,a.host,__file__,extra_inputs=(f.R/'programs/pump/recovered/constant_product.rs',))
+report_output=PumpReport(a.output,f.R,a.host,__file__,extra_inputs=(f.R/'programs/pump/recovered/constant_product.rs',*f.REPORT_INPUTS))
 initial={key:f.vm.get_account(key) for key in f.msg.account_keys}
 user=f.Keypair.from_seed(bytes([231])*32)
 curve=f.Pubkey.from_string(f.x['accounts']['curve'])
