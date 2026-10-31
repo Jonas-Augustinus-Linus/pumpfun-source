@@ -151,8 +151,17 @@ def run_captured(item, *, include_failed_state=False):
                                            [PAYER], vm.latest_blockhash())
     def snapshot():
         keys = {PAYER.pubkey(), *(meta.pubkey for meta in metas)}
-        return {str(key): json.loads(account.to_json()) if (account := vm.get_account(key)) else None
-                for key in keys}
+        def state(key):
+            account = vm.get_account(key)
+            if account is None:
+                return None
+            data = bytes(account.data)
+            # Hash full bytes, including executable images, without expanding
+            # megabytes of immutable program data into each failure receipt.
+            return dict(lamports=account.lamports, owner=str(account.owner),
+                        executable=account.executable, rent_epoch=account.rent_epoch,
+                        data_length=len(data), data_sha256=hashlib.sha256(data).hexdigest())
+        return {str(key): state(key) for key in keys}
     failed_before = snapshot() if include_failed_state else None
     result = vm.send_transaction(tx)
     if isinstance(result, FailedTransactionMetadata):
