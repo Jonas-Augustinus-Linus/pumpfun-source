@@ -13,6 +13,16 @@ REPLAY=['pump_fun_admin_surfpool','pump_fun_amm_buy_v2_surfpool','pump_fun_curve
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def verify(args,output):
  snapshot=ROOT/'research/imported-lab';manifest=json.loads((ROOT/'research/import-manifest.json').read_text())
+ listed={f['path'] for f in manifest['files']}
+ on_disk={p.relative_to(snapshot).as_posix() for p in snapshot.rglob('*') if not p.is_dir() and '__pycache__' not in p.relative_to(snapshot).parts}
+ # The hash loop below only ever checked the files the manifest lists, while
+ # this script goes on to execute the snapshot's verifier scripts and trust
+ # the docs commit in its program-manifest. An unlisted tampered script, an
+ # extra module shadowing a stdlib import, or a repointed program-manifest
+ # therefore passed with all_import_hashes_verified: true. Pin the exact set,
+ # as verify_evidence.py pins its captures, so coverage cannot silently shrink.
+ unlisted=sorted(on_disk-listed);absent=sorted(listed-on_disk)
+ if unlisted or absent:raise AssertionError(f'import manifest coverage mismatch: unlisted files {unlisted}, listed but absent {absent}')
  for f in manifest['files']:
   # Explicit check instead of `assert`: `python -O` / PYTHONOPTIMIZE strips
   # asserts, so a tampered import would otherwise verify with exit 0.
