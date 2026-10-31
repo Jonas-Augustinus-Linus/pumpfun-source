@@ -4,8 +4,10 @@ Tooling for capturing deployments, building candidates, comparing them with the
 captured originals and running differential tests in a local VM. Every Python
 script here is listed below by purpose; a check mark means a GitHub workflow runs it
 directly (others run as libraries of those steps or by hand). The non-Python files
-(`pump_rustc_source_path_wrapper.sh`, `core_linux_v144_inputs.json` and
-`supported_sbpf_policies/`) are inputs to the build scripts.
+(`pump_rustc_source_path_wrapper.sh`, `core_linux_v144_inputs.json`,
+`pump_text_layout_default.ld`, `pump_linux_v144_sbf_libraries.json`,
+`pump_linux_v144_sbpf_libraries.json` and `supported_sbpf_policies/`) are inputs
+to the build scripts.
 
 ## Conventions
 
