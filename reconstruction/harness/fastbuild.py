@@ -230,6 +230,25 @@ def archive_previous_outputs(out: Path):
         path.rename(archive / path.name)
 
 
+def contains_path(parent, child):
+    """Check lexical and existing physical ancestry before creating build paths."""
+    if parent == child or parent in child.parents:
+        return True
+    try:
+        identity = parent.stat()
+    except FileNotFoundError:
+        return False
+    # resolve() removes symlinks but can retain alternate case spellings.
+    # A not-yet-created destination can still have an existing aliased parent.
+    for path in (child, *child.parents):
+        try:
+            if os.path.samestat(identity, path.stat()):
+                return True
+        except FileNotFoundError:
+            continue
+    return False
+
+
 def require_separate(src: Path, work: Path, out: Path):
     """Reject a workspace or output that overlaps the source tree.
 
@@ -240,8 +259,7 @@ def require_separate(src: Path, work: Path, out: Path):
     near the workspace before building must preflight with this first.
     """
     src = src.resolve(); work = work.resolve(); out = out.resolve()
-    if (src == work or src in work.parents or work in src.parents
-            or src == out or src in out.parents or out in src.parents):
+    if any(contains_path(src, path) or contains_path(path, src) for path in (work, out)):
         raise ValueError('source must not overlap the build workspace or contain output')
     return src, work, out
 
