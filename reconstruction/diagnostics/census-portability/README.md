@@ -77,3 +77,8 @@ the captured CTO window with the retained multihop-sell-fees compiler artifact;
 its real census CLI test additionally runs when `PUMP_OBJDUMP` names an SBF tool.
 That CLI control also compares JSON and Markdown across Python hash seeds;
 callee identities break ties between identical display names in report rows.
+Census disassembly uses a temporary snapshot of each loaded image. If a build
+replaces or removes the original candidate path during analysis, argument text
+still describes the bytes used for call sites and the recorded candidate hash.
+`test_census_disassembly_snapshot.py` exercises unchanged, replaced and removed
+paths with retained compiler artifacts when `PUMP_OBJDUMP` names an SBF tool.
