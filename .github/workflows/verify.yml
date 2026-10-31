@@ -348,6 +348,7 @@ jobs:
               python -B reconstruction/harness/test_census_call_barriers.py
               python -B reconstruction/harness/test_census_original_input.py
               python -B reconstruction/harness/test_dataref_length.py
+              python -B reconstruction/pump-main/lanes/execute-payment-result/test_verify_current_output_preservation.py
               python -B reconstruction/harness/test_experiment_declared_name.py
               python -B reconstruction/harness/test_experiment_executable_snapshot.py
               python -B reconstruction/harness/test_experiment_source_output_modes.py
