@@ -19,6 +19,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import census as C  # noqa: E402
+from original_input import resolve_original  # noqa: E402
+from score_admission import report_destination  # noqa: E402
 
 
 def lddws(raw, start):
@@ -86,6 +88,18 @@ def main():
     a = ap.parse_args()
     if a.width <= 0:
         ap.error('--width must be positive')
+    if a.json:
+        # Reject a report destination that aliases an input before any read:
+        # the report is published with write_text, so an aliasing --json
+        # would destroy the candidate (or the shared original / window
+        # inventory) it just audited. Mirrors the harness report tools'
+        # destination check, including its input set.
+        try:
+            report_destination(a.json, [a.cand, C.BASE / 'original.so',
+                                        resolve_original(C.BASE / 'original.so'),
+                                        C.BASE / 'functions.tsv'])
+        except ValueError as error:
+            ap.error(str(error))
     wins = C.original_windows()
     O = C.Image(C.ORIG_PATH, {w['start']: (w['bytes'], []) for w in wins})
     cf = {}
