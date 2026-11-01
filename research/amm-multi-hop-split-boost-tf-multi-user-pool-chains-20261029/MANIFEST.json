@@ -217,8 +217,8 @@
     },
     {
       "path": "verify.py",
-      "sha256": "a31c6acd5d971629a7a95a0e106709cb12fa7319ba513971ef99ff8ac0bdcdb4",
-      "bytes": 41163
+      "sha256": "43048f6a550bcc101dd338a2c3a82659bb1c1eee77e2cdcd7b1826f0a846bf1b",
+      "bytes": 41888
     }
   ]
 }
