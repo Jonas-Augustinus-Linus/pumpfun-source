@@ -33,7 +33,7 @@ def main():
   c=dict(c,token_quote=a.family!='native',quote_token22=a.family=='token22')
   original=p.run(c);candidate=p.run(c,a.candidate);diff=[]
   for r in [original,candidate]:
-   tx=Transaction.from_bytes(base64.b64decode(r['transaction_base64']));assert all(tx.verify_with_results())
+   tx=Transaction.from_bytes(base64.b64decode(r['transaction_base64']));assert (tx.signatures and all(tx.verify_with_results()))
   if original['transaction_base64']!=candidate['transaction_base64']:diff.append('signed_transaction')
   for phase in ['before','after']:
    x={k:v for k,v in original[phase].items() if k!=str(p.MAY)};y={k:v for k,v in candidate[phase].items() if k!=str(p.MAY)}

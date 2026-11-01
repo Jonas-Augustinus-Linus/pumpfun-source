@@ -151,7 +151,7 @@ class Fixture:
         ix = Instruction(MAY, payload, metas)
         tx = Transaction.new_signed_with_payer(
             [set_compute_unit_limit(1_400_000), ix], PAYER.pubkey(), [PAYER], vm.latest_blockhash())
-        assert all(tx.verify_with_results())
+        assert (tx.signatures and all(tx.verify_with_results()))
         r = vm.send_transaction(tx)
         failed = isinstance(r, FailedTransactionMetadata)
         meta = r.meta() if failed else r

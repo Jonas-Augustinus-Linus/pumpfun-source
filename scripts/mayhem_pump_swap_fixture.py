@@ -90,9 +90,9 @@ def run(c,binary=None):
  data+=bytes.fromhex(c.get('trailing',''))
  signers=[PAYER]+[keypair for keypair in [TRADER,ALT_TRADER] if any(m.pubkey==keypair.pubkey() and m.is_signer for m in metas)]
  tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(MAY,data,metas)],PAYER.pubkey(),signers,vm.latest_blockhash())
- if not all(tx.verify_with_results()):
+ if not (tx.signatures and all(tx.verify_with_results())):
   raise RuntimeError('transaction signature verification failed')
  watched=list(dict.fromkeys(list(tx.message.account_keys)+keys));before={str(k):snap(vm.get_account(k)) for k in watched};res=vm.send_transaction(tx);failed=isinstance(res,FailedTransactionMetadata);meta=res.meta() if failed else res
- if not all(tx.verify_with_results()):
+ if not (tx.signatures and all(tx.verify_with_results())):
   raise RuntimeError('transaction signature verification failed')
  return {'case':c,'error':str(res.err()) if failed else None,'signature':str(tx.signatures[0]),'signature_verified':True,'synthetic_trader':str(TRADER.pubkey()),'transaction_base64':base64.b64encode(bytes(tx)).decode(),'before':before,'after':{str(k):snap(vm.get_account(k)) for k in watched},'metadata':json.loads(meta.to_json()),'inputs':{'pool_base':reserve_base,'pool_quote':reserve_quote,'reference':ref}}

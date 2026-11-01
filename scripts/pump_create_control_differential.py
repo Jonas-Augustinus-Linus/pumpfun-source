@@ -59,7 +59,7 @@ def run(c,binary=ORIGINAL):
   key=names[name];a=vm.get_account(key) or Account(0,b'',Pubkey.default());d=bytearray(a.data)
   for off,val in mut.get('patches',[]):d[off:off+len(bytes.fromhex(val))]=bytes.fromhex(val)
   size=mut.get('length',len(d));d=(d+bytes(max(0,size-len(d))))[:size];vm.set_account(key,Account(mut.get('lamports',a.lamports),bytes(d),Pubkey.from_string(mut.get('owner',str(a.owner)))))
- signers={a.pubkey for a in metas if a.is_signer}|{USER.pubkey()};tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PROGRAM,payload,metas)],USER.pubkey(),[k for k in [USER,MINT,OTHER] if k.pubkey() in signers],vm.latest_blockhash());assert all(tx.verify_with_results())
+ signers={a.pubkey for a in metas if a.is_signer}|{USER.pubkey()};tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PROGRAM,payload,metas)],USER.pubkey(),[k for k in [USER,MINT,OTHER] if k.pubkey() in signers],vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
  def snap():
   out={}
   for key in set(names.values()):

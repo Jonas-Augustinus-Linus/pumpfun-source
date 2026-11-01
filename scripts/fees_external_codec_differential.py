@@ -25,7 +25,7 @@ def main():
    elif kind=='discriminator':c[name+'_patches']=[(0,'0000000000000000')]
    else:c[name+'_patches']=[(bad_bool,'02')]
    x,y=sharing.run(c,original),sharing.run(c,candidate)
-   for result in [x,y]:assert all(Transaction.from_bytes(base64.b64decode(result['transaction_base64'])).verify_with_results())
+   for result in [x,y]:tx=Transaction.from_bytes(base64.b64decode(result['transaction_base64']));assert tx.signatures and all(tx.verify_with_results())
    assert x['error'] is not None and errors(x),c
    diff=[k for k in FIELDS if x[k]!=y[k]]
    if errors(x)!=errors(y):diff.append('anchor_error_logs_without_source_location')

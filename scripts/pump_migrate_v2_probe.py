@@ -53,7 +53,7 @@ def run(c={},candidate=None):
    if a and a.executable:continue
    out[str(k)]=None if a is None else {'lamports':a.lamports,'owner':str(a.owner),'data':a.data.hex()}
   return out
- before=snap();tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(P,bytes(ix['discriminator']),metas)],PAYER.pubkey(),[PAYER]+([] if c.get('unsigned') else [USER]),vm.latest_blockhash());assert all(tx.verify_with_results());r=vm.send_transaction(tx);
+ before=snap();tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(P,bytes(ix['discriminator']),metas)],PAYER.pubkey(),[PAYER]+([] if c.get('unsigned') else [USER]),vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()));r=vm.send_transaction(tx);
  if c.get('repeat') and not isinstance(r,FailedTransactionMetadata):r=vm.send_transaction(tx)
  failed=isinstance(r,FailedTransactionMetadata);meta=r.meta() if failed else r
  return {'case':c,'signature_verification':True,'transaction_base64':base64.b64encode(bytes(tx)).decode(),'error':str(r.err()) if failed else None,'logs':meta.logs(),'inner':json.loads(meta.to_json())['inner_instructions'],'return':json.loads(meta.to_json()).get('return_data'),'before':before,'after':snap(),'names':{k:str(v) for k,v in names.items()},'account_keys':[str(k) for k in tx.message.account_keys]}

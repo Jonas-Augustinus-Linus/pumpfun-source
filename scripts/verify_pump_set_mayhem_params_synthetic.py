@@ -118,7 +118,7 @@ def main():
             tx_bytes = base64.b64decode(case["signed_transaction_base64"], validate=True)
             assert sha(tx_bytes) == case["signed_transaction_sha256"]
             tx = VersionedTransaction.from_bytes(tx_bytes)
-            assert all(tx.verify_with_results()) and case["signatures_valid"]
+            assert (tx.signatures and all(tx.verify_with_results())) and case["signatures_valid"]
             message = tx.message
             assert str(message.account_keys[message.instructions[0].program_id_index]) == MAYHEM
             assert_account_event(case)

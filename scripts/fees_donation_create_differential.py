@@ -75,7 +75,7 @@ class Fixture:
   if mutation.startswith('accounts:'):metas=metas[:int(mutation.split(':')[1])]
   signers=[PAYER]+([AUTH] if any(m.is_signer and m.pubkey==AUTH.pubkey() for m in metas) else [])
   tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,bytes(INSTRUCTION['discriminator'])+bytes.fromhex(c.get('trailing','')),metas)],PAYER.pubkey(),signers,self.vm.latest_blockhash())
-  assert all(tx.verify_with_results())
+  assert (tx.signatures and all(tx.verify_with_results()))
   r=self.vm.send_transaction(tx);failed=isinstance(r,FailedTransactionMetadata);meta=r.meta() if failed else r;after=self.vm.get_account(donation)
   return {'error':str(r.err()) if failed else None,'data':after.data.hex() if after else None,'owner':str(after.owner) if after else None,'lamports':after.lamports if after else None,'payer_delta':self.vm.get_account(PAYER.pubkey()).lamports-10**12,'authority_delta':self.vm.get_account(AUTH.pubkey()).lamports-10**12,'events':[l for l in meta.logs() if l.startswith('Program data:')],'inner':json.loads(meta.to_json())['inner_instructions'],'logs':meta.logs(),'transaction_base64':base64.b64encode(bytes(tx)).decode()}
 def cases():

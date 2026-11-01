@@ -55,7 +55,7 @@ def execute_rejection(name):
     if not isinstance(result, FailedTransactionMetadata):
         raise RuntimeError('short trade payload unexpectedly succeeded')
     return {'error': str(result.err()), 'signature': str(tx.signatures[0]),
-            'signature_verified': all(tx.verify_with_results()),
+            'signature_verified': (tx.signatures and all(tx.verify_with_results())),
             'transaction_base64': base64.b64encode(bytes(tx)).decode(), 'before': before,
             'after': {str(key): snapshot(vm.get_account(key)) for key in tx.message.account_keys},
             'metadata': json.loads(result.meta().to_json())}
@@ -137,7 +137,7 @@ class MayhemReceiptAdmissionTests(unittest.TestCase):
                     wire = bytearray(base64.b64decode(record['transaction_base64']))
                     wire[1] ^= 1  # first signature byte, after the one-signature count
                     tx = Transaction.from_bytes(bytes(wire))
-                    self.assertFalse(all(tx.verify_with_results()))
+                    self.assertFalse((tx.signatures and all(tx.verify_with_results())))
                     record['transaction_base64'] = base64.b64encode(wire).decode()
                     record['signature'] = str(tx.signatures[0])
                     record['metadata']['signature'] = str(tx.signatures[0])

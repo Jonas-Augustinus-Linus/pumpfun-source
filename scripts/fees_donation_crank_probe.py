@@ -64,7 +64,7 @@ class CrankFixture:
   if c.get('wrong_account'):names[c['wrong_account']]=OTHER.pubkey()
   metas=[AccountMeta(names[a['name']],a.get('signer',False) and not c.get('unsigned'),a.get('writable',False) and a['name']!=c.get('readonly')) for a in IX['accounts']]
   metas=metas[:c.get('account_count',len(metas))]
-  tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PROGRAM,bytes(IX['discriminator']),metas)],PAYER.pubkey(),[PAYER]+([AUTH] if any(m.is_signer and m.pubkey==AUTH.pubkey() for m in metas) else []),self.vm.latest_blockhash());assert all(tx.verify_with_results())
+  tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PROGRAM,bytes(IX['discriminator']),metas)],PAYER.pubkey(),[PAYER]+([AUTH] if any(m.is_signer and m.pubkey==AUTH.pubkey() for m in metas) else []),self.vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
   before=snapshot();r=self.vm.send_transaction(tx);failed=isinstance(r,FailedTransactionMetadata);meta=r.meta() if failed else r
   return {'case':c,'error':str(r.err()) if failed else None,'before':before,'after':snapshot(),'logs':meta.logs(),'inner':json.loads(meta.to_json())['inner_instructions'],'transaction_base64':base64.b64encode(bytes(tx)).decode()}
 def main():

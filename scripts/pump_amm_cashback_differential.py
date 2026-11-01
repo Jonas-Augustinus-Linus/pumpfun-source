@@ -38,7 +38,7 @@ def run(c,binary=ORIGINAL):
    a=vm.get_account(k)
    if a is None or not a.executable:out[str(k)]=None if a is None else {'data':bytes(a.data).hex(),'lamports':a.lamports,'owner':str(a.owner)}
   return out
- before=snap();data=bytes(ix['discriminator'])+bytes.fromhex(c.get('trailing',''));data=data[:c.get('payload_length',len(data))];tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,data,metas)],PAYER.pubkey(),[PAYER],vm.latest_blockhash());assert all(tx.verify_with_results());r=vm.send_transaction(tx);failed=isinstance(r,FailedTransactionMetadata);m=r.meta() if failed else r
+ before=snap();data=bytes(ix['discriminator'])+bytes.fromhex(c.get('trailing',''));data=data[:c.get('payload_length',len(data))];tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,data,metas)],PAYER.pubkey(),[PAYER],vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()));r=vm.send_transaction(tx);failed=isinstance(r,FailedTransactionMetadata);m=r.meta() if failed else r
  return {'case':c,'error':str(r.err()) if failed else None,'before':before,'after':snap(),'logs':m.logs(),'inner':json.loads(m.to_json())['inner_instructions'],'tx':base64.b64encode(bytes(tx)).decode(),'signature_verified':True,'events':[l for l in m.logs() if l.startswith('Program data: ')]}
 
 def cases():

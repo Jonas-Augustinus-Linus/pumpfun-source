@@ -142,7 +142,7 @@ def run(binary, caller, fixture, case, *, token_program=None):
                                     for index, key in enumerate(keys)])
     message = Message.new_with_blockhash([ix], PAYER.pubkey(), vm.latest_blockhash())
     tx = VersionedTransaction(message, [PAYER])
-    assert all(tx.verify_with_results())
+    assert (tx.signatures and all(tx.verify_with_results()))
     result = vm.send_transaction(tx)
     failed = hasattr(result, "err")
     meta = result.meta() if failed else result

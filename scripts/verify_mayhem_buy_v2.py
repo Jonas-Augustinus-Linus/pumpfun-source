@@ -44,7 +44,7 @@ def main():
   for field in ['inner_instructions','return_data']:assert same_json_value(o['metadata'][field],b['metadata'][field])
   for r in [o,b]:
    tx=Transaction.from_bytes(base64.b64decode(r['transaction_base64']));keys=tx.message.account_keys
-   assert all(tx.verify_with_results()) and r['signature_verified']
+   assert (tx.signatures and all(tx.verify_with_results())) and r['signature_verified']
    assert r['signature']==str(tx.signatures[0])==r['metadata']['signature']
    required=tx.message.header.num_required_signatures
    assert required in [1,2] and all(k.is_on_curve() for k in keys[:required])

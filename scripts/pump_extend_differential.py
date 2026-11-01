@@ -29,7 +29,7 @@ def run(c,binary=ORIGINAL):
   if c.get('wrong')==a['name']:metas[i]=AccountMeta(OTHER,metas[i].is_signer,metas[i].is_writable)
  metas=metas[:c.get('account_count',len(metas))];payload=bytes(IX['discriminator'])+bytes.fromhex(c.get('trailing',''));payload=payload[:c.get('payload_length',len(payload))]
  signers=[PAYER]+([USER] if any(m.pubkey==USER.pubkey() and m.is_signer for m in metas) else [])
- tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,payload,metas)],PAYER.pubkey(),signers,vm.latest_blockhash());assert all(tx.verify_with_results())
+ tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,payload,metas)],PAYER.pubkey(),signers,vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
  def snap():
   states={}
   for k in set(keys+[OTHER,PAYER.pubkey()]):

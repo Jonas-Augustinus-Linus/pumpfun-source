@@ -30,7 +30,7 @@ def run(c,binary=ORIGINAL):
   size=mut.get('length',len(d));d=(d+bytes(max(0,size-len(d))))[:size];vm.set_account(key,Account(mut.get('lamports',a.lamports),bytes(d),Pubkey.from_string(mut.get('owner',str(a.owner)))))
  if c.get('wrong'):names[c['wrong']]=NEW
  metas=[AccountMeta(names[a['name']],a.get('signer',False) and not c.get('unsigned'),(a.get('writable',False) or a['name']==c.get('writable')) and a['name']!=c.get('readonly')) for a in IX['accounts']][:c.get('account_count',len(IX['accounts']))]
- payload=(bytes(IX['discriminator'])+bytes(Pubkey.from_string(c.get('new_authority',str(NEW))))+bytes.fromhex(c.get('trailing','')))[:c.get('payload_length',1000)];ks={m.pubkey for m in metas if m.is_signer}|{PAYER.pubkey()};tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,payload,metas)],PAYER.pubkey(),[k for k in [AUTH,PAYER,OTHER] if k.pubkey() in ks],vm.latest_blockhash());assert all(tx.verify_with_results())
+ payload=(bytes(IX['discriminator'])+bytes(Pubkey.from_string(c.get('new_authority',str(NEW))))+bytes.fromhex(c.get('trailing','')))[:c.get('payload_length',1000)];ks={m.pubkey for m in metas if m.is_signer}|{PAYER.pubkey()};tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,payload,metas)],PAYER.pubkey(),[k for k in [AUTH,PAYER,OTHER] if k.pubkey() in ks],vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
  def snap():
   out={}
   for key in set(names.values())|{PAYER.pubkey(),AUTH.pubkey(),IDLACCOUNT}:

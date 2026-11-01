@@ -59,7 +59,7 @@ def run(c,program=ORIGINAL):
    if a is None:out[str(key)]=None
    elif not a.executable:out[str(key)]={'data':bytes(a.data).hex(),'owner':str(a.owner),'lamports':a.lamports}
   return out
- before=snapshot();tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,data,metas)],payer.pubkey(),signers,vm.latest_blockhash());verified=all(tx.verify_with_results());assert verified;r=vm.send_transaction(tx);failed=isinstance(r,FailedTransactionMetadata);meta=r.meta() if failed else r
+ before=snapshot();tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,data,metas)],payer.pubkey(),signers,vm.latest_blockhash());verified=(tx.signatures and all(tx.verify_with_results()));assert verified;r=vm.send_transaction(tx);failed=isinstance(r,FailedTransactionMetadata);meta=r.meta() if failed else r
  result={'signature_verification':verified,'sigverify_runtime_enabled':True,'error':str(r.err()) if failed else None,'before':before,'after':snapshot(),'events':[l for l in meta.logs() if l.startswith('Program data: ')],'inner':json.loads(meta.to_json())['inner_instructions'],'return_data':json.loads(meta.to_json()).get('return_data'),'transaction_base64':base64.b64encode(bytes(tx)).decode(),'logs':meta.logs()}
  return result
 def decoded(r):
