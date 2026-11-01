@@ -183,7 +183,9 @@ def main():
     revision = subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip()
     if subprocess.check_output(['git', '-C', str(source), 'status', '--porcelain', '--untracked-files=no']):
         raise ValueError('tool source has tracked modifications')
-    output = args.output.resolve()
+    # Preserve the final component so dangling output links are refused too.
+    # Parent-directory aliases remain supported.
+    output = args.output.absolute()
     if output.exists() or output.is_symlink():
         raise FileExistsError(output)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -207,7 +209,10 @@ def main():
                         generator_sha256=sha(Path(__file__).read_bytes()), programs=results,
                         proves_byte_identical_reconstruction=False)
         (staging / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n',encoding='utf-8',newline='\n')
-        staging.rename(output)
+        # Another process may have claimed the output while we disassembled.
+        # Never replace even an empty directory that appeared after admission.
+        from deep_disassembly import rename_directory
+        rename_directory(staging, output)
     except BaseException:
         shutil.rmtree(staging, ignore_errors=True)
         raise
