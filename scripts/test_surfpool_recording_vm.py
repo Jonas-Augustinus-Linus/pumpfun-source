@@ -32,7 +32,7 @@ class RecordingVMTests(unittest.TestCase):
             [transfer(TransferParams(from_pubkey=payer.pubkey(), to_pubkey=destination, lamports=10**7))],
             payer.pubkey(), [payer], vm.latest_blockhash(),
         )
-        self.assertTrue(all(tx.verify_with_results()))
+        self.assertTrue((tx.signatures and all(tx.verify_with_results())))
         vm.send_transaction(tx)
         self.assertEqual(vm.transaction, tx)
         self.assertEqual(vm.accounts[str(payer.pubkey())], before)
@@ -49,7 +49,7 @@ class RecordingVMTests(unittest.TestCase):
                     case = module.fixtures.cases()[0]
                 row = module.prepare(case)
                 tx = Transaction.from_bytes(base64.b64decode(row['transaction_base64']))
-                self.assertTrue(all(tx.verify_with_results()))
+                self.assertTrue((tx.signatures and all(tx.verify_with_results())))
                 self.assertTrue(row['accounts'])
                 self.assertEqual(row['case'], case)
                 self.assertIn('litesvm_error', row)

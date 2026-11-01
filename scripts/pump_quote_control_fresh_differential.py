@@ -98,7 +98,7 @@ def execute(binary, name, args=b'', state=None, roles=None, overrides=None, sign
     signed_bytes = bytes(tx)
     verification = tx.verify_with_results()
     decoded = VersionedTransaction.from_bytes(signed_bytes)
-    assert verification and all(verification) and all(decoded.verify_with_results())
+    assert verification and all(verification) and (decoded.signatures and all(decoded.verify_with_results()))
     assert bytes(decoded) == signed_bytes and tx.message.recent_blockhash == blockhash
     tracked = {GLOBAL, QUOTE_CONTROL, *[kp.pubkey() for kp in KEYS.values()], *(state or {}).keys()}
     tracked.update(m.pubkey for m in metas if m.pubkey not in {PROGRAM, SYSTEM})

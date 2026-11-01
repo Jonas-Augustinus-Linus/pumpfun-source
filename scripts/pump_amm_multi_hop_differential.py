@@ -37,7 +37,7 @@ def run(amount=10**9,limit=1,sell=False,tail=True,overrides=None,candidate=None,
    a=h.vm.get_account(k)
    if not a or not a.executable:out[str(k)]=None if not a else{'lamports':a.lamports,'owner':str(a.owner),'data_hex':bytes(a.data).hex()}
   return out
- before=snap();tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,data,m)],payer.pubkey(),[payer,PAYER]if separate_payer and not unsigned else[payer],h.vm.latest_blockhash());assert all(tx.verify_with_results());r=h.vm.send_transaction(tx);failed=isinstance(r,FailedTransactionMetadata);meta=r.meta()if failed else r
+ before=snap();tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,data,m)],payer.pubkey(),[payer,PAYER]if separate_payer and not unsigned else[payer],h.vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()));r=h.vm.send_transaction(tx);failed=isinstance(r,FailedTransactionMetadata);meta=r.meta()if failed else r
  return {'error':str(r.err())if failed else None,'logs':meta.logs(),'events':[x for x in meta.logs()if x.startswith('Program data: ')],'inner':json.loads(meta.to_json())['inner_instructions'],'return_data':json.loads(meta.to_json()).get('return_data'),'before':before,'after':snap(),'transaction_base64':base64.b64encode(bytes(tx)).decode()}
 
 BASE2=Pubkey.from_bytes(bytes([81])*32);CREATOR2=Pubkey.find_program_address([b'pool-authority',bytes(BASE2)],PUMP)[0];POOL2,BUMP2=Pubkey.find_program_address([b'pool',bytes(2),bytes(CREATOR2),bytes(BASE2),bytes(base)],PROGRAM);VB2=Pubkey.find_program_address([bytes(POOL2),bytes(TOKEN),bytes(BASE2)],ATA)[0];VQ2=Pubkey.find_program_address([bytes(POOL2),bytes(TOKEN),bytes(base)],ATA)[0];USER2=Pubkey.from_bytes(bytes([82])*32)

@@ -5,6 +5,7 @@ if not __debug__:
 
 from pathlib import Path
 from pump_differential_output import PumpReport
+from mayhem_receipt_comparison import same_json_value
 import argparse, base64, gzip, hashlib, json, re, struct
 from solders.pubkey import Pubkey
 from solders.transaction import Transaction
@@ -36,13 +37,13 @@ def main():
     if (not isinstance(program,dict) or program.get('executable') is not True
         or program.get('data_sha256')!=report[side+'_sha256']):
      raise ValueError(side+' '+phase+': Mayhem executable snapshot differs from declared image')
-  assert o['transaction_base64']==b['transaction_base64'] and o['error']==b['error']
+  assert o['transaction_base64']==b['transaction_base64'] and same_json_value(o['error'],b['error'])
   for phase in ['before','after']:
-   assert {k:v for k,v in o[phase].items() if k!=str(MAY)}=={k:v for k,v in b[phase].items() if k!=str(MAY)}
-  for field in ['inner_instructions','return_data']:assert o['metadata'][field]==b['metadata'][field]
+   assert same_json_value({k:v for k,v in o[phase].items() if k!=str(MAY)},{k:v for k,v in b[phase].items() if k!=str(MAY)})
+  for field in ['inner_instructions','return_data']:assert same_json_value(o['metadata'][field],b['metadata'][field])
   for r in [o,b]:
    tx=Transaction.from_bytes(base64.b64decode(r['transaction_base64']));keys=tx.message.account_keys
-   assert all(tx.verify_with_results()) and r['signature_verified']
+   assert (tx.signatures and all(tx.verify_with_results())) and r['signature_verified']
    assert r['signature']==str(tx.signatures[0])==r['metadata']['signature']
    required=tx.message.header.num_required_signatures
    assert required in [1,2] and all(k.is_on_curve() for k in keys[:required])
@@ -51,11 +52,11 @@ def main():
     for account in r[phase].values():
      if account is not None and not account['executable']:assert sha(data(account))==account['data_sha256']
    payer=str(keys[0]);expected=dict(r['before'][payer],lamports=r['before'][payer]['lamports']-5000*required)
-   assert r['after'][payer]==expected
+   assert same_json_value(r['after'][payer],expected)
    ix=tx.message.instructions[-1];assert keys[ix.program_id_index]==MAY
    if bytes(ix.data[:8])!=hashlib.sha256(b'global:sell').digest()[:8]: raise ValueError('expected Mayhem sell instruction')
    if r['error'] is not None:
-    assert all(r['before'][key]==r['after'][key] for key in r['before'] if key!=payer)
+    assert all(same_json_value(r['before'][key],r['after'][key]) for key in r['before'] if key!=payer)
     rollback_checks+=1;continue
    assert len(ix.accounts)>=21 and bytes(ix.data[:8])==hashlib.sha256(b'global:sell').digest()[:8]
    outer=[keys[i] for i in ix.accounts];gkey,skey,solkey,mintkey,vkey,curvekey=map(str,[outer[i] for i in [1,2,3,4,5,9]])

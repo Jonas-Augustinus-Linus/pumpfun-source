@@ -5,6 +5,9 @@ import json
 from pathlib import Path
 import tarfile
 
+if not __debug__:
+    raise SystemExit("Run without -O")
+
 HERE = Path(__file__).resolve().parent
 sha = lambda value: hashlib.sha256(value).hexdigest()
 

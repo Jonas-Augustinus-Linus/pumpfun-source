@@ -353,6 +353,7 @@ def main():
               f"manifest mismatch for {rel}")
     report = json.loads(gzip.open(HERE / "runtime" / "report.json.gz", "rt").read())
     check(report["case_count"] == 65, f"case_count {report['case_count']}")
+    check(len(report["cases"]) == report["case_count"], f"case list {len(report['cases'])} != {report['case_count']}")
     check(report["counts"] == {"cases": 65, "receipts": 525, "parts": 53},
           f"counts {report['counts']}")
     receipts = []

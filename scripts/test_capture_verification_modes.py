@@ -46,6 +46,16 @@ class CaptureVerificationModeTests(unittest.TestCase):
         finally:
             path.write_bytes(original)
 
+    @contextmanager
+    def changed_json_text(self, relative, mutate):
+        path = self.root / relative
+        original = path.read_bytes()
+        path.write_text(mutate(original.decode('utf-8')), encoding='utf-8')
+        try:
+            yield
+        finally:
+            path.write_bytes(original)
+
     def assert_rejected(self, message=None):
         for flags, optimize in MODES:
             with self.subTest(flags=flags, environment_optimize=optimize):
@@ -134,6 +144,36 @@ class CaptureVerificationModeTests(unittest.TestCase):
             self.assert_rejected()
         finally:
             path.write_bytes(original)
+
+    def test_duplicate_capture_fields_are_rejected_before_value_checks(self):
+        cases = (
+            ('original/pump', '"program":"wrong-program",', 'program'),
+            ('original/pump', '"\\u0070rogram":"wrong-program",', 'program'),
+            ('original/pump', '"commitment":"processed",', 'commitment'),
+            ('original/pump', '"commitment":"finalized",', 'commitment'),
+            ('dependencies/associated_token', '"owner":"wrong-loader",', 'owner'),
+        )
+        for folder, prefix, field in cases:
+            with self.subTest(folder=folder, prefix=prefix):
+                with self.changed_json_text(
+                    f'evidence/{folder}/capture.json',
+                    lambda text: '{' + prefix + text[text.index('{') + 1:],
+                ):
+                    self.assert_rejected('duplicate evidence field: ' + field)
+
+    def test_duplicate_upstream_hash_members_are_rejected(self):
+        def repeated_hash(text, escaped=False):
+            key = 'pump\\u002ejson' if escaped else 'pump.json'
+            return text.replace('"pump.json":', '"' + key + '":"' + '0' * 64 + '","pump.json":', 1)
+        mutations = (
+            ('pump.json', lambda text: repeated_hash(text)),
+            ('pump.json', lambda text: repeated_hash(text, escaped=True)),
+            ('file_sha256', lambda text: '{"file_sha256":{},' + text[text.index('{') + 1:]),
+        )
+        for field, mutate in mutations:
+            with self.subTest(field=field):
+                with self.changed_json_text('evidence/upstream/provenance.json', mutate):
+                    self.assert_rejected('duplicate evidence field: ' + field)
 
 
 if __name__ == '__main__':

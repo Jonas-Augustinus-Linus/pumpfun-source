@@ -26,6 +26,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.dont_write_bytecode = True  # keep the packet folder free of __pycache__
+CASES = 32  # cases this packet's plan publishes; README and runtime/report.json.gz name the same number
 
 
 def load_producer():
@@ -35,16 +36,37 @@ def load_producer():
     return module
 
 
+def verify_manifest():
+    """The packet pins every file it ships; read the digests before trusting any.
+
+    Nothing used to read MANIFEST.json. producer.py was imported and executed,
+    and the runtime files were replayed, without either matching the record the
+    packet publishes beside them, so a packet whose producer or runtime file had
+    drifted still replayed itself and still passed.
+    """
+    manifest = json.loads((HERE / 'MANIFEST.json').read_text())
+    for entry in manifest['files']:
+        path = HERE / entry['path']
+        data = path.read_bytes() if path.is_file() else None
+        if (data is None or len(data) != entry['bytes']
+                or hashlib.sha256(data).hexdigest() != entry['sha256']):
+            raise SystemExit(f'packet member differs from MANIFEST.json: {entry["path"]}')
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--images', required=True)
     ap.add_argument('--token-2022', dest='token22')
     args = ap.parse_args()
     images = json.loads(args.images)
+    verify_manifest()
     p = load_producer()
     runtime = HERE / 'runtime'
     report = json.loads(gzip.decompress((runtime / 'report.json.gz').read_bytes()))
     cases = json.loads(gzip.decompress((runtime / 'plan.json.gz').read_bytes()))
+    if len(cases) != CASES:
+        print(f'FAIL: plan holds {len(cases)} cases, not {CASES}')
+        return 1
     failures = []
     for name in ('original', 'candidate'):
         sha = hashlib.sha256(Path(images[name]).read_bytes()).hexdigest()

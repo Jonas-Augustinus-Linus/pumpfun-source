@@ -50,7 +50,7 @@ def token_amount(row):
 
 def assert_signature(row):
     tx = Transaction.from_bytes(base64.b64decode(row["transaction_base64"]))
-    check(all(tx.verify_with_results()), "claim verification failed: all(tx.verify_with_results())")
+    check((tx.signatures and all(tx.verify_with_results())), "claim verification failed: (tx.signatures and all(tx.verify_with_results()))")
     check(str(tx.signatures[0]) == row["signature"], "claim verification failed: str(tx.signatures[0]) == row['signature']")
 
 

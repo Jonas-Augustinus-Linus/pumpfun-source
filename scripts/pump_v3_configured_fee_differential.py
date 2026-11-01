@@ -80,14 +80,14 @@ def run(binary,c):
     disc=hashlib.sha256(('global:'+c['operation']).encode()).digest()[:8]
     trailing=bytes(c.get('trailing',[0] if c['operation']=='buy_v3' else []))
     trade=f.Instruction(ix.program_id,disc+struct.pack('<QQ',c['amount'],c['max_cost'])+trailing,metas)
-    tx=f.Transaction.new_signed_with_payer([*f.ixs[:-1],trade],user.pubkey(),[user],vm.latest_blockhash());assert all(tx.verify_with_results());result=vm.send_transaction(tx)
+    tx=f.Transaction.new_signed_with_payer([*f.ixs[:-1],trade],user.pubkey(),[user],vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()));result=vm.send_transaction(tx)
     failed=isinstance(result,f.FailedTransactionMetadata);meta=result.meta() if failed else result
     state={}
     for key in set(f.msg.account_keys)|set(m.pubkey for m in metas):
         if key==program:continue # Executable image is deliberately different; compared separately by whole-file build receipt.
         account=vm.get_account(key)
         if account:state[str(key)]={'lamports':account.lamports,'data_sha256':hashlib.sha256(account.data).hexdigest(),'data_hex':None if account.executable else account.data.hex(),'owner':str(account.owner)}
-    return {'error':str(result.err()) if failed else None,'accounts':state,'inner_instructions':json.loads(meta.to_json())['inner_instructions'],'event_payloads':[l[14:] for l in meta.logs() if l.startswith('Program data: ')],'logs':meta.logs(),'transaction_base64':base64.b64encode(bytes(tx)).decode(),'signature_verified':all(tx.verify_with_results()),'return_data':json.loads(meta.to_json()).get('return_data')}
+    return {'error':str(result.err()) if failed else None,'accounts':state,'inner_instructions':json.loads(meta.to_json())['inner_instructions'],'event_payloads':[l[14:] for l in meta.logs() if l.startswith('Program data: ')],'logs':meta.logs(),'transaction_base64':base64.b64encode(bytes(tx)).decode(),'signature_verified':(tx.signatures and all(tx.verify_with_results())),'return_data':json.loads(meta.to_json()).get('return_data')}
 def cases():
  rows=[]
  for op in ['buy_v3','sell_v3','buy_exact_quote_in_v3']:

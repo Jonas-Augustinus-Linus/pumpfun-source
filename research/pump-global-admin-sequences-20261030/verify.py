@@ -75,7 +75,10 @@ def main():
     for r in stored:
         tag = f"{r['image']}/{r['case']}/{r['step']}"
         tx = Transaction.from_bytes(base64.b64decode(r['transaction_base64']))
-        if not all(tx.verify_with_results()):
+        # all() is true for an empty result list, so a receipt whose
+        # signature vector was stripped would pass the bare all().
+        results = tx.verify_with_results()
+        if not results or not all(results):
             fail(f'{tag}: signature verification')
         if r['error'] is not None and r['global_before_hex'] != r['global_after_hex']:
             fail(f'{tag}: failed step changed Global')

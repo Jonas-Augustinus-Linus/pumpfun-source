@@ -12,8 +12,8 @@
     },
     {
       "path": "verify.py",
-      "sha256": "0ae78563fbd1530354a44349b4e57cf6dd465b820411558127a92b6b035263b9",
-      "bytes": 37168
+      "sha256": "b08e22e77bbd624d708801e4997d74ff5d586880c59bd8af90e038e23a388abd",
+      "bytes": 38658
     },
     {
       "path": "runtime/report.json.gz",

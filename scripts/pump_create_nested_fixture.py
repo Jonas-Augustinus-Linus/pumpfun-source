@@ -64,7 +64,7 @@ def run(c,binary=ORIGINAL):
  if c.get('bootstrap_accounts'):
   for key,value in c['bootstrap_accounts'].items():
    if value is not None:vm.set_account(Pubkey.from_string(key),Account(value['lamports'],bytes.fromhex(value['data']),Pubkey.from_string(value['owner'])))
- signers={a.pubkey for a in metas if a.is_signer}|{USER.pubkey()};tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PROGRAM,payload,metas)],USER.pubkey(),[k for k in [USER,MINT,OTHER] if k.pubkey() in signers],vm.latest_blockhash());assert all(tx.verify_with_results())
+ signers={a.pubkey for a in metas if a.is_signer}|{USER.pubkey()};tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PROGRAM,payload,metas)],USER.pubkey(),[k for k in [USER,MINT,OTHER] if k.pubkey() in signers],vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
  def snap():
   out={}
   for key in set(names.values()):

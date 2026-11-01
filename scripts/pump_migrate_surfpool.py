@@ -81,7 +81,7 @@ def run(binary,cases,surfpool,output):
      raise ValueError(('first recorded instruction is not compute-budget',row['name']))
     instructions[0]=f.set_compute_unit_limit(1400000-len(rows))
     signers=[k for k in [f.PAYER,f.AUTH] if k.pubkey() in keys[:h.num_required_signatures]]
-    tx=Transaction.new_signed_with_payer(instructions,f.PAYER.pubkey(),signers,Hash.from_string(rpc('getLatestBlockhash')['value']['blockhash']));assert all(tx.verify_with_results());encoded=base64.b64encode(bytes(tx)).decode()
+    tx=Transaction.new_signed_with_payer(instructions,f.PAYER.pubkey(),signers,Hash.from_string(rpc('getLatestBlockhash')['value']['blockhash']));assert (tx.signatures and all(tx.verify_with_results()));encoded=base64.b64encode(bytes(tx)).decode()
     sim=rpc('simulateTransaction',[encoded,{'encoding':'base64','sigVerify':True,'innerInstructions':True}])['value'];sig=rpc('sendTransaction',[encoded,{'encoding':'base64','skipPreflight':True}])
     for _ in range(100):
      status=rpc('getSignatureStatuses',[[sig]])['value'][0]

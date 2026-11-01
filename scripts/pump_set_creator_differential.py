@@ -35,7 +35,7 @@ def run(c,binary=None):
  if 'count' in c:metas=metas[:c['count']]
  data=bytes(ix['discriminator'])+(bytes(Pubkey.from_string(c.get('creator',str(OTHER.pubkey())))) if c['op']=='set_creator' else b'')+bytes.fromhex(c.get('trailing',''))
  signers=[PAYER]+([AUTH] if any(m.is_signer and m.pubkey==AUTH.pubkey() for m in metas) else [])
- tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PUMP,data,metas)],PAYER.pubkey(),signers,vm.latest_blockhash());assert all(tx.verify_with_results())
+ tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PUMP,data,metas)],PAYER.pubkey(),signers,vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
  def snap():
   out={}
   for n,k in {**names,'transaction_payer':PAYER.pubkey()}.items():

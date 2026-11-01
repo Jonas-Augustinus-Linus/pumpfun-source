@@ -116,7 +116,7 @@ def run(c, pump_bin=ORIGINAL_PUMP, mayhem_bin=ORIGINAL_MAYHEM):
                + bytes([1 if c.get('is_mayhem_mode',True) else 0]) + bytes.fromhex(c.get('optional_args','')))
     signers = [k for k in [USER,MINT] if k.pubkey() in {m.pubkey for m in metas if m.is_signer}|{USER.pubkey()}]
     tx = Transaction.new_signed_with_payer([set_compute_unit_limit(1400000), Instruction(PROGRAM,payload,metas)], USER.pubkey(), signers, vm.latest_blockhash())
-    assert all(tx.verify_with_results())
+    assert (tx.signatures and all(tx.verify_with_results()))
     def snap():
         out={}
         for k in SNAP_KEYS:

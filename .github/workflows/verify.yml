@@ -162,6 +162,7 @@ jobs:
               python -B tests/test_pump_creator_collect_normal_python.py
               python -B tests/test_pump_repinned_receipts.py
               python -B tests/test_quote_control_repinned_receipt.py
+              python -B tests/test_mayhem_typed_receipts.py
               python -B tests/test_build_normal_python.py
               python -B tests/test_pump_probes_normal_python.py
               python -B tests/test_mismatch_normal_python.py
@@ -358,6 +359,7 @@ jobs:
               python -B reconstruction/harness/test_census_external_symbols.py
               python -B reconstruction/harness/test_census_disassembly_snapshot.py
               python -B reconstruction/pump-main/lanes/callgraph-census/test_blocksim.py
+              python -B reconstruction/pump-main/lanes/execute-payment-result/test_replay_output_preservation.py
               python -B reconstruction/pump-main/lanes/callgraph-census/test_dataref_output_preservation.py
               python -B reconstruction/harness/test_census_call_barriers.py
               python -B reconstruction/harness/test_census_original_input.py
@@ -466,6 +468,8 @@ jobs:
               python -B reconstruction/verification/donation-relay-idl-lifecycle/test_lifecycle.py
               python -B reconstruction/verification/donation-relay-idl-lifecycle/test_verify_steps.py
               python -B reconstruction/verification/donation-relay-stateful/test_stateful.py
+              python -B reconstruction/verification/donation-relay-xtx-sequences/test_output_refusal.py
+              python -B reconstruction/verification/donation-relay-xtx-sequences/test_sequences.py
               python -B reconstruction/verification/pump-migration-lifecycle/test_lifecycle.py
               python -B reconstruction/verification/pump-migration-lifecycle/test_output_refusal.py
               python -B reconstruction/verification/mayhem-dispatch-boundaries/test_inventory.py

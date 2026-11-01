@@ -75,14 +75,14 @@ def run(binary,c):
             index=10 if mutation.startswith('user') else 7 if mutation.startswith('curve') else 13;old=metas[index].pubkey;key=f.Pubkey(bytes([94])*32);vm.set_account(key,vm.get_account(old));metas[index]=f.AccountMeta(key,False,True)
         if mutation=='buyback_wallet':metas[13]=f.ixs[-1].accounts[13]
     trade=f.Instruction(ix.program_id,bytes.fromhex('e1f7501ed5b38488')+struct.pack('<QQ',c['amount'],c['max_cost'])+bytes(c.get('trailing',[])),metas)
-    tx=f.Transaction.new_signed_with_payer([*f.ixs[:-1],trade],user.pubkey(),[user],vm.latest_blockhash());assert all(tx.verify_with_results());result=vm.send_transaction(tx)
+    tx=f.Transaction.new_signed_with_payer([*f.ixs[:-1],trade],user.pubkey(),[user],vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()));result=vm.send_transaction(tx)
     failed=isinstance(result,f.FailedTransactionMetadata);meta=result.meta() if failed else result
     state={}
     for key in set(f.msg.account_keys)|set(m.pubkey for m in metas):
         if key==program:continue # Executable image is deliberately different; compared separately by whole-file build receipt.
         account=vm.get_account(key)
         if account:state[str(key)]={'lamports':account.lamports,'data_sha256':hashlib.sha256(account.data).hexdigest(),'data_hex':None if account.executable else account.data.hex(),'owner':str(account.owner)}
-    return {'error':str(result.err()) if failed else None,'accounts':state,'inner_instructions':json.loads(meta.to_json())['inner_instructions'],'event_payloads':[l[14:] for l in meta.logs() if l.startswith('Program data: ')],'logs':meta.logs(),'transaction_base64':base64.b64encode(bytes(tx)).decode(),'signature_verified':all(tx.verify_with_results()),'return_data':json.loads(meta.to_json()).get('return_data')}
+    return {'error':str(result.err()) if failed else None,'accounts':state,'inner_instructions':json.loads(meta.to_json())['inner_instructions'],'event_payloads':[l[14:] for l in meta.logs() if l.startswith('Program data: ')],'logs':meta.logs(),'transaction_base64':base64.b64encode(bytes(tx)).decode(),'signature_verified':(tx.signatures and all(tx.verify_with_results())),'return_data':json.loads(meta.to_json()).get('return_data')}
 def cases():
  rows=[]
  for amount in [0,1,2,3,4,10,100,1000,1000000,10**9,10**12,2**64-1]:

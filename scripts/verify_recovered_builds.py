@@ -97,7 +97,7 @@ for name,status in json.loads((ROOT/'repro/status.json').read_text()).items():
   for row in r['cases']:
    capture=json.loads((ROOT/evidence['transactions']/f"admin-success-{row['index']}.json").read_text())['response']['result']
    raw=base64.b64decode(capture['transaction'][0]);tx=VersionedTransaction.from_bytes(raw)
-   assert all(tx.verify_with_results()) and bytes(tx)==raw,name
+   assert (tx.signatures and all(tx.verify_with_results())) and bytes(tx)==raw,name
    assert row['match'],name
    for side in ['original','candidate']:
     case=row[side]

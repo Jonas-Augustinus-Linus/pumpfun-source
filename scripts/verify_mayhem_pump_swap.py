@@ -5,6 +5,7 @@ if not __debug__:
 
 from pathlib import Path
 from pump_differential_output import PumpReport
+from mayhem_receipt_comparison import same_json_value
 import argparse,base64,gzip,hashlib,json,struct
 from solders.pubkey import Pubkey
 from solders.transaction import Transaction
@@ -27,7 +28,7 @@ def main():
  assert report['case_count']==len(report['cases']) and not report['mismatches']
  successes=failures=quote_checks=events=rollbacks=0
  for pair in report['cases']:
-  c=pair['case'];o=pair['original'];b=pair['candidate'];assert not pair['different_fields'];assert o['transaction_base64']==b['transaction_base64'] and o['error']==b['error']
+  c=pair['case'];o=pair['original'];b=pair['candidate'];assert not pair['different_fields'];assert o['transaction_base64']==b['transaction_base64'] and same_json_value(o['error'],b['error'])
   # Bind the executable snapshots actually retained by each VM run, not
   # only the report header supplied alongside a selected candidate file.
   for side in ('original','candidate'):
@@ -36,20 +37,20 @@ def main():
     if (not isinstance(program,dict) or program.get('executable') is not True
         or program.get('data_sha256')!=report[side+'_sha256']):
      raise ValueError(side+' '+phase+': Mayhem executable snapshot differs from declared image')
-  for phase in ['before','after']:assert {k:v for k,v in o[phase].items() if k!=str(MAY)}=={k:v for k,v in b[phase].items() if k!=str(MAY)}
-  for field in ['inner_instructions','return_data']:assert o['metadata'][field]==b['metadata'][field]
+  for phase in ['before','after']:assert same_json_value({k:v for k,v in o[phase].items() if k!=str(MAY)},{k:v for k,v in b[phase].items() if k!=str(MAY)})
+  for field in ['inner_instructions','return_data']:assert same_json_value(o['metadata'][field],b['metadata'][field])
   for r in [o,b]:
-   tx=Transaction.from_bytes(base64.b64decode(r['transaction_base64']));keys=tx.message.account_keys;assert all(tx.verify_with_results()) and r['signature_verified'];assert r['signature']==str(tx.signatures[0])==r['metadata']['signature']
+   tx=Transaction.from_bytes(base64.b64decode(r['transaction_base64']));keys=tx.message.account_keys;assert (tx.signatures and all(tx.verify_with_results())) and r['signature_verified'];assert r['signature']==str(tx.signatures[0])==r['metadata']['signature']
    required=tx.message.header.num_required_signatures;assert required in [1,2] and all(k.is_on_curve() for k in keys[:required]);assert set(map(str,keys))<=r['before'].keys() and r['before'].keys()==r['after'].keys()
    for phase in ['before','after']:
     for ac in r[phase].values():
      if ac is not None and not ac['executable']:assert sha(data(ac))==ac['data_sha256']
-   payer=str(keys[0]);assert r['after'][payer]==dict(r['before'][payer],lamports=r['before'][payer]['lamports']-5000*required)
+   payer=str(keys[0]);assert same_json_value(r['after'][payer],dict(r['before'][payer],lamports=r['before'][payer]['lamports']-5000*required))
    ix=tx.message.instructions[-1];assert keys[ix.program_id_index]==MAY
    if c.get('instruction') not in ('buy_pump_swap','sell_pump_swap'): raise ValueError('expected Mayhem PumpSwap trade label')
    if bytes(ix.data[:8])!=hashlib.sha256(('global:'+c['instruction']).encode()).digest()[:8]: raise ValueError('Mayhem PumpSwap instruction does not match the declared trade')
    if r['error'] is not None:
-    assert all(r['before'][key]==r['after'][key] for key in r['before'] if key!=payer);rollbacks+=1;continue
+    assert all(same_json_value(r['before'][key],r['after'][key]) for key in r['before'] if key!=payer);rollbacks+=1;continue
    buy=c['instruction']=='buy_pump_swap';assert c['instruction'] in ['buy_pump_swap','sell_pump_swap'];assert bytes(ix.data[:8])==hashlib.sha256(('global:'+c['instruction']).encode()).digest()[:8];assert len(ix.accounts)>=(31 if buy else 29)
    outer=[keys[i] for i in ix.accounts];assert required==2 and outer[0]==keys[1] and str(outer[0])==r['synthetic_trader']
    assert outer[1]==Pubkey.find_program_address([b'global-params'],MAY)[0];assert outer[2]==Pubkey.find_program_address([b'mayhem-state',bytes(outer[3])],MAY)[0];assert outer[6]==Pubkey.find_program_address([b'sol-vault'],MAY)[0]

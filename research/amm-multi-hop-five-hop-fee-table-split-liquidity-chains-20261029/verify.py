@@ -117,6 +117,19 @@ def sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def error_matches(recorded, expected):
+    """Match an expectation against a receipt error; program codes by value.
+
+    The expectation is usually the bare program code ("6004") and the record
+    is the full transaction error ("...Custom(6004)"). A substring test also
+    accepts Custom(16004), and accepts Custom(6014) for the code "1".
+    """
+    if not expected.isdigit():
+        return expected in recorded
+    return any(code.split(")", 1)[0] == expected
+               for code in recorded.split("Custom(")[1:])
+
+
 def tok_amount(entry):
     if entry is None:
         return None
@@ -194,7 +207,7 @@ def surface(recs):
                 d[str(PAYER_KEY)]["lamports"] = 0
             return d
         out.append({"step": rec["step"], "error": rec["error"],
-                    "events": len(rec["events"]),
+                    "events": len(ev_list(rec["logs"])),
                     "before": strip(rec["before"]), "after": strip(rec["after"])})
     return out
 
@@ -211,6 +224,8 @@ def main():
         report = json.load(fh)
     if report["case_count"] != 32 or report["receipt_count"] != 234:
         fail(f"counts {report['case_count']} cases / {report['receipt_count']} receipts")
+    if len(report["cases"]) != report["case_count"]:
+        fail(f"case list {len(report['cases'])} != {report['case_count']}")
     if report["counts"] != {"cases": 32, "receipts": 234, "parts": 24}:
         fail(f"counts block {report['counts']}")
     if report["mismatches"] != []:
@@ -250,16 +265,20 @@ def main():
             for rec, exp in zip(recs, expect):
                 tag = f"{label}/{image}/{rec['step']}"
                 tx = Transaction.from_bytes(base64.b64decode(rec["transaction_base64"]))
-                if not all(tx.verify_with_results()):
+                # all() is true for an empty result list, so a receipt whose
+                # signature vector was stripped would pass the bare all().
+                results = tx.verify_with_results()
+                if not results or not all(results):
                     fail(f"{tag}: signature verification failed")
                 if exp["error"] is None:
                     if rec["error"] is not None:
                         fail(f"{tag}: unexpected error {rec['error']}")
                 else:
-                    if rec["error"] is None or exp["error"] not in rec["error"]:
+                    if rec["error"] is None or not error_matches(rec["error"], exp["error"]):
                         fail(f"{tag}: expected error {exp['error']}, got {rec['error']}")
-                if len(rec["events"]) != exp["events"]:
-                    fail(f"{tag}: events {len(rec['events'])} != {exp['events']}")
+                events = len(ev_list(rec["logs"]))
+                if events != exp["events"]:
+                    fail(f"{tag}: events {events} != {exp['events']}")
                 if lam_delta(rec, PAYER_KEY) != exp["dPAYER"]:
                     fail(f"{tag}: dPAYER {lam_delta(rec, PAYER_KEY)} != {exp['dPAYER']}")
                 for role, want in exp["deltas"].items():

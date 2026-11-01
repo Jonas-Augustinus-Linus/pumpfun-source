@@ -48,7 +48,7 @@ def run(c,image):
  metas=[AccountMeta(names[a['name']],a.get('signer',False) and not c.get('unsigned'),a.get('writable',False) and c.get('readonly')!=a['name'] and names[a['name']]!=PROGRAM) for a in IX['accounts']]
  metas=metas[:c.get('account_count',len(metas))]
  payload=bytes(IX['discriminator'])+bytes.fromhex(c.get('trailing',''))
- tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PROGRAM,payload,metas)],PAYER.pubkey(),[PAYER]+([AUTH] if any(m.is_signer and m.pubkey==AUTH.pubkey() for m in metas) else []),vm.latest_blockhash());assert all(tx.verify_with_results())
+ tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PROGRAM,payload,metas)],PAYER.pubkey(),[PAYER]+([AUTH] if any(m.is_signer and m.pubkey==AUTH.pubkey() for m in metas) else []),vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
  def snap():
   result={}
   for name,key in {**names,'transaction_payer':PAYER.pubkey(),'actual_vault':VAULT,'actual_source':source,'actual_dest':dest}.items():

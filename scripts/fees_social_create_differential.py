@@ -36,7 +36,7 @@ def run(c,image):
  metas=[AccountMeta(names[x['name']],x.get('signer',False) and not c.get('unsigned'),x.get('writable',False) and x['name']!=c.get('readonly')) for x in IX['accounts']]
  metas=metas[:c.get('account_count',len(metas))]
  payload=bytes(IX['discriminator'])+len(raw).to_bytes(4,'little')+raw+bytes([platform])
- tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,payload,metas)],PAYER.pubkey(),[PAYER]+([AUTH] if any(m.is_signer and m.pubkey==AUTH.pubkey() for m in metas) else []),vm.latest_blockhash());assert all(tx.verify_with_results())
+ tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,payload,metas)],PAYER.pubkey(),[PAYER]+([AUTH] if any(m.is_signer and m.pubkey==AUTH.pubkey() for m in metas) else []),vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
  r=vm.send_transaction(tx);failed=isinstance(r,FailedTransactionMetadata);m=r.meta() if failed else r;a=vm.get_account(key)
  return {'case':c,'address':str(key),'bump':bump,'error':str(r.err()) if failed else None,'logs':m.logs(),'inner':json.loads(m.to_json())['inner_instructions'],'data':a.data.hex() if a else None,'lamports':a.lamports if a else None,'owner':str(a.owner) if a else None,'authority_lamports':vm.get_account(AUTH.pubkey()).lamports,'transaction_base64':base64.b64encode(bytes(tx)).decode()}
 
