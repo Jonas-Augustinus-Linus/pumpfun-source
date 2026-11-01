@@ -58,6 +58,37 @@ def workspace_for(manifest, repo):
     raise ValueError('An explicit repository-local Cargo workspace is required')
 
 
+def extra_input_directories(repo, extra_inputs):
+    """Bind directory assets separately from the pinned utility's file hashes."""
+    directories = set()
+    for value in extra_inputs:
+        path = pathlib.Path(value)
+        if path.is_symlink():
+            raise ValueError('symlinked compiler input: '+str(path))
+        path = path.resolve(); path.relative_to(repo)
+        if not path.exists():
+            raise FileNotFoundError(path)
+        if not path.is_dir():
+            continue
+        for directory in (path, *path.rglob('*')):
+            if directory.is_symlink():
+                raise ValueError('symlinked compiler input: '+str(directory))
+            if not directory.is_dir():
+                continue
+            parts = directory.relative_to(path).parts
+            # Match the file utility's per-extra exclusions: only the walked
+            # root's target/ is generated; nested asset directories may use it.
+            if '.git' in parts or (parts and parts[0] == 'target'):
+                continue
+            current = repo
+            for part in directory.relative_to(repo).parts:
+                current /= part
+                if current.is_symlink():
+                    raise ValueError('symlinked compiler input: '+str(directory))
+            directories.add(directory.relative_to(repo).as_posix())
+    return sorted(directories)
+
+
 def plan(a, repo, env, *, cache_root=None, policy_directory=None):
     """Pure filesystem reads; intentionally no Cargo metadata or compiler version query."""
     repo = repo.resolve(); manifest = a.manifest.resolve(); manifest.relative_to(repo)
@@ -95,6 +126,7 @@ def plan(a, repo, env, *, cache_root=None, policy_directory=None):
     spec = importlib.util.spec_from_file_location('supported_builder_source_inventory', utility)
     module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
     sources = module.source_manifest(manifest.parent, ws, repo, a.extra_input, cwd=repo)
+    directories = extra_input_directories(repo, a.extra_input)
     # Cargo target/build paths stay literal in copied manifests; reject any escape
     # and require every explicit Rust entry to be in the recorded snapshot.
     for name in sources:
@@ -188,7 +220,8 @@ def plan(a, repo, env, *, cache_root=None, policy_directory=None):
     return {'scope': 'Proposed controlled research source build; no runtime/identity acceptance',
             'program': a.program, 'tools_version': a.tools_version, 'manifest': str(manifest),
             'workspace': str(ws), 'repository': str(repo), 'output': str(output), 'source_sha256': sources,
-            'extra_inputs': [str(x.resolve()) for x in a.extra_input], 'profile': {**PROFILE, 'opt-level': 3},
+            'extra_inputs': [str(x.resolve()) for x in a.extra_input], 'extra_input_directories': directories,
+            'profile': {**PROFILE, 'opt-level': 3},
             'features': 'Cargo default features as declared; no CLI feature/CPU overrides',
             'command': command, 'cwd': str(copied), 'environment': updates, 'cache_source': str(cargo_source),
             'compiled_binary': str(output/'target'/policy['target']/'release'/(lib+'.so')),
@@ -266,6 +299,10 @@ def execute(planned, env, *, runner=subprocess.run):
     def save(): (output/'build-attempt.json').write_text(json.dumps(record, indent=2)+'\n',encoding='utf-8',newline='\n')
     save(); started = time.time()
     try:
+        if extra_input_directories(repo, planned['extra_inputs']) != planned['extra_input_directories']:
+            raise ValueError('extra-input directories changed after planning')
+        for name in planned['extra_input_directories']:
+            (output/'source'/name).mkdir(parents=True, exist_ok=True)
         for name, digest in planned['source_sha256'].items():
             source = repo/name
             if sha(source) != digest: raise ValueError('source changed after planning: '+name)
@@ -298,8 +335,14 @@ def execute(planned, env, *, runner=subprocess.run):
         copied = inventory.source_manifest(copied_repo/pathlib.Path(planned['manifest']).parent.relative_to(repo),
                                            copied_repo/pathlib.Path(planned['workspace']).relative_to(repo), copied_repo,
                                            [copied_repo/pathlib.Path(p).relative_to(repo) for p in planned['extra_inputs']], cwd=copied_repo)
+        current_directories = extra_input_directories(repo, planned['extra_inputs'])
+        copied_directories = extra_input_directories(copied_repo,
+            [copied_repo/pathlib.Path(p).relative_to(repo) for p in planned['extra_inputs']])
         record.update(source_after_sha256=copied, caller_source_after_sha256=current,
-                      source_unchanged=copied == current == planned['source_sha256'])
+                      extra_input_directories_after=copied_directories,
+                      caller_extra_input_directories_after=current_directories,
+                      source_unchanged=(copied == current == planned['source_sha256'] and
+                          copied_directories == current_directories == planned['extra_input_directories']))
         if result.returncode != 0:
             record['wrapper_exit_status'] = exit_code(result.returncode); record['stage'] += '_failed'; return record['wrapper_exit_status']
         # The backend can report this definite error and still return zero.
