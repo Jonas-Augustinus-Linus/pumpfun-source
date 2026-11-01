@@ -47,6 +47,10 @@ class ReceiptToolIdentityTests(unittest.TestCase):
                      sdk / 'llvm/bin/clang', sdk / 'rust/bin/cargo', hybrid / 'rust/bin/rustc'):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(b'tool fixture')
+        for name in ('liballoc-fixture.rlib', 'libcore-fixture.rlib'):
+            path = hybrid / 'rust/lib/rustlib/sbpf-solana-solana/lib' / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b'rlib fixture')
         return sdk, hybrid
 
     def receipt_tools(self):
@@ -76,6 +80,14 @@ class ReceiptToolIdentityTests(unittest.TestCase):
                 path.write_bytes(original + b'x')
                 self.assertNotEqual(pair.bound_inputs(pair.score.BASE, sdk, hybrid), before)
                 path.write_bytes(original)
+
+    def test_target_library_binding_covers_the_libraries_the_linker_reads(self):
+        sdk, hybrid = self.tools()
+        before = pair.bound_inputs(pair.score.BASE, sdk, hybrid)
+        self.assertEqual(sorted(before['target_libraries']),
+                         ['liballoc-fixture.rlib', 'libcore-fixture.rlib'])
+        (hybrid / 'rust/lib/rustlib/sbpf-solana-solana/lib/libcore-fixture.rlib').write_bytes(b'replaced rlib')
+        self.assertNotEqual(pair.bound_inputs(pair.score.BASE, sdk, hybrid), before)
 
     def test_receipt_binds_every_harness_module_the_gate_executes(self):
         tools = self.receipt_tools()

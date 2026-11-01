@@ -102,6 +102,7 @@ jobs:
           - suite: offline-cargo-cache
             commands: |
               python -I -B scripts/test_prepare_locked_cargo_home.py
+              python -I -B scripts/test_prepare_locked_cargo_home_admission.py
           - suite: evidence
             commands: |
               python -B research/tooling-relocated-data-pointers-20261030/test_pointer_analysis.py
@@ -124,6 +125,15 @@ jobs:
               python -B scripts/test_text_pointer_addresses.py
               python -B scripts/test_pump_diagnostic_audit_umask_mode.py
               python -B scripts/test_pump_fresh_output_optimized.py
+              python -B scripts/test_main_checkpoint_optimization.py
+              python -B scripts/test_amm_checkpoint_optimization.py
+              python -B scripts/test_verify_current_checkpoint_optimization.py
+              python -B scripts/test_compared_checkpoint_optimization.py
+              python -B scripts/test_remaining_checkpoint_optimization.py
+              python -B scripts/test_capture_optimization.py
+              python -B scripts/test_captured_loader_optimization.py
+              python -B scripts/test_build_verified_optimization.py
+              python -B scripts/test_identity_audit_optimization.py
               python -B scripts/test_amm_harness_content_cache.py
               python -B tests/test_amm_nested_target.py
               python -B tests/test_amm_build_environment.py
@@ -235,6 +245,7 @@ jobs:
               python -B scripts/test_verify_pump_set_mayhem_params_8099_recount.py
               python -B scripts/test_qualification_archive_determinism.py
               python -B scripts/test_rebuild_workflow_action_pins.py
+              python -B scripts/test_workflow_git_context.py
               python -B scripts/test_macos_v144_qualification_optimization.py
               python -B scripts/test_mayhem_initialize_state_optimization.py
               python -B scripts/test_mayhem_initialize_state_exit.py
@@ -268,6 +279,7 @@ jobs:
               python -B scripts/test_deep_section_analysis_publication.py
               python -B scripts/test_deep_section_pattern_count.py
               python -B scripts/test_supported_policy_source_binding.py
+              python -B tests/test_supported_directory_inputs.py
               python -B scripts/test_pump_data_order_publication.py
               python -B scripts/test_pump_data_order_cli.py
               python -B scripts/test_pump_data_order_windows_publish.py
@@ -288,6 +300,7 @@ jobs:
               python -B scripts/test_sbpf_disassembly_roundtrip_publication.py
               python -B scripts/test_pump_strict_ordered_logs_publication.py
               python -B scripts/test_verify_recovered_builds_receipts.py
+              python -B scripts/test_pump_build_verified_tool_binding.py
               python -B scripts/test_pump_compare_function_bytes_report.py
               python -B tests/test_pump_compare_report_staging.py
               python -B tests/test_experiment_placeholder_expansion.py
