@@ -25,7 +25,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
 from window_elf_reader import Elf
-from deep_disassembly import directory_identity, publish_packet, temporary_sibling
+from deep_disassembly import defined_dynamic_calls, directory_identity, publish_packet, temporary_sibling
 
 PACKET_FILES = frozenset({
     "README.md",
@@ -102,7 +102,11 @@ def _build_packet(program_name, output_dir, output_label):
     outgoing = collections.defaultdict(list)
     incoming = collections.defaultdict(list)
     relocations = collections.defaultdict(list)
-    for at, target in elf.calls.items():
+    # Keep the matching reader's entries/normalization/call map intact. This
+    # diagnostic graph also includes admitted defined dynamic function calls.
+    diagnostic_calls = dict(elf.calls)
+    diagnostic_calls.update({at: row["target"] for at, row in defined_dynamic_calls(elf).items()})
+    for at, target in sorted(diagnostic_calls.items()):
         index = bisect.bisect_right(entries, at) - 1
         if index >= 0 and at < elf.hi:
             outgoing[entries[index]].append((at, target))
