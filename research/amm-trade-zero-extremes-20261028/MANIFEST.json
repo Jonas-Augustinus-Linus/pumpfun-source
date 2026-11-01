@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "files": {
+    "README.md": "d76ee1cfc69a1cd5fd8668c329311a3eeb7ce87f398088f0a6286985843df9c3",
+    "producer.py": "c8b0f4996e9dd69cfaf78c6a080e30035dae5eb75eca6c9698d9064705b470d5",
+    "runtime/raw-transactions-part1.jsonl.gz": "f054b4eb0ea732bceb7f092332658ff664034c4e8dbc8208bae1915626623b69",
+    "runtime/raw-transactions-part2.jsonl.gz": "62b213415eccf27c5afbcda7c6c70968985c6fa5e5b930ad657d7b35d31d44e5",
+    "runtime/raw-transactions-part3.jsonl.gz": "b5597c9a19d8591184d01468a19d2573d5d7d286c3cfd7d24f7170f9df16f981",
+    "runtime/report.json.gz": "de3af5a0e73b17aa9bcde94878cbe8b906429fb13d6be2a813ff2c58756469cb",
+    "verify.py": "8b9de12a300b7e886a3441ad9c68fd6b2598d3aeddb2059a86c71fa925b375ce"
+  },
+  "repository_inputs": {
+    "research/amm-multi-hop-group-slice-recovery/artifacts/candidate.so.gz": "1f25c51a89ed4c269dd7af1732c4a55dbc3fb908b6c9f5ecac69560cfe1026bd",
+    "research/amm-transfer-fee-diagnostic-recovery/artifacts/candidate.so.gz": "c00c011f12544cb7494e900efd99a3fcee7213a32e0257bf2e8f064d64d73453",
+    "research/imported-lab/analysis/pump_fun/amm-v2-trade-fixture.json": "2e775505852caf55203c826ee08b9341aa275f52f59a933c4fb0740535ee316f",
+    "research/imported-lab/analysis/pump_fun/config-snapshot.json": "17b886a6b4aa7fdc89f2fca9a1b67b318d33998794da59fe4df1fe89ca70bd27",
+    "evidence/upstream/pump_amm.json": "b7d8c57a4d9c4dd0109a9ab893052352333252d4eedced10ac091d4d66cab89b",
+    "evidence/dependencies/spl_token/deployed.so": "8190d3f7ceb6cb7a7a8d8924bff89f9f611e15ce1f806f2b6237f3311a98f697",
+    "evidence/dependencies/spl_token_2022/deployed.so": "15a2e615a42e20f31714bbaaee43002ae6f1cda2e8d7118243117ab3c1342e2d",
+    "evidence/original/pump_fees/deployed.so": "4f2955d0f6b40cc9ff7daa18ccad7d19119ba1249759f4e7e3bb691beee6b35e"
+  }
+}

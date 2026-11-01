@@ -1,0 +1,28 @@
+{
+  "files": {
+    "README.md": "84102fae674f61f077ec7866c1ed12ccbeeeb328b3acc1438426801d4fd317d3",
+    "producer.py": "6a9f9c6c5649a3d0cc2fbbb9b6a9e87457172f531e54c2231e8060b6644261d1",
+    "runtime/raw-transactions-part1.jsonl.gz": "ee913c3622ada3e1c92749117eeaeee69fe168c5fedae69739fc3ba41f596b1f",
+    "runtime/raw-transactions-part2.jsonl.gz": "9abeacb03c0e88a64c6d873a06ce0efa1bfaefde68ba9bc84e0552bd03ca670d",
+    "runtime/raw-transactions-part3.jsonl.gz": "f65611e7ade2113c2cf98ee6e342cebe2da2b9e77c026e6c94565685c90b169b",
+    "runtime/raw-transactions-part4.jsonl.gz": "5e53d68696461eaf5e5d592bffb505744faf86b8577814b4999b11d555ca4d06",
+    "runtime/raw-transactions-part5.jsonl.gz": "ec54d3d23c4fa9d1ab717cf8ce163eacfffe918264acaaec2602b35eb87b8e26",
+    "runtime/raw-transactions-part6.jsonl.gz": "0793c65d8f9858a0383f127e8b199890aa13f5d3b5a360efa5ed9818146b6a63",
+    "runtime/raw-transactions-part7.jsonl.gz": "5fe381ab8581585a6b62e8e80ec6840337aeb7eb4b4b61796fbf154002dbbc4b",
+    "runtime/raw-transactions-part8.jsonl.gz": "8908e6011546c93f7b953dba765c7351209a764a85a3402631e34ff3d766ee86",
+    "runtime/report.json.gz": "e2e6ff82f288bcf0a2579389dd68701ecb28c4b730f041afe31567311f1d2419",
+    "verify.py": "25d62217f08555baa2dc1475ca61ee475de484097f47cb34b1df2ad33570e541"
+  },
+  "repository_inputs": {
+    "evidence/original/pump_amm/deployed.so": "6a7ad34596d83b4c435b32f458a56e718e9f82eb4ad38e4316616d15d24d8ff7",
+    "evidence/upstream/pump.json": "7616681ea557975f9f623ac211080f22a93060781eaf4765b0a488d980997207",
+    "evidence/upstream/pump_amm.json": "b7d8c57a4d9c4dd0109a9ab893052352333252d4eedced10ac091d4d66cab89b",
+    "research/imported-lab/analysis/pump_fun/amm-v2-trade-fixture.json": "2e775505852caf55203c826ee08b9341aa275f52f59a933c4fb0740535ee316f",
+    "research/imported-lab/analysis/pump_fun/config-snapshot.json": "17b886a6b4aa7fdc89f2fca9a1b67b318d33998794da59fe4df1fe89ca70bd27",
+    "scripts/pump_amm_legacy_sell_differential.py": "f9c889069563cc133f29568d185ea068a3b106c67c3f6a75389af824dca8db66",
+    "scripts/pump_amm_liquidity_differential.py": "08449c9da8c560330eeb5b560a26cdd553d260084e78bd54d4dc7edb914320b4",
+    "scripts/pump_amm_multi_hop_differential.py": "f7fa73af1002cc570d2cd80c501671f32364300ccf03a17a7081320e81273b50",
+    "scripts/pump_amm_reusable_harness.py": "19b7b2439db913e8dd187deba0aa561aa537bfe06a35007470e0f215c94f1cf2",
+    "scripts/pump_amm_trade_v2_differential.py": "a66c8bac5eb610392aef041f716428038b297e42e24af0a54a4a4715d9c5c6bb"
+  }
+}

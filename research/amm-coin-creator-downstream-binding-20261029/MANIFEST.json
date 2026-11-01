@@ -1,0 +1,22 @@
+{
+  "files": {
+    "README.md": "87ab5e418ae175fa6f4b7104dba065075f3418cb3f26528b89d1a583825bd229",
+    "fixture-bindings.json": "10d77247c4fbecd0aa05a9a67b34de3100e5998ca0f078dcc9f4b2ebc7428647",
+    "producer.py": "750940394eea9f846f242acb8fc5eca0e0bf935eb19b5a7a9ceeffe90379b4a2",
+    "runtime/raw-transactions-part01.jsonl.gz": "c8ec056119d02c1e7416edfb60a3d6b7e1ef9a7ae278bb6e06dccecd2770cc96",
+    "runtime/raw-transactions-part02.jsonl.gz": "2445c529b3640d098fd7794f7100574feb1dc4cabffbc424900e3d8dd78003b7",
+    "runtime/raw-transactions-part03.jsonl.gz": "bd1ebed9ae5898af72d483cc754e4f4a6633d141d3012e6852562c31ee665bfd",
+    "runtime/raw-transactions-part04.jsonl.gz": "5f4e2b019bac2eb3a893e6289de34ee6d29f66e1480f031cb8d779aa6f52ab91",
+    "runtime/raw-transactions-part05.jsonl.gz": "fb93f50774ebe7744301307257b3ce0a853c4ae96d89d0cd70c515b560157b0c",
+    "runtime/raw-transactions-part06.jsonl.gz": "54e2b7f9b210c082919b0313634dd034f3ed23f92a88b47d888bc9499c12c5f8",
+    "runtime/raw-transactions-part07.jsonl.gz": "bbfe6c1d6e3b190ea7f2e1b26e9c56ced3c40d91c47570d39859d09b73241077",
+    "runtime/raw-transactions-part08.jsonl.gz": "3deace60db3103069f0be946cc62263758f602e8c3a40f5eab740b9a802e69a5",
+    "runtime/raw-transactions-part09.jsonl.gz": "06b412c478bbdcb7c5981ad408659e8735d608e81e76131cc0d5045b239946c6",
+    "runtime/raw-transactions-part10.jsonl.gz": "9f4d81791e30fc4cccb87dd976d75378a91437893eda7765c0fc670db4e08214",
+    "runtime/raw-transactions-part11.jsonl.gz": "81c80b24f16cfba9e2ca241528ce0ffe2869d60f87b03e82eea3680e486574fd",
+    "runtime/raw-transactions-part12.jsonl.gz": "58242f9a49108caa8b5adbd4d25d035bb870298f2dc278cf45f2ca65129319c6",
+    "runtime/report.json.gz": "a7e86d6672d628c88a5608a0c1d8d9f6340382a471d18049743e31d98e6fffa9",
+    "test_verify.py": "b5e7e0eaf6883f648ea20b11205d3ff95c9e9097cc06851cb31cfcd0f4a29e9f",
+    "verify.py": "8ceaa27f3755e5d2498511846121f9a29b9de066fe45261c09fb11638b709cd8"
+  }
+}

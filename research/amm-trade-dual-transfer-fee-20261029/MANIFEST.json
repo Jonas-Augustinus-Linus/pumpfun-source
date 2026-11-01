@@ -1,0 +1,26 @@
+{
+  "files": {
+    "README.md": "52d54b9afbca9ebfa4605847d925cbcaecf429e95777c83aaa487af7e4f3d6d8",
+    "producer.py": "ed7660d15dead3555d713b0098d42b070c6a4716543a9db0f9a91158bd5477e3",
+    "runtime/raw-transactions-part1.jsonl.gz": "8ec81303ff94dd9f49a2560ff867119a6610c185a644f98a741c52fa03257613",
+    "runtime/raw-transactions-part2.jsonl.gz": "156aa1840231a03dc82d4043847ba57251e1fec341bcea5ffd063baca40df06b",
+    "runtime/raw-transactions-part3.jsonl.gz": "e558629f75fafcf4f9f24bd9cc238f4ad8de38abb08f589b789ebf8bcafdd5a9",
+    "runtime/raw-transactions-part4.jsonl.gz": "512850e74370be24e085d0ee7a059d5815b5930139c916f0d77165027272d561",
+    "runtime/raw-transactions-part5.jsonl.gz": "8f778121a8ec2c0244fa450da1cc799cda04f12849e229e2414158cd349b6b38",
+    "runtime/raw-transactions-part6.jsonl.gz": "7a299bd01e33d9a9a976b0d7db92df7045666a04bb8dc47154a14084f989e9b6",
+    "runtime/raw-transactions-part7.jsonl.gz": "cae3a483fb3c310006a73c8ac34c9af4f6967c96d7c994fd2d177a31dbd5ad20",
+    "runtime/report.json.gz": "47f3245d809423e1508dacbc84690133d3e539e6fb3d9187b0cedc762b295b44",
+    "verify.py": "ff1c88aa8d83aadd6ce5d12e02193c1666a88e7d0881d7309dcdfe98a07cce21"
+  },
+  "repository_inputs": {
+    "evidence/dependencies/spl_token/deployed.so": "8190d3f7ceb6cb7a7a8d8924bff89f9f611e15ce1f806f2b6237f3311a98f697",
+    "evidence/dependencies/spl_token_2022/deployed.so": "15a2e615a42e20f31714bbaaee43002ae6f1cda2e8d7118243117ab3c1342e2d",
+    "evidence/original/pump_amm/deployed.so": "6a7ad34596d83b4c435b32f458a56e718e9f82eb4ad38e4316616d15d24d8ff7",
+    "research/amm-multi-hop-group-slice-recovery/artifacts/candidate.so.gz": "1f25c51a89ed4c269dd7af1732c4a55dbc3fb908b6c9f5ecac69560cfe1026bd",
+    "research/amm-transfer-fee-diagnostic-recovery/artifacts/candidate.so.gz": "c00c011f12544cb7494e900efd99a3fcee7213a32e0257bf2e8f064d64d73453",
+    "scripts/pump_amm_admin_differential.py": "cc3834231f951e3dbf36f38504d85f3135c0edf3792fabecd12fae10c493a72b",
+    "scripts/pump_amm_liquidity_differential.py": "08449c9da8c560330eeb5b560a26cdd553d260084e78bd54d4dc7edb914320b4",
+    "scripts/pump_amm_trade_v2_differential.py": "a66c8bac5eb610392aef041f716428038b297e42e24af0a54a4a4715d9c5c6bb"
+  },
+  "schema": 1
+}

@@ -1,0 +1,25 @@
+{
+  "files": {
+    "README.md": "fa5a299f6b8670da84bbb77ecc118e1073817fa9ee8af4072ff9215940cc6772",
+    "producer.py": "55994637c8a0aaa4467143a8a64ea923efeeb4ea6479a74060cd369fb25b1c41",
+    "runtime/raw-transactions-part1.jsonl.gz": "70dcea50ec86b4282b0ab5d194e975bf5f7f6b689b83e4b84940acdcaad76fa2",
+    "runtime/raw-transactions-part2.jsonl.gz": "0b18a9b2ee2b469f3fde831496a583c3b9d4fd33c783693fae7a4e29e21b28d5",
+    "runtime/raw-transactions-part3.jsonl.gz": "97849d7caa6d7d6f1cec090db26a1ff5fa00f5c89afb59e1f073f3b4f4dc81a5",
+    "runtime/raw-transactions-part4.jsonl.gz": "6aadfffd1f22f36e974232683873388336e2a5c81a09c5c679aa078ec3fc963f",
+    "runtime/raw-transactions-part5.jsonl.gz": "74fb35d0dbe6daef8b5d21a8a99266d339cab5694f8ab82a73bc1e204be7a227",
+    "runtime/raw-transactions-part6.jsonl.gz": "8814bae030b482e1b7b2f56c45d0f178fb4ff30afe437398dce724694ed8108d",
+    "runtime/report.json.gz": "074d2436c09935117a106329af4ff45fbbe2d9b8d523ef9c258bcc7ae7dd30db",
+    "verify.py": "5c6b045e06c5862629c92e591b444c3af144a9cc6c00f13e6c184cd95cdbeee8"
+  },
+  "repository_inputs": {
+    "evidence/dependencies/spl_token/deployed.so": "8190d3f7ceb6cb7a7a8d8924bff89f9f611e15ce1f806f2b6237f3311a98f697",
+    "evidence/dependencies/spl_token_2022/deployed.so": "15a2e615a42e20f31714bbaaee43002ae6f1cda2e8d7118243117ab3c1342e2d",
+    "evidence/original/pump_amm/deployed.so": "6a7ad34596d83b4c435b32f458a56e718e9f82eb4ad38e4316616d15d24d8ff7",
+    "research/amm-multi-hop-group-slice-recovery/artifacts/candidate.so.gz": "1f25c51a89ed4c269dd7af1732c4a55dbc3fb908b6c9f5ecac69560cfe1026bd",
+    "research/amm-transfer-fee-diagnostic-recovery/artifacts/candidate.so.gz": "c00c011f12544cb7494e900efd99a3fcee7213a32e0257bf2e8f064d64d73453",
+    "scripts/pump_amm_admin_differential.py": "cc3834231f951e3dbf36f38504d85f3135c0edf3792fabecd12fae10c493a72b",
+    "scripts/pump_amm_liquidity_differential.py": "08449c9da8c560330eeb5b560a26cdd553d260084e78bd54d4dc7edb914320b4",
+    "scripts/pump_amm_trade_v2_differential.py": "a66c8bac5eb610392aef041f716428038b297e42e24af0a54a4a4715d9c5c6bb"
+  },
+  "schema": 1
+}
