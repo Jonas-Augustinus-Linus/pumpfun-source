@@ -410,6 +410,7 @@ jobs:
               python -B -m unittest discover -s reconstruction/harness -p 'test_triage*.py'
               python -B reconstruction/harness/test_applicability_evidence_paths.py
               python -B reconstruction/harness/test_diagnostic_range_boundaries.py
+              python -B research/static-range-git-original-20261101/reproduce.py --checkout . --expect fixed --output work/static-range-git-original.json
               python -B reconstruction/harness/test_stack_access_isa.py
               python scripts/test_build_source_manifest.py
               python -B scripts/test_build_fee_selection_binding.py
