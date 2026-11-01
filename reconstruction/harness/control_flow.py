@@ -81,6 +81,9 @@ def analyze(raw, start=0):
             diagnostics.append({'offset': offset, 'opcode': op, 'error': 'unsupported control-flow opcode'})
             continue
         if op & 7 != 5:
+            if following == len(raw):
+                diagnostics.append({'offset': offset, 'target': following,
+                                    'error': 'fallthrough outside function'})
             continue
         if op in (0x85, 0x8d):
             if op == 0x8d and not 0 <= immediate <= 10:
