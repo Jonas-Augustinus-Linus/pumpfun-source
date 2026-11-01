@@ -18,7 +18,8 @@ The default defined-call classifier admits a complete positive-size function at
 virtual address zero when its linked symbol and exact text range are otherwise
 admitted. It retains the narrow policy for undefined, zero-size and unadmitted
 symbols. A coordinate fixture reproduces the original false rejection. The active
-analysis wrapper additionally admits only the reviewed new LF/CRLF helper bytes;
+analysis wrapper additionally admits only the reviewed new LF/CRLF helper bytes,
+including the classifier transition's previously omitted CRLF analyzer form;
 all previous source identities and historical packets remain unchanged.
 
 The shared instruction decoder preserves every pre-existing target-metric field

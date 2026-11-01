@@ -11,6 +11,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[2]
 HELPERS = {
     "scripts/analyze_program.py": {
+        "a2a7c4f0e2b0bcdad4ceb3548d834f9a239942d1cdb0d5c694944233e7bef96d",
         "9f2073520c319ca8db15d683da038590cd2da16304d1550e95648b89b3213083",
         "4f32c8013e9359d32d2685860cc0c3628c2c44887d89cecf94609f360e038b73",
         "038de3a138c8fb2b55a7ef870064b4f1cd39f104f45a182b49d44d05f8654bd5",
