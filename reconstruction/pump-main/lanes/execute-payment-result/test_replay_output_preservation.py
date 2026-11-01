@@ -19,7 +19,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[3]
 REL = HERE.relative_to(ROOT)
 DRIVER = r'''
-import importlib.util, os, runpy, sys, types
+import base64, importlib.util, os, runpy, sys, types
 from pathlib import Path
 root, tool = sys.argv[1], sys.argv[2]
 mode = os.environ.get('REPLAY_TEST_MODE', '')
@@ -63,6 +63,15 @@ def cases():
         global count
         result = real.run(binary, case)
         count += 1
+        if count == 1 and mode in ('stripped_signature', 'bad_signature'):
+            from solders.transaction import Transaction
+            raw = base64.b64decode(result['transaction_base64'])
+            if mode == 'stripped_signature':
+                raw = bytes([0]) + bytes(Transaction.from_bytes(raw).message)
+            else:
+                raw = bytearray(raw)
+                raw[1] ^= 1
+            result = dict(result, transaction_base64=base64.b64encode(raw).decode())
         if count == 1 and mode == 'replace_inputs':
             for path in (candidate,
                          Path(root)/'evidence/original/pump_fees/deployed.so',
@@ -218,6 +227,16 @@ class ReplayOutputPreservationTests(unittest.TestCase):
                 self.rejected(self.run_replay(mode=mode))
                 self.assertFalse(self.output.exists())
                 self.assertEqual(list(self.output.parent.glob('.report.json.gz.*')), [])
+
+    def test_unsigned_or_invalid_receipt_signature_is_rejected(self):
+        for mode in ('stripped_signature', 'bad_signature'):
+            with self.subTest(mode=mode):
+                self.output = self.root.parent / (mode + '.json.gz')
+                result = self.run_replay(mode=mode)
+                self.assertEqual(result.returncode, 2, result.stderr[-1200:])
+                self.assertIn('signature verification failed', result.stderr)
+                self.assertFalse(self.output.exists())
+                self.unchanged()
 
     def test_existing_report_is_preserved(self):
         self.output.write_bytes(b'prior report')
