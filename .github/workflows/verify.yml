@@ -298,6 +298,7 @@ jobs:
               python -B scripts/test_deep_disassembly_publication.py
               python -B scripts/test_pump_macos_frontier_archive_publication.py
               python -B scripts/test_sbpf_disassembly_inventory_publication.py
+              python -B research/sbpf-section-name-admission/test_inventory.py
               python -B scripts/test_sbpf_disassembly_roundtrip_publication.py
               python -B scripts/test_pump_strict_ordered_logs_publication.py
               python -B scripts/test_verify_recovered_builds_receipts.py
