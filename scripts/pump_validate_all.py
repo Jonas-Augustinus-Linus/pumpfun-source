@@ -124,7 +124,7 @@ CASE_DIFFERENCE_FIELDS = ('different_fields', 'diff', 'differences', 'mismatched
 # QuoteControl and the two specialized multi-hop receipts have separate gates.
 CASE_COMPARE_KEYS = {
     'volume': ('error', 'account', 'payer_lamports', 'user_lamports', 'events', 'inner_instructions'),
-    'administration': ('error', 'data_hex', 'lamports'),
+    'administration': ('error', 'data_hex', 'lamports', 'anchor_logs'),
     'creator_collection': ('transaction_base64', 'signature_verification', 'error', 'account',
                            'creator', 'payer_lamports', 'events', 'inner_instructions'),
     'quote': ('error', 'accounts', 'event_payloads', 'inner'),
