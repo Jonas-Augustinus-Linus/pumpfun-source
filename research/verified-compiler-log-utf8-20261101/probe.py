@@ -50,7 +50,18 @@ def inventory(root):
 def run_probe(repo, sdk, output, revision=None):
     repo, sdk, output = [Path(p).resolve() for p in (repo, sdk, output)]
     output.mkdir(parents=True, exist_ok=False)
-    original = {p: sha((repo/p).read_bytes()) for p in [*FILES, CAPTURE]}
+    files = list(FILES)
+    launcher = 'scripts/pump_physical_source_wrapper.sh'
+    # New current builders execute the selected-Python launcher. Historical
+    # revisions still use the original direct Python hook.
+    if revision:
+        present = subprocess.run(['git', '-C', str(repo), 'cat-file', '-e', revision+':'+launcher],
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+    else:
+        present = (repo/launcher).is_file()
+    if present:
+        files.append(launcher)
+    original = {p: sha((repo/p).read_bytes()) for p in [*files, CAPTURE]}
     results = {'implementation_sha256': {}, 'cases': {}, 'runtime_executions': 0}
     tools = {name: sdk/name for name in ('rust/bin/cargo', 'rust/bin/rustc',
                                       'llvm/bin/llvm-objcopy')}
@@ -59,7 +70,7 @@ def run_probe(repo, sdk, output, revision=None):
         [str(tools['rust/bin/rustc']), '-vV'], text=True, encoding='utf-8').strip()
     with tempfile.TemporaryDirectory(prefix='verified-log-utf8-') as temporary:
         root = Path(temporary).resolve()
-        for name in FILES:
+        for name in files:
             data = subprocess.check_output(['git', '-C', str(repo), 'show',
                 revision+':'+name]) if revision else (repo/name).read_bytes()
             destination = root/name
