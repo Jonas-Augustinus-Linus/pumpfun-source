@@ -122,3 +122,86 @@ packets. It does not retroactively validate or rewrite archived packets. No
 ELF, program model, VM, compiler or rebuilt candidate is executed; there is no
 new reconstruction, runtime-equivalence or security claim. Malformed variants
 are deliberate, isolated manifest edits around genuine generated artifacts.
+
+## Same-PR completion of the maintained generator family
+
+The original proof above records the first four-generator change, published at
+`a073c5c8e561dfe0f8a842d27aa1b446de140333`. Its scripts and retained before/after
+receipts remain unchanged. A subsequent source-family audit reproduced the same
+last-value-wins failure in three further maintained producers:
+
+- `scripts/reconstruction_roadmap.py`;
+- `scripts/revalidate_all.py`;
+- `reconstruction/tooling/revalidation-qualification/audit.py`.
+
+These three emitted verifier templates now apply the same explicit decoded-name
+check. This is an appendix to the same correction and PR, not another claimed
+contribution. The original **36** duplicate false passes plus **27** additional
+false passes are **63** across seven producers. The extra checks cover three
+manifest variants in normal, `-O` and `-OO` modes. Valid, uniquely escaped,
+wrong-digest and malformed-JSON controls retain their outcomes.
+
+```sh
+python -B research/generated-manifest-members-20261101/residual_probe.py . \
+  --revision a073c5c8e561dfe0f8a842d27aa1b446de140333 --expect before \
+  --output /tmp/residual-manifest-before.json
+python -B research/generated-manifest-members-20261101/residual_probe.py . \
+  --expect fixed --compare /tmp/residual-manifest-before.json \
+  --output /tmp/residual-manifest-after.json
+```
+
+Each run makes four actual generation calls and 63 emitted-verifier calls.
+The roadmap reads genuine Pump, AMM and Mayhem captures. Each auditor receives
+an owned repository containing exactly one newly generated static Mayhem packet,
+whose verifier only checks file hashes. The probe never audits the real research
+tree or executes unrelated archived/program verifiers. These boundaries are
+asserted in the reproduction and the existing CI census suite's new method.
+The [before](residual-before.json) and [after](residual-after.json) records retain
+source/capture hashes and every outcome. All compared report data is unchanged;
+comparison explicitly excludes generated verifier/manifest bytes, run provenance,
+elapsed fields and disposable path spelling. It does not claim byte equality
+of timestamped audit reports.
+
+Five maintained source-binding sites move to the explicitly reviewed current
+source identities: the three roadmap diagnostic adapters, the manifest-admission
+runner and the qualification adapter. Historical proof/archived source identities
+stay fixed. The current single-version guards reject both the previous root
+identity and an unreviewed source edit; the older four-generator allowlists
+remain unchanged and still retain all of their previous identities.
+
+```sh
+python -B research/generated-manifest-members-20261101/residual_bindings.py . \
+  --revision a073c5c8e561dfe0f8a842d27aa1b446de140333 \
+  --output /tmp/residual-bindings-before.json
+python -B research/generated-manifest-members-20261101/residual_bindings.py . \
+  --compare /tmp/residual-bindings-before.json \
+  --output /tmp/residual-bindings-after.json
+```
+
+The [15 before](residual-bindings-before.json) and
+[20 after](residual-bindings-after.json) actual adapter calls cover normal
+regeneration, source drift, old identity refusal after rebinding, and occupied
+output preservation. They retain analysis/verdict payloads and check published
+source identities. Source/input receipts, emitted verifiers, timing and run
+provenance are deliberately separate from those semantic comparisons.
+
+The concurrent defined-call writer correction [#3925](https://github.com/lalalune/pumpfun-source/pull/3925),
+exact `1b0be728950b66a26b86e92069cd69c6e85ce5bd`, modifies the writer while this
+appendix updates its reviewed roadmap identity. The
+[composition replay](residual_composition.py) applies the two source changes in
+both orders, verifies identical combined bytes, and executes six genuine CLIs:
+normal generation, a real 64-byte file-size limit, then same-path retry for each
+order. Four emitted-verifier invocations pass. The
+[result](residual-composition.json) confirms identical complete packets, no
+partial output after the bounded write failure, and successful retry.
+
+```sh
+git fetch https://github.com/lalalune/pumpfun-source.git pull/3925/head
+python -B research/generated-manifest-members-20261101/residual_composition.py . \
+  --output /tmp/residual-composition.json
+```
+
+Run the composition replay at this appendix's tested source, before integrating
+other writer changes. The [source review](residual-source-review.json) binds the
+three template edits and their current adapter transitions. No immutable
+historical packet is rewritten and no stopped runtime scope is reopened.
