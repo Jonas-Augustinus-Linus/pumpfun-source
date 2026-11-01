@@ -12,7 +12,7 @@ import types
 ROOT = Path(__file__).resolve().parents[3]
 REVIEWED = {
     'scripts/reconstruction_roadmap.py': 'ef43f2af32498bf26c38181e1495d901a36f65ee687550111965f6f079255411',
-    'scripts/window_elf_reader.py': 'b00c2c491dce839aba97b19fd9007da5eaa99902968d88e8c44bb071bb0c9c1c',
+    'scripts/window_elf_reader.py': 'd3b57510531d7977110e73474cf89310b68bf6705d134ffb3bc759e18d30bedd',
     'research/tooling-roadmap-call-classification-20261029/proof.py': '4acff7a33fff43773b730b4518a8beb8685abc683740945f27c9296ab4031800',
 }
 
