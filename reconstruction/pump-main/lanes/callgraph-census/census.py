@@ -495,7 +495,14 @@ def main():
         def rc_incs(img, start):
             txt = img.text(start); ad = sorted(txt); n = []
             for k in range(1, len(ad)):
-                if re.match(r'add64 (r\d+), 0x1$', txt[ad[k]]) and re.match(r'ldxdw ' + re.match(r'add64 (r\d+)', txt[ad[k]]).group(1) + r', \[r\d+ \+ 0x0\]$', txt[ad[k - 1]]):
+                previous = body(img.blob, img.secs, ad[k - 1], 8)
+                current = body(img.blob, img.secs, ad[k], 8)
+                # Match the same load/increment idiom by bytes, so the plain
+                # BPF printer's assignment syntax cannot hide real witnesses.
+                if (previous[0] == 0x79 and current[0] == 0x07
+                        and previous[1] & 15 == current[1] & 15
+                        and struct.unpack_from('<h', previous, 2)[0] == 0
+                        and struct.unpack_from('<i', current, 4)[0] == 1):
                     n.append(hex(ad[k] - start))
             return n
         ro, rc = rc_incs(O, o), rc_incs(C, c)

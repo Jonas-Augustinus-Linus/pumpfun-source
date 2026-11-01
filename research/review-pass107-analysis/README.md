@@ -25,7 +25,9 @@ use private inputs. The distribution-LLVM disassembly fallback preserves win.py'
 executable mode. Its assignment-style output is canonicalized only for census
 argument-write extraction, so branches cannot become writes and real scalar or
 section-pointer arguments remain visible. Retained instruction witnesses and
-actual distribution/SDK disassembly exercise both syntaxes. No program, build recipe, normalization rule or completion count
+actual distribution/SDK disassembly exercise both syntaxes. Clone increment
+witnesses use the same adjacent load/increment instruction bytes, preserving
+counts under either printer. No program, build recipe, normalization rule or completion count
 changes in this integration.
 
 Output-preservation guards in census, hotness, callid, capture-inline and
