@@ -99,6 +99,7 @@ jobs:
           - suite: offline-cargo-cache
             commands: |
               python -I -B scripts/test_prepare_locked_cargo_home.py
+              python -I -B scripts/test_prepare_locked_cargo_home_admission.py
           - suite: evidence
             commands: |
               python -B research/tooling-relocated-data-pointers-20261030/test_pointer_analysis.py
@@ -121,6 +122,15 @@ jobs:
               python -B scripts/test_text_pointer_addresses.py
               python -B scripts/test_pump_diagnostic_audit_umask_mode.py
               python -B scripts/test_pump_fresh_output_optimized.py
+              python -B scripts/test_main_checkpoint_optimization.py
+              python -B scripts/test_amm_checkpoint_optimization.py
+              python -B scripts/test_verify_current_checkpoint_optimization.py
+              python -B scripts/test_compared_checkpoint_optimization.py
+              python -B scripts/test_remaining_checkpoint_optimization.py
+              python -B scripts/test_capture_optimization.py
+              python -B scripts/test_captured_loader_optimization.py
+              python -B scripts/test_build_verified_optimization.py
+              python -B scripts/test_identity_audit_optimization.py
               python -B scripts/test_amm_harness_content_cache.py
               python -B tests/test_amm_nested_target.py
               python -B tests/test_amm_build_environment.py
