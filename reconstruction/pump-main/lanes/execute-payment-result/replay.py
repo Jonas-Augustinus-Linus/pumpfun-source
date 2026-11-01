@@ -84,7 +84,10 @@ def main():
                 receipts = {role: suite.run(path, case) for role, path in images.items()}
                 for receipt in receipts.values():
                     tx = Transaction.from_bytes(b64decode(receipt['transaction_base64']))
-                    if not all(tx.verify_with_results()):
+                    required = tx.message.header.num_required_signatures
+                    verified = tx.verify_with_results()
+                    if (required < 1 or len(tx.signatures) != required
+                            or verified != [True] * required):
                         raise ValueError('replay transaction signature verification failed')
                 diff = [key for key in fields if receipts['original'][key] != receipts['candidate'][key]]
                 regression = [key for key in fields if receipts['control'][key] != receipts['candidate'][key]]
