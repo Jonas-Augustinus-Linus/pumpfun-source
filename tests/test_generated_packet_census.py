@@ -32,8 +32,8 @@ class GeneratedPacketCensusTests(unittest.TestCase):
             if result.returncode:
                 raise AssertionError(result.stdout + result.stderr)
 
-    def verify(self, packet):
-        return subprocess.run([sys.executable, '-I', '-B', str(packet / 'verify.py')],
+    def verify(self, packet, mode=()):
+        return subprocess.run([sys.executable, '-I', '-B', *mode, str(packet / 'verify.py')],
                               capture_output=True, text=True, timeout=10)
 
     def packets(self):
@@ -110,6 +110,24 @@ class GeneratedPacketCensusTests(unittest.TestCase):
                 result = self.verify(packet)
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
                 self.assertIn('manifest artifact set mismatch', result.stdout)
+
+    def test_duplicate_decoded_manifest_names_are_rejected_in_all_modes(self):
+        for tool, packet in self.packets():
+            path = packet / 'manifest.json'
+            original = path.read_text(encoding='utf-8')
+            digest = json.loads(original)['summary.json']
+            for key, value in (('"summary.json"', '0' * 64),
+                               ('"summary.json"', digest),
+                               ('"\\u0073ummary.json"', '0' * 64)):
+                repeated = '{' + key + ': ' + json.dumps(value) + ',' + original.lstrip()[1:]
+                path.write_text(repeated, encoding='utf-8')
+                for mode in ((), ('-O',), ('-OO',)):
+                    with self.subTest(tool=tool, key=key, value=value, mode=mode):
+                        result = self.verify(packet, mode)
+                        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                        self.assertIn('duplicate manifest key: summary.json', result.stdout)
+                        self.assertNotIn('All checks passed.', result.stdout)
+                        self.assertEqual(path.read_text(encoding='utf-8'), repeated)
 
 
 if __name__ == '__main__':
