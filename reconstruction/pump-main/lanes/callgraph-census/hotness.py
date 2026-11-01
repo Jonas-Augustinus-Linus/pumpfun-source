@@ -13,6 +13,7 @@ from collections import defaultdict
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / 'harness'))
 from win import demangle  # noqa: E402
+from score_admission import report_destination  # noqa: E402
 
 FN = {'0x14f4e0': r'pump_recovered::pump_recovered::buy_exact_sol_in$', '0x80df8': r'trade::v3_buy_costs$',
       '0x6cd78': r'process_cashback_inner$', '0x83c00': r'trade::v3_execute_buy$', '0x13f630': r'buy_exact_quote_in_handler$',
@@ -28,6 +29,16 @@ def main():
     ap.add_argument('--census', type=Path, default=Path(__file__).with_name('CENSUS.json'))
     ap.add_argument('--md', type=Path); ap.add_argument('--json', type=Path)
     a = ap.parse_args()
+    # Reject a report destination that aliases an input before any read:
+    # both reports are published with write_text, so an aliasing --json or
+    # --md would destroy the census (or the remarks log) it just consumed.
+    # Mirrors the harness report tools' destination check.
+    for output in (a.json, a.md):
+        if output:
+            try:
+                report_destination(output, [a.remarks, a.census])
+            except ValueError as error:
+                ap.error(str(error))
     ours = defaultdict(list)
     for l in a.remarks.read_text(errors='replace').splitlines():
         m = re.match(r"note: (.+?:\d+:\d+) inline \((\w+)\): '([^']+)'[^']*'([^']+)'", l)
