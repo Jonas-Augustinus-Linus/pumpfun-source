@@ -32,7 +32,7 @@ REPORT_INPUTS=(TRADE_FIXTURE_PATH,PUMP_IDL_PATH,MIGRATION_FIXTURE_PATH)
 PUMP=Pubkey.from_string(json.load(open(PUMP_IDL_PATH, encoding='utf-8'))['address']);ATA=Pubkey.from_string('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL')
 p=json.load(open(MIGRATION_FIXTURE_PATH,encoding='utf-8'))
 def run_migration(candidate=None,label='missing_boost',overrides=None):
- row=p[label];tx=Transaction.from_bytes(base64.b64decode(row['transaction_base64']));assert all(tx.verify_with_results())
+ row=p[label];tx=Transaction.from_bytes(base64.b64decode(row['transaction_base64']));required=tx.message.header.num_required_signatures;results=tx.verify_with_results();assert required>0 and len(tx.signatures)==required and results==[True]*required,f'{label}: saved migration is not signed'
  vm=LiteSVM().with_transaction_history(0).with_blockhash_check(False).with_log_bytes_limit(None);vm.set_clock(Clock(100,1234567890,0,0,1234567890))
  for pid,path in [(PROGRAM,candidate or pin_program(ROOT/'evidence/original/pump_amm/deployed.so')),(PUMP,ROOT/'evidence/original/pump/deployed.so'),(TOKEN,ROOT/'evidence/dependencies/spl_token/deployed.so'),(TOKEN22,ROOT/'evidence/dependencies/spl_token_2022/deployed.so'),(ATA,ROOT/'evidence/dependencies/associated_token/deployed.so')]:vm.add_program_from_file(pid,path)
  ix=tx.message.instructions[-1];spec=next(x for x in json.load(open(PUMP_IDL_PATH, encoding='utf-8'))['instructions'] if x['name']=='migrate_v2');keys={a['name']:tx.message.account_keys[i] for a,i in zip(spec['accounts'],ix.accounts)}
