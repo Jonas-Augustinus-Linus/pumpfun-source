@@ -1,4 +1,4 @@
-"""Check the research wrapper preserves experiments and frozen-helper integrity."""
+"""Check the research wrapper preserves experiments and reviewed-helper integrity."""
 import hashlib
 from pathlib import Path
 import unittest
@@ -20,13 +20,12 @@ class ResearchSelectionTests(unittest.TestCase):
         self.assertEqual(argv[2:],tail)
         self.assertNotIn('--tools-version',argv)
 
-    def test_current_helper_matches_accepted_historical_helper(self):
-        # The accepted copy at d75184ea323be8a83ebe11fe5f26a13f3dcbe052
-        # has Git blob 85fa552fd8c1556876715d089dbaf4f45857128d.
-        # It is absent from current checkouts; retain its exact byte check.
-        frozen_sha256='bb683621ffc4297c58f030cb03da54484b7370b786fd8eda965a37f4b3198ee9'
+    def test_current_helper_matches_reviewed_environment_scrubbing_helper(self):
+        # The maintained helper now scrubs ambient recipe overrides. This pin
+        # admits that reviewed change; historical packet hashes remain unchanged.
+        reviewed_sha256='0814a75b036424bf79253664f27c71ed671d5be99eaa565e4eaf8420b2e4f0a8'
         current=(ROOT/'scripts/build_partial_candidate.py').read_bytes()
-        self.assertEqual(hashlib.sha256(current).hexdigest(), frozen_sha256)
+        self.assertEqual(hashlib.sha256(current).hexdigest(), reviewed_sha256)
 
 
 if __name__ == '__main__':

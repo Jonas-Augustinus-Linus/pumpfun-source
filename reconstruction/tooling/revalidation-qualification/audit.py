@@ -51,6 +51,18 @@ def sha256_bytes(raw):
     return hashlib.sha256(raw).hexdigest()
 
 
+def auxiliary_stem(output):
+    """Leave suffix room without sharing a lock for distinct long basenames."""
+    prefix = ""
+    for character in output.name:
+        if len(os.fsencode(prefix + character)) > 64:
+            break
+        prefix += character
+    if prefix != output.name:
+        prefix += "-" + sha256_bytes(os.fsencode(output.name))
+    return prefix
+
+
 def is_reparse_point(info):
     return bool(getattr(info, "st_file_attributes", 0) & REPARSE_POINT)
 
@@ -660,14 +672,15 @@ def audit(repo, output, timeout_seconds=60.0, cleanup_seconds=1.0):
     reject_linked_ancestors(output.parent)
     if not output.parent.is_dir():
         raise NotADirectoryError(str(output.parent))
-    lock = output.parent / ("." + output.name + ".revalidation.lock")
+    stem = auxiliary_stem(output)
+    lock = output.parent / ("." + stem + ".revalidation.lock")
     lock.mkdir()
     stage = None
     started = time.monotonic()
     started_utc = datetime.datetime.now(datetime.timezone.utc).isoformat()
     try:
         stage = Path(tempfile.mkdtemp(
-            prefix="." + output.name + ".staging-", dir=output.parent
+            prefix="." + stem + ".staging-", dir=output.parent
         ))
         results = []
         inputs = {}

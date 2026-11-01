@@ -8,6 +8,7 @@ import subprocess
 from pathlib import Path
 
 import compare_scores
+import elf_symbols  # Admit lazy symbol-reader bytes before any build.
 import fastbuild
 import score
 from original_input import copy_original_inputs
@@ -62,6 +63,17 @@ def require_valid_build(result):
         raise ValueError('build report has no published digest; refusing to score')
 
 
+def target_libraries(hybrid):
+    """Digest every sbpf target library the compiler can link.
+
+    linux144-sbpf-target-libs.sha256 pins the list of libraries, not their
+    bytes: a replaced rlib keeps the file name, changes the linked artefact,
+    and leaves the manifest digest and the before/after binding identical.
+    """
+    library = Path(hybrid) / 'rust/lib/rustlib/sbpf-solana-solana/lib'
+    return {path.name: sha(path) for path in sorted(library.glob('*.rlib'))}
+
+
 def bound_inputs(scoring_inputs, sdk, hybrid):
     canonical = Path(__file__).resolve().parents[1] / 'base'
     return {'inputs': {name: sha(scoring_inputs / name) for name in ('original.so', 'functions.tsv')},
@@ -73,6 +85,7 @@ def bound_inputs(scoring_inputs, sdk, hybrid):
                           'llvm_tools.py', 'score_admission.py', 'source_inputs.py')},
             'sdk_inventory_sha256': sha(canonical.parent / 'toolchain/v1.44-macos-inventory.json'),
             'target_library_manifest_sha256': sha(Path(__file__).parent / 'linux144-sbpf-target-libs.sha256'),
+            'target_libraries': target_libraries(hybrid),
             'compiler_sha256': sha(hybrid / 'rust/bin/rustc'),
             'cargo_sha256': sha(sdk / 'rust/bin/cargo'),
             'clang_sha256': sha(sdk / 'llvm/bin/clang'),
