@@ -49,7 +49,12 @@ def parse_window(value):
 def load_image(path, role):
     """Read and validate one immutable in-memory ELF snapshot."""
     path = Path(path)
-    blob = path.read_bytes()
+    return load_image_bytes(path.read_bytes(), role, path)
+
+
+def load_image_bytes(blob, role, path):
+    """Validate bytes already snapshotted by an offline caller or test."""
+    path = Path(path)
     secs = sections(blob)
     if struct.unpack_from('<H', blob, 18)[0] not in (247, 263):
         raise ValueError(f'{role} is not an EM_BPF or EM_SBPF image')
@@ -321,6 +326,13 @@ def match_blocks(original_model, candidate_model):
                 claim(left[fingerprint][0], right[fingerprint][0], method, confidence, score,
                       [f'unique_{field}'])
 
+    # Equal offsets are useful only when target-independent normalized content
+    # is also equal; physical position alone never establishes correspondence.
+    for offset in sorted(originals.keys() & candidates.keys()):
+        if originals[offset]['content_fingerprint'] == candidates[offset]['content_fingerprint']:
+            claim(offset, offset, 'equal_offset_content', 'high', 1.0,
+                  ['equal_relative_offset', 'equal_target_independent_content'])
+
     unique_fingerprints('content_fingerprint', 'unique_content', 'high', 1.0)
     unique_fingerprints('structural_fingerprint', 'unique_structure', 'high', 0.95)
     if 0 in originals and 0 in candidates and 0 not in mapping and 0 not in reverse:
@@ -492,7 +504,7 @@ def _compare_instruction_fields(original_block, candidate_block):
                     'original': _field_value(left, 'lddw_reserved'),
                     'candidate': _field_value(right, 'lddw_reserved'),
                 }
-            field_counts.update(changed)
+            field_counts.update(changed.keys())
             if changed and len(examples) < 12:
                 examples.append({'original_offset': left_raw['offset'],
                                  'candidate_offset': right_raw['offset'], 'fields': changed})
