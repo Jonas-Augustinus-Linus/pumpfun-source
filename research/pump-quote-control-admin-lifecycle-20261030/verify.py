@@ -22,6 +22,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.dont_write_bytecode = True  # keep the packet folder free of __pycache__
+CASES = 57  # cases this packet's plan publishes; README and runtime/report.json.gz name the same number
 
 
 def load_producer():
@@ -58,6 +59,9 @@ def main():
     runtime = HERE / 'runtime'
     report = json.loads(gzip.decompress((runtime / 'report.json.gz').read_bytes()))
     cases = json.loads(gzip.decompress((runtime / 'plan.json.gz').read_bytes()))
+    if len(cases) != CASES:
+        print(f'FAIL: plan holds {len(cases)} cases, not {CASES}')
+        return 1
     failures = []
     for name in ('original', 'candidate'):
         sha = hashlib.sha256(Path(images[name]).read_bytes()).hexdigest()
