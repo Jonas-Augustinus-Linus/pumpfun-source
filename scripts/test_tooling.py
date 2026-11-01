@@ -1751,7 +1751,9 @@ class DependencyCacheArchiveTests(unittest.TestCase):
             wrapper = root / 'wrapper'
             wrapper.write_text('w')
             (build / 'build-comparison.json').write_text(json.dumps({
-                'returncode': 0, 'source_unchanged': True, 'source_sha256': {},
+                'returncode': 0, 'source_unchanged': True,
+                'source_sha256': {'prog/Cargo.toml': sha(crate / 'Cargo.toml'),
+                                  'prog/Cargo.lock': sha(crate / 'Cargo.lock')},
                 'comparison': {'candidate_sha256': sha(build / 'candidate.so')},
                 'unstripped_sha256': sha(build / 'unstripped.so'),
                 'tool_sha256': {'rustc': 'r', 'cargo': 'c'}, 'source_wrapper_sha256': sha(wrapper),
