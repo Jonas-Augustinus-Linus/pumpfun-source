@@ -12,8 +12,8 @@
   },
   {
    "path": "verify.py",
-   "sha256": "f64b51e826ccc3f8b784b3518180ffaa16d50bf0faa7a88dc8e34e7dc15e913f",
-   "bytes": 3123
+   "sha256": "8a3865fd8a239b079bee7100081d6637cbdba323f4b8b184a8b71509878c00fb",
+   "bytes": 3848
   },
   {
    "path": "runtime/receipts.jsonl.gz",

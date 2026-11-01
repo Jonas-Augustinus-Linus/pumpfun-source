@@ -41,6 +41,17 @@ def verify_manifest():
     drifted still replayed itself and still passed.
     """
     manifest = json.loads((HERE / 'MANIFEST.json').read_text())
+    # The loop below checks the files the manifest names; a file the packet ships
+    # with no entry passes every check it makes. Compare the two sets first.
+    manifest_paths = {entry['path'] for entry in manifest['files']}
+    packet_paths = {str(p.relative_to(HERE)) for p in HERE.rglob('*')
+                    if p.is_file() and p.name not in ('MANIFEST.json', '.DS_Store')
+                    and '__pycache__' not in p.parts and '.git' not in p.parts}
+    if manifest_paths != packet_paths:
+        raise SystemExit('packet file set differs from MANIFEST.json: '
+                         f'missing={sorted(packet_paths - manifest_paths)} '
+                         f'extra={sorted(manifest_paths - packet_paths)}')
+
     for entry in manifest['files']:
         path = HERE / entry['path']
         data = path.read_bytes() if path.is_file() else None
