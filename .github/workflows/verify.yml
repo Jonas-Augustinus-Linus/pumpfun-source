@@ -27,6 +27,7 @@ jobs:
               sudo apt-get install -y llvm
               python -B reconstruction/tooling/byte-comparison-input-preservation/test_verify.py --objdump /usr/bin/llvm-objdump
               PUMP_OBJDUMP=/usr/bin/llvm-objdump python -I -B reconstruction/pump-main/lanes/multihop-reconstruction/test_rdiff.py
+              python -B -m unittest discover -s reconstruction/harness -p 'test_llvm_tools.py'
           - suite: contract-tests
             commands: |
               python -B -m unittest discover -s tests -v
