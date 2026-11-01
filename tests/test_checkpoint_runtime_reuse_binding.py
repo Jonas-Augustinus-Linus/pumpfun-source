@@ -52,6 +52,53 @@ class RuntimeReuseBindingTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
         self.assertRegex(completed.stdout, r'PASS: [1-9]\d* of [1-9]\d* checkpoints reuse')
 
+    def test_optimized_interpreters_preserve_the_reuse_gate(self):
+        for flag in ('-O', '-OO'):
+            with self.subTest(flag=flag):
+                completed = subprocess.run(
+                    [sys.executable, flag, '-B', str(VERIFIER), '--repo-root', str(ROOT)],
+                    text=True, capture_output=True, timeout=300)
+                self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+                self.assertIn('checkpoints reuse a runtime receipt', completed.stdout)
+
+    def test_the_receipt_must_belong_to_its_named_historical_checkpoint(self):
+        with tempfile.TemporaryDirectory(prefix='reuse-location-') as directory:
+            root, checkpoints = copy_checkpoints(directory)
+            copied = checkpoints / 'another-checkpoint'
+            shutil.copytree(checkpoints / HISTORICAL, copied)
+            rewrite(checkpoints / CURRENT / 'runtime-reuse.json',
+                    lambda data: data.update(historical_checkpoint='another-checkpoint'))
+            tampered = run(root)
+            self.assertNotEqual(tampered.returncode, 0, tampered.stdout)
+            self.assertIn('not in its named historical checkpoint', tampered.stderr)
+
+    def test_the_historical_transcript_must_name_the_required_image(self):
+        import hashlib
+        with tempfile.TemporaryDirectory(prefix='reuse-transcript-') as directory:
+            root, checkpoints = copy_checkpoints(directory)
+            receipt = checkpoints / HISTORICAL / 'admin-runtime.json.gz'
+            data = json.loads(gzip.decompress(receipt.read_bytes()))
+            data['candidate_sha256'] = '00' * 32
+            raw = (json.dumps(data) + '\n').encode()
+            compressed = gzip.compress(raw, mtime=0)
+            receipt.write_bytes(compressed)
+            rewrite(checkpoints / CURRENT / 'runtime-reuse.json',
+                    lambda data: data.update(
+                        historical_compressed_sha256=hashlib.sha256(compressed).hexdigest(),
+                        historical_uncompressed_sha256=hashlib.sha256(raw).hexdigest()))
+            tampered = run(root)
+            self.assertNotEqual(tampered.returncode, 0, tampered.stdout)
+            self.assertIn('historical receipt candidate', tampered.stderr)
+
+    def test_a_historical_checkpoint_path_cannot_escape_the_checkpoint_tree(self):
+        with tempfile.TemporaryDirectory(prefix='reuse-parent-') as directory:
+            root, checkpoints = copy_checkpoints(directory)
+            rewrite(checkpoints / CURRENT / 'runtime-reuse.json',
+                    lambda data: data.update(historical_checkpoint='../elsewhere'))
+            tampered = run(root)
+            self.assertNotEqual(tampered.returncode, 0, tampered.stdout)
+            self.assertIn('must be a sibling name', tampered.stderr)
+
     def test_a_build_that_publishes_another_image_is_rejected(self):
         with tempfile.TemporaryDirectory(prefix='reuse-build-') as directory:
             root, checkpoints = copy_checkpoints(directory)

@@ -51,18 +51,34 @@ def verify(packet, root=ROOT):
     # Paths in the receipt are repository-relative; refuse one that leaves the
     # checkpoint tree before reading it.
     checkpoints=(Path(root)/'reconstruction/pump-main/checkpoints').resolve()
-    receipt=(Path(root)/reuse['historical_receipt']).resolve()
+    historical_name=reuse['historical_checkpoint']
+    check(isinstance(historical_name,str) and historical_name not in ('','.','..')
+          and Path(historical_name).name==historical_name,
+          f'{packet.name}: historical checkpoint must be a sibling name')
+    historical_directory=(checkpoints/historical_name).resolve()
+    check(historical_directory.parent==checkpoints,
+          f'{packet.name}: historical checkpoint is outside the checkpoints')
+    receipt_name=Path(reuse['historical_receipt'])
+    check(not receipt_name.is_absolute(),
+          f'{packet.name}: historical receipt must be repository-relative')
+    receipt=(Path(root)/receipt_name).resolve()
     check(checkpoints in receipt.parents,
           f'{packet.name}: historical receipt {reuse["historical_receipt"]} is outside the checkpoints')
+    check(historical_directory in receipt.parents,
+          f'{packet.name}: historical receipt is not in its named historical checkpoint')
     raw=receipt.read_bytes()
     check(sha(raw)==reuse['historical_compressed_sha256'],
           f'{packet.name}: historical receipt {sha(raw)} != {reuse["historical_compressed_sha256"]}')
-    check(sha(gzip.decompress(raw))==reuse['historical_uncompressed_sha256'],
+    uncompressed=gzip.decompress(raw)
+    check(sha(uncompressed)==reuse['historical_uncompressed_sha256'],
           f'{packet.name}: historical receipt content differs from its recorded digest')
     # The historical checkpoint must itself claim the image the reuse names;
     # otherwise the cases came from bytes neither checkpoint publishes.
     # `historical_checkpoint` is a sibling name, `historical_receipt` is repository-relative.
-    historical=load(checkpoints/reuse['historical_checkpoint']/'summary.json')
+    transcript=json.loads(uncompressed)
+    check(transcript['candidate_sha256']==required,
+          f'{packet.name}: historical receipt candidate differs from its required image')
+    historical=load(historical_directory/'summary.json')
     check(historical['stripped_sha256']==required,
           f'{packet.name}: historical {reuse["historical_checkpoint"]} stripped '
           f'{historical["stripped_sha256"]} != reuse {required}')
@@ -70,7 +86,7 @@ def verify(packet, root=ROOT):
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser=argparse.ArgumentParser(description='Bind each reused runtime receipt to its checkpoint image')
     parser.add_argument('--repo-root',type=Path,default=ROOT)
     parser.add_argument('packets',nargs='*',type=Path)
     args=parser.parse_args()
