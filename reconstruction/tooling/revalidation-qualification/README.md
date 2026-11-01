@@ -13,7 +13,7 @@ changes only the lifecycle around those checks:
 6. publish a complete, self-verified audit directory with one rename.
 
 The exact reviewed root source is pinned as SHA-256
-`ca9f2245dcf0dffb334546bef3d0209d69ae866c1c355d9563bfe18d64a1c70a`.
+`fbdedcd033bbfc1d40f0c4e2b16b3fa44d4c0176b93de37eedefb347d2d2c6ec`.
 The adapter refuses to execute if those bytes change. This binding includes the retained manifest formats, path admission, UTF-8/LF
 report writer, and atomic no-replace publication helper. The adapter executes
 the bytes it checked and binds its source receipt to that same digest.
@@ -23,6 +23,15 @@ runner's standalone temporary-directory helper. This reviewed naming-only
 transition leaves its manifest checks and publication semantics unchanged.
 Historical packets and their recorded source hashes are retained unchanged;
 the adapter still rejects any other unreviewed root-script bytes.
+
+The adapter also bounds its own readable lock and staging basename prefixes to 64
+filesystem-encoded bytes, retaining whole characters. Truncated prefixes carry
+the SHA-256 of the complete output basename, so different long destinations
+sharing a prefix keep separate locks. The final output name is unchanged.
+This completes the adapter-specific naming path left outside the root-runner
+temporary-name fix in [#3035](https://github.com/lalalune/pumpfun-source/pull/3035).
+The real CLI proof and existing-output/cleanup controls are recorded in
+[the output-name reproduction](../../../research/qualified-audit-output-names-20261101/README.md).
 
 ## Reproduced defects
 
