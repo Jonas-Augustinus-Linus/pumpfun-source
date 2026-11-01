@@ -16,6 +16,7 @@ from test_elf_symbols import fixture
 class ControlFlowMachineTests(unittest.TestCase):
     def run_cli(self, root, machine):
         image = fixture()
+        image[424:440] = struct.pack('<BBhi', 0xb7, 0, 0, 0) + struct.pack('<BBhi', 0x95, 0, 0, 0)
         struct.pack_into('<H', image, 18, machine)
         candidate, output = root / 'candidate.so', root / 'cfg.json'
         candidate.write_bytes(image)

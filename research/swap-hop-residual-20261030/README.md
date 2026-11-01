@@ -49,6 +49,15 @@ cleanup and pin report line endings. The swap-hop measurement is a single
 aligned function range and the recorded numbers are unaffected; only the
 checker bytes moved.
 
+The historical `RESULT.json` retains the implementation identities used for the
+recorded measurement. The verifier separately admits the exact reviewed current
+implementations following `9d394470d` and `2c09db5cf`: unnamed sections are keyed
+by their table index, and symbol readers reject an ELF header whose `e_version`
+is not 1. Every other measured implementation remains identical. Unknown source
+identities remain rejected. This current admission does not rewrite the archived
+measurement or establish a new candidate reconstruction. The original-window
+replay and retained candidate controls use the current helpers.
+
 ## Limits and author-reported work
 
 The original contributor reported a native-Linux candidate with 125 raw and

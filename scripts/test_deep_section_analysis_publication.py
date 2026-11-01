@@ -312,5 +312,37 @@ class DeepSectionPublicationTests(unittest.TestCase):
             self.assertTrue((root / 'moved-old' / 'manifest.json').is_file())
 
 
+class CaptureDirectoryDependencyTests(unittest.TestCase):
+    """Capture resolution keeps publication copies free of the analyzer."""
+
+    def test_mapping_stays_identical_to_the_analyzer(self):
+        import analyze
+        root = Path('/view')
+        for program in ('pump', 'pump_amm', 'pump_fees', 'mayhem', 'donation_relay', 'fixture'):
+            with self.subTest(program=program):
+                self.assertEqual(deep_section_analysis.capture_directory(root, program),
+                                 analyze.capture_directory(root, program))
+
+    def test_copied_scripts_resolve_without_the_analyzer_module(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            scripts = Path(scratch) / 'scripts'
+            scripts.mkdir()
+            for name in ('deep_disassembly.py', 'deep_section_analysis.py', 'window_elf_reader.py'):
+                (scripts / name).write_bytes((SCRIPTS / name).read_bytes())
+            resolver = (
+                'import sys; sys.path.insert(0, %r); '
+                'from pathlib import Path; '
+                'import deep_section_analysis as module; '
+                'print(module.capture_directory(Path("/view"), "donation_relay")); '
+                'print(module.capture_directory(Path("/view"), "mayhem"))'
+                % str(scripts))
+            result = subprocess.run([sys.executable, '-B', '-c', resolver],
+                                    cwd=scratch, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.splitlines(),
+                             ['/view/evidence/dependencies/donation_relay',
+                              '/view/evidence/original/mayhem'])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -3,7 +3,7 @@
 This produces addresses for manual recovery, never compiler inputs or rebuilt code.
 """
 import hashlib,json,pathlib,re,struct
-from analyze import capture_directory, elf_layout, instruction_log_names, program_names
+from analyze import capture_directory, elf_layout, instruction_log_names, program_names, publish_reports
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 def recover(name, root=ROOT):
  b=(capture_directory(root,name)/'deployed.so').read_bytes(); layout=elf_layout(b)
@@ -64,5 +64,5 @@ def dispatch(root=ROOT):
  return {n:recover(n, root) for n in program_names(root)}
 if __name__=='__main__':
  out=dispatch(ROOT)
- (ROOT/'evidence/dispatch-map.json').write_text(json.dumps(out,indent=2)+'\n',encoding='utf-8',newline='\n')
+ publish_reports([(ROOT/'evidence/dispatch-map.json',json.dumps(out,indent=2)+'\n')])
  for name,r in out.items(): print(name,sum(bool(i['matches']) for i in r['instructions'].values()),'/',len(r['instructions']))

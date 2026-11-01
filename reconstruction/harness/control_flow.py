@@ -9,6 +9,7 @@ from pathlib import Path
 from score import sections, body
 from instruction_stream import require_instruction_range
 from compare_scores import publish_report
+from original_input import resolve_original
 
 
 def cycle_regions(blocks):
@@ -81,6 +82,9 @@ def analyze(raw, start=0):
             diagnostics.append({'offset': offset, 'opcode': op, 'error': 'unsupported control-flow opcode'})
             continue
         if op & 7 != 5:
+            if following == len(raw):
+                diagnostics.append({'offset': offset, 'target': following,
+                                    'error': 'fallthrough outside function'})
             continue
         if op in (0x85, 0x8d):
             if op == 0x8d and not 0 <= immediate <= 10:
@@ -152,7 +156,7 @@ def main(argv=None):
     parser.add_argument('--json', type=Path)
     args = parser.parse_args(argv)
     try:
-        blob = args.binary.read_bytes()
+        blob = resolve_original(args.binary).read_bytes()
         secs = sections(blob)
         if struct.unpack_from('<H', blob, 18)[0] not in (247, 263):
             raise ValueError('control-flow decoding expects an EM_BPF or EM_SBPF image')

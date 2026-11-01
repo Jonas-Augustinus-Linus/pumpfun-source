@@ -43,15 +43,18 @@ class DiagnosticRangeBoundaryTests(unittest.TestCase):
                 self.assertIn('truncated', result.stderr)
                 self.assertEqual(result.stdout, '')
 
-    def test_complete_lddw_and_following_instruction_remain_accepted(self):
+    def test_complete_instructions_decode_but_cfg_reports_boundary_fallthrough(self):
         for tool in ('stack_access', 'control_flow'):
             for start, size in ((LDDW, 16), (LDDW + 16, 8)):
                 with self.subTest(tool=tool, start=start):
                     result = self.run_tool(tool, start, size)
-                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(result.returncode, 1 if tool == 'control_flow' else 0, result.stderr)
                     report = json.loads(result.stdout)
                     if tool == 'control_flow':
                         self.assertEqual(report['instruction_count'], 1)
+                        self.assertEqual(report['diagnostics'], [
+                            {'offset': 0, 'target': size, 'error': 'fallthrough outside function'},
+                        ])
                     else:
                         self.assertEqual(report['differences'], [])
 

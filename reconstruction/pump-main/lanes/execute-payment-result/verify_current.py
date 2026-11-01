@@ -27,7 +27,21 @@ def main():
     import score
     import win
     score.OBJDUMP = win.OBJDUMP = str(a.objdump.resolve())
-    original = (score.BASE / 'original.so').read_bytes()
+    from original_input import resolve_original
+    from score_admission import report_destination
+    # Reject a report destination that aliases an input before any read:
+    # the report is published with write_text, so an aliasing --output
+    # would destroy the control or candidate ELF (or the shared original /
+    # window inventory) the comparison just read. Mirrors the harness
+    # report tools' destination check, including its input set.
+    try:
+        report_destination(a.output, [a.control, a.candidate, a.objdump,
+                                      score.BASE / 'original.so',
+                                      resolve_original(score.BASE / 'original.so'),
+                                      score.BASE / 'functions.tsv'])
+    except ValueError as error:
+        ap.error(str(error))
+    original = resolve_original(score.BASE / 'original.so').read_bytes()
     os = score.sections(original)
     windows = {w['start']: w for w in score.original_windows()}
     original_map = {s: (w['bytes'], '') for s, w in windows.items()}

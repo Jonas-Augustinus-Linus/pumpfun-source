@@ -101,8 +101,12 @@ def main():
             print(short(e))
     elif a.cmd == 'grep':
         t = a.text.lower()
+        literal = json.dumps(t, ensure_ascii=False)[1:-1]
         for e in es:
-            if t in json.dumps(e).lower():
+            visible = json.dumps(e, ensure_ascii=False).lower()
+            # Search accepted literal text as well as existing JSON spellings.
+            # Keep this a whole substring, not a set of independently matched words.
+            if t in visible or literal in visible or t in json.dumps(e).lower():
                 print(short(e))
     elif a.cmd == 'approaches':
         d = collections.defaultdict(list)

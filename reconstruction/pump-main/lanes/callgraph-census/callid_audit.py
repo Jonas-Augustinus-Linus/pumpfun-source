@@ -25,6 +25,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import census as C  # noqa: E402
+from score_admission import report_destination  # noqa: E402
 
 
 def main():
@@ -32,6 +33,11 @@ def main():
     ap.add_argument('--cand', type=Path, required=True)
     ap.add_argument('--json', type=Path)
     a = ap.parse_args()
+    try:
+        report_destination(a.json, [a.cand, C.ORIG_PATH,
+                                    C.BASE / 'original.so', C.BASE / 'functions.tsv'])
+    except ValueError as error:
+        ap.error(str(error))
     wins = C.original_windows()
     O = C.Image(C.ORIG_PATH, {w['start']: (w['bytes'], []) for w in wins})
     cf = {}

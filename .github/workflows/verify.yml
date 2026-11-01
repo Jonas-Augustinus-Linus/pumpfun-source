@@ -27,6 +27,7 @@ jobs:
               sudo apt-get install -y llvm
               python -B reconstruction/tooling/byte-comparison-input-preservation/test_verify.py --objdump /usr/bin/llvm-objdump
               PUMP_OBJDUMP=/usr/bin/llvm-objdump python -I -B reconstruction/pump-main/lanes/multihop-reconstruction/test_rdiff.py
+              python -B -m unittest discover -s reconstruction/harness -p 'test_llvm_tools.py'
           - suite: contract-tests
             commands: |
               python -B -m unittest discover -s tests -v
@@ -46,6 +47,8 @@ jobs:
             commands: |
               python -B research/tooling-analysis-encoding-20261030/test_verify.py
               python -B research/tooling-analysis-output-retention-20261029/test_generate.py
+              python -B research/analysis-wrapper-rebind-20261101/probe.py --checkout . --expect fixed --output work/analysis-wrapper-rebind.json
+              python -B research/analysis-wrapper-rebind-20261101/roadmap_probe.py --checkout . --expect fixed --output work/roadmap-reader-binding.json
               python -B reconstruction/tooling/roadmap-manifest-members/test_verify.py
               python -B reconstruction/tooling/deep-analysis-output-links/test_verify.py
           - suite: amm-multi-hop-packets
@@ -324,8 +327,10 @@ jobs:
               python -B reconstruction/diagnostics/defined-dynamic-calls/test_generate.py
               python -B reconstruction/diagnostics/amm-ledger-best/test_read.py
               python -B scripts/test_amm_sell_torn_tail_append.py
+              python -B scripts/test_amm_sell_literal_search.py
               python -B scripts/test_bytecode_signatures_publication.py
               python -B scripts/test_bytecode_signatures_atomic_publication.py
+              python -B scripts/test_signature_register_comparisons.py
               python -B scripts/test_revalidate_all_publication.py
               python -B scripts/test_revalidate_all_atomic_publication.py
               python -B reconstruction/diagnostics/manifest-admission/test_run.py
@@ -350,20 +355,26 @@ jobs:
               python -B reconstruction/harness/test_score_empty_baseline.py
               python -B reconstruction/harness/test_score_baseline_option_conflict.py
               python -B reconstruction/harness/test_score_symbol_admission.py
+              python -B -m unittest discover -s reconstruction/harness -p 'test_control_flow*.py'
+              python -B -m unittest discover -s reconstruction/harness -p 'test_diagnostic*.py'
               python -B reconstruction/harness/test_batch_target_metric.py
               python -B reconstruction/pump-main/test_ledger_negative_limit.py
               python -B reconstruction/diagnostics/census-portability/test_output_guard.py
               python -B reconstruction/harness/test_census_argument_constants.py
               python -B reconstruction/harness/test_capture_inline_unavailable.py
+              python -B research/callid-inline-input-preservation-20261101/reproduce.py --checkout . --expect fixed --output work/callid-inline-preservation.json
               python -B reconstruction/harness/test_inline_locations.py
               python -B reconstruction/harness/test_census_external_symbols.py
               python -B reconstruction/harness/test_census_disassembly_snapshot.py
+              python -B reconstruction/pump-main/lanes/callgraph-census/test_census_output_preservation.py
               python -B reconstruction/pump-main/lanes/callgraph-census/test_blocksim.py
               python -B reconstruction/pump-main/lanes/execute-payment-result/test_replay_output_preservation.py
               python -B reconstruction/pump-main/lanes/callgraph-census/test_dataref_output_preservation.py
+              python -B reconstruction/pump-main/lanes/callgraph-census/test_hotness_output_preservation.py
               python -B reconstruction/harness/test_census_call_barriers.py
               python -B reconstruction/harness/test_census_original_input.py
               python -B reconstruction/harness/test_dataref_length.py
+              python -B reconstruction/pump-main/lanes/execute-payment-result/test_verify_current_output_preservation.py
               python -B reconstruction/harness/test_experiment_declared_name.py
               python -B reconstruction/harness/test_experiment_executable_snapshot.py
               python -B reconstruction/harness/test_experiment_source_output_modes.py
@@ -416,6 +427,7 @@ jobs:
               python -B -m unittest discover -s reconstruction/harness -p 'test_triage*.py'
               python -B reconstruction/harness/test_applicability_evidence_paths.py
               python -B reconstruction/harness/test_diagnostic_range_boundaries.py
+              python -B research/static-range-git-original-20261101/reproduce.py --checkout . --expect fixed --output work/static-range-git-original.json
               python -B reconstruction/harness/test_stack_access_isa.py
               python scripts/test_build_source_manifest.py
               python -B scripts/test_build_fee_selection_binding.py
@@ -460,6 +472,7 @@ jobs:
               python -B -m unittest discover -s reconstruction/tooling/revalidation-qualification -p 'test_*.py'
               python -B reconstruction/relocation-text-addresses/test_analyze.py
               python -B reconstruction/math-register-comparisons/test_analyze.py
+              python -B research/math-register-default-20261101/test_verify.py
               python research/tooling-terminal-error-patterns-20261030/test_verify.py
               python research/tooling-terminal-error-patterns-20261030/verify.py
               python research/tooling-token-program-constant-detector-20261029/verify.py

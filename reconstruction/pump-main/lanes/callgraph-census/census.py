@@ -22,6 +22,7 @@ sys.path.insert(0, str(H))
 from score import sections, normalize, body, candidate_functions, original_windows, BASE  # noqa: E402
 from win import demangle, insns, objdump_text  # noqa: E402
 from coords import sites as source_sites  # noqa: E402
+from score_admission import report_destination  # noqa: E402
 
 DEFAULT_CAND = BASE / 'current/unstripped.so'
 
@@ -128,6 +129,39 @@ class Image:
                        for site, target in self.calls(s) if isinstance(target, tuple))
 
 
+def argument_text(raw, text):
+    """Use SBF argument spelling for distribution LLVM's BPF assignments.
+
+    Display disassembly keeps its native syntax. Only argument-write extraction
+    needs one spelling; branch operands must never be mistaken for writes.
+    """
+    if text.startswith(('if ', 'goto ')):
+        return ''
+    if not re.match(r'^[rw]\d+\s*(?:=|[-+*/|&^]|<<|>>)', text):
+        return text
+    op, regs, offset, immediate = struct.unpack_from('<BBhi', raw)
+    destination, source = regs & 15, regs >> 4
+    if op == 0x18:
+        value = struct.unpack_from('<I', raw, 4)[0] | struct.unpack_from('<I', raw, 12)[0] << 32
+        return f'lddw r{destination}, {value:#x}'
+    if op & 7 in (4, 7):
+        operation = {0x00: 'add', 0x10: 'sub', 0x20: 'mul', 0x30: 'div',
+                     0x40: 'or', 0x50: 'and', 0x60: 'lsh', 0x70: 'rsh',
+                     0x80: 'neg', 0x90: 'mod', 0xa0: 'xor', 0xb0: 'mov',
+                     0xc0: 'arsh'}.get(op & 0xf0)
+        if operation:
+            operand = f'r{source}' if op & 8 else f'{immediate:#x}'
+            suffix = 64 if op & 7 == 7 else 32
+            return f'{operation}{suffix} r{destination}' + ('' if operation == 'neg' else ', ' + operand)
+        if op & 0xf0 == 0xd0:
+            return f"{'be' if op & 8 else 'le'}{immediate} r{destination}"
+    if op & 7 == 1 and op & 0xe0 == 0x60:
+        width = {0x00: 'w', 0x08: 'h', 0x10: 'b', 0x18: 'dw'}[op & 0x18]
+        sign = '-' if offset < 0 else '+'
+        return f'ldx{width} r{destination}, [r{source} {sign} {abs(offset):#x}]'
+    return text
+
+
 def arg_setup(img, s, call_sites):
     """For each call site: normalized text of insns since the previous call that write r1-r5 (last write per reg)."""
     txt = img.text(s)
@@ -147,7 +181,9 @@ def arg_setup(img, s, call_sites):
                 # calls also invalidate earlier caller-saved argument writes.
                 regs.clear()
                 continue
-            t = txt[a]
+            if raw[0] == 0x18:
+                raw = body(img.blob, img.secs, a, 16)
+            t = argument_text(raw, txt[a])
             m = ARG_RE.match(t)
             if m:
                 pointer = False
@@ -199,6 +235,21 @@ def main():
     ap.add_argument('--pairs', type=Path, help='JSON object mapping original addresses to symbol regexes')
     ap.add_argument('--depth', type=int, default=6, help='identity refinement rounds (0 = body hash only)')
     a = ap.parse_args()
+
+    # Reject a report destination that aliases an input before any read:
+    # both reports are published with write_text, so an aliasing --json or
+    # --md would destroy the candidate (or the shared original / window
+    # inventory / pairs file) the census just read. Mirrors the harness
+    # report tools' destination check, extended with the pairs file.
+    inputs = [a.cand, BASE / 'original.so', ORIG_PATH, BASE / 'functions.tsv']
+    if a.pairs is not None:
+        inputs.append(a.pairs)
+    for output in (a.json, a.md):
+        if output is not None:
+            try:
+                report_destination(output, inputs)
+            except ValueError as error:
+                ap.error(str(error))
 
     pairs = PAIRS if a.pairs is None else load_pairs(a.pairs)
     wins = original_windows()
@@ -444,7 +495,14 @@ def main():
         def rc_incs(img, start):
             txt = img.text(start); ad = sorted(txt); n = []
             for k in range(1, len(ad)):
-                if re.match(r'add64 (r\d+), 0x1$', txt[ad[k]]) and re.match(r'ldxdw ' + re.match(r'add64 (r\d+)', txt[ad[k]]).group(1) + r', \[r\d+ \+ 0x0\]$', txt[ad[k - 1]]):
+                previous = body(img.blob, img.secs, ad[k - 1], 8)
+                current = body(img.blob, img.secs, ad[k], 8)
+                # Match the same load/increment idiom by bytes, so the plain
+                # BPF printer's assignment syntax cannot hide real witnesses.
+                if (previous[0] == 0x79 and current[0] == 0x07
+                        and previous[1] & 15 == current[1] & 15
+                        and struct.unpack_from('<h', previous, 2)[0] == 0
+                        and struct.unpack_from('<i', current, 4)[0] == 1):
                     n.append(hex(ad[k] - start))
             return n
         ro, rc = rc_incs(O, o), rc_incs(C, c)

@@ -2,7 +2,10 @@
 """irnorm.py <a.ll> <b.ll>: diff execute's body with local value/block names canonicalised by first occurrence."""
 import sys,re,difflib
 def body(p):
-    t=open(p).read(); i=t.index('\ndefine'); i=t.index('admin_cto7execute17',i); i=t.rindex('\ndefine',0,i); j=t.index('\n}\n',i)
+    t=open(p).read()
+    m=re.search(r'^define [^\n]*admin_cto7execute17',t,re.M)
+    if m is None: raise SystemExit('irnorm: no definition of admin_cto::execute in '+p)
+    i=m.start(); j=t.index('\n}\n',i)
     L=t[i:j].split('\n'); m={}; out=[]
     tok=re.compile(r'%("[^"]+"|[-\w.$]+)')
     for l in L:

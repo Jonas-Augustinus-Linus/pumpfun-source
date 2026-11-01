@@ -35,3 +35,21 @@ The current helper allowlist also covers the imported `deep_disassembly.py`
 publication functions and the latest reviewed analyzer/ELF-reader LF/CRLF
 forms. Its generated packets include the directory census. Prior generated
 packets and the earlier accepted helper versions are retained unchanged.
+
+## Current-helper review, 2026-11-01
+
+On `9bd38c7d5a4684b647ab59fc8942ed56e990e3b3`, this maintained CLI and its
+`analysis-packet-encoding` CI test stopped before generation because the analyzer
+and ELF reader changed after the last accepted helper hashes. The re-review
+admits their exact current LF/CRLF bytes and the unchanged publication helper's
+current CRLF form. All earlier accepted identities stay admitted; arbitrary
+edits still fail the hash check.
+
+The analyzer change from [#3806](https://github.com/lalalune/pumpfun-source/pull/3806)
+separates whole-ELF relocation totals from text-window subtotals. The reader
+change from [#3782](https://github.com/lalalune/pumpfun-source/pull/3782) validates
+relocation entry type/size and resolves symbols through the section's linked
+symbol table. No wrapper publication logic or previously generated packet is
+changed. [The new review packet](../analysis-wrapper-rebind-20261101/README.md)
+records the full helper transitions, real four-program CLI comparisons, source
+drift refusals, and existing-output preservation.

@@ -281,7 +281,7 @@ def detect_account_validation(elf, start, end):
             off = struct.unpack_from("<h", b, offset + 2)[0]
             if off == 0:  # loading from offset 0 (discriminator position)
                 # Check if followed by comparison
-                if idx + 1 < len(offsets) and b[offsets[idx + 1]] in (0x15, 0x55):
+                if idx + 1 < len(offsets) and b[offsets[idx + 1]] in (0x15, 0x1d, 0x55, 0x5d):
                     discriminator_checks += 1
 
         # Pattern: ldxdw followed by memcmp (owner check)
