@@ -23,7 +23,7 @@ class CensusPortabilityTests(unittest.TestCase):
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(ROOT / LANE / name, target)
             for name in ['score.py', 'win.py', 'coords.py', 'llvm_tools.py', 'score_admission.py',
-                         'original_input.py', 'instruction_stream.py', 'elf_symbols.py']:
+                         'original_input.py', 'instruction_stream.py', 'elf_symbols.py', 'compare_scores.py']:
                 target = root / 'reconstruction/harness' / name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(ROOT / 'reconstruction/harness' / name, target)
