@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import venv
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,9 +24,10 @@ class VerifiedHookTests(unittest.TestCase):
     @unittest.skipUnless(os.name == 'posix', 'shell hooks require POSIX')
     def test_each_launcher_preserves_selected_interpreter_and_arguments(self):
         with tempfile.TemporaryDirectory(prefix='verified hook ') as temporary:
-            root = Path(temporary)
-            selected = root/'selected Python'
-            selected.symlink_to(sys.executable)
+            root = Path(temporary).resolve()
+            environment = root/'selected Python'
+            venv.EnvBuilder(with_pip=False).create(environment)
+            selected = environment/'bin/python'
             empty = root/'empty'
             empty.mkdir()
             arguments = ['a b', '', 'quote\'"\\', '$LITERAL;still-one-argument']

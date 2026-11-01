@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import venv
 
 FILES = [f'scripts/{name}.py' for name in (
     'pump_build_verified', 'pump_dependency_cache', 'pump_text_layout',
@@ -72,8 +73,11 @@ def run(repo, sdk, output, revision=None):
         capture = root/CAPTURE
         capture.parent.mkdir(parents=True)
         shutil.copyfile(repo/CAPTURE, capture)
-        selected = root/'selected Python'
-        selected.symlink_to(sys.executable)
+        selected_environment = root/'selected Python'
+        # A loose symlink is canonicalized by some Python distributions. An
+        # actual venv preserves the selected interpreter and tests its route.
+        venv.EnvBuilder(with_pip=False).create(selected_environment)
+        selected = selected_environment/'bin/python'
         with_python, without_python = root/'with-python', root/'without-python'
         with_python.mkdir()
         without_python.mkdir()

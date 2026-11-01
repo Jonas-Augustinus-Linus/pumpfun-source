@@ -37,8 +37,9 @@ python -B research/verified-hook-interpreter-20261101/probe.py \
 
 The probe stages exact production modules and compiles tiny generic fixtures
 offline using the installed official v1.44 Cargo, rustc, linker and objcopy. It
-does not run a produced artifact or VM. The selected Python path contains a
-space, and an inherited incorrect `PUMP_VERIFIED_PYTHON` must be replaced. The
+does not run a produced artifact or VM. The selected Python is an isolated virtual environment at a path containing a
+space. This preserves its identity on distributions that canonicalize loose
+interpreter symlinks. An inherited incorrect `PUMP_VERIFIED_PYTHON` must be replaced. The
 text-order control merely wraps the existing default `.text` wildcard; it does
 not search compiler flags or layouts.
 
