@@ -24,7 +24,7 @@ class CensusOriginalInputTests(unittest.TestCase):
                 layout = root / mode
                 files = [Path('reconstruction/harness') / name for name in (
                     'score.py', 'score_admission.py', 'llvm_tools.py', 'original_input.py',
-                    'elf_symbols.py', 'instruction_stream.py', 'win.py', 'coords.py')]
+                    'elf_symbols.py', 'instruction_stream.py', 'win.py', 'coords.py', 'compare_scores.py')]
                 files += [LANE / name for name in ('census.py', 'callid_audit.py', 'dataref_audit.py')]
                 files += [Path('reconstruction/base/functions.tsv'), Path('evidence/original/pump/deployed.so')]
                 for relative in files:

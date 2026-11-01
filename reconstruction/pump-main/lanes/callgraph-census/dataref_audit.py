@@ -13,12 +13,16 @@ needed: all normalized candidates are tried, a window is clean if any candidate 
 Reading past the end of a short object can give false positives (neighbouring data differs by
 layout); reported rows show the bytes so they can be judged. Diagnostic only.
 """
-import argparse, hashlib, json, struct, sys
+import argparse, hashlib, json, struct, sys, tempfile
 from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import census as C  # noqa: E402
+from original_input import resolve_original  # noqa: E402
+from score_admission import report_destination  # noqa: E402
+from score import _window_rows  # noqa: E402
+from compare_scores import publish_report  # noqa: E402
 
 
 def lddws(raw, start):
@@ -78,20 +82,14 @@ def masked(img, b, base):
     return bytes(out)
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument('--cand', type=Path, required=True)
-    ap.add_argument('--json', type=Path)
-    ap.add_argument('--width', type=int, default=16)
-    a = ap.parse_args()
-    if a.width <= 0:
-        ap.error('--width must be positive')
-    wins = C.original_windows()
-    O = C.Image(C.ORIG_PATH, {w['start']: (w['bytes'], []) for w in wins})
+def audit(candidate_path, original_path, original_blob, inventory_text, width):
+    wins = [dict(zip(('start', 'bytes', 'raw', 'norm'), row))
+            for row in _window_rows(original_blob, inventory_text)]
+    O = C.Image(original_path, {w['start']: (w['bytes'], []) for w in wins})
     cf = {}
-    for s, n, nm in C.candidate_functions(a.cand):
+    for s, n, nm in C.candidate_functions(candidate_path):
         cf.setdefault(s, (n, []))[1].append(nm)
-    K = C.Image(a.cand, cf)
+    K = C.Image(candidate_path, cf)
 
     def nh(img, s):
         return (img.funcs[s][0], hashlib.sha256(C.normalize(img.raw(s), s, img.secs)).digest())
@@ -117,7 +115,7 @@ def main():
                         bad.append({'off': hex(i), 'kind': 'fnptr', 'orig': hex(vo), 'ours': hex(vc),
                                     'our_name': C.short(cf[vc][1][0]) if vc in cf else None})
                     continue
-                w = min(a.width, ln) if (so == '.rodata' and ln) else a.width
+                w = min(width, ln) if (so == '.rodata' and ln) else width
                 bo, bc = read(O, vo, w + 8), read(K, vc, w + 8)
                 mo, mc = masked(O, bo, vo), masked(K, bc, vc)
                 n = min(len(mo), len(mc), w)
@@ -139,11 +137,54 @@ def main():
             clean += 1
         else:
             rows.append({'window': hex(o), 'bytes': O.funcs[o][0], 'candidates': per[:2]})
-    res = {'candidate': str(a.cand), 'width': a.width, 'clean': clean, 'flagged': len(rows), 'rows': rows}
+    res = {'width': width, 'clean': clean, 'flagged': len(rows), 'rows': rows}
+    return res
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--cand', type=Path, required=True)
+    ap.add_argument('--json', type=Path)
+    ap.add_argument('--width', type=int, default=16)
+    a = ap.parse_args()
+    if a.width <= 0:
+        ap.error('--width must be positive')
     if a.json:
-        a.json.write_text(json.dumps(res, indent=1) + '\n')
-    print(json.dumps({'width': a.width, 'clean': clean, 'flagged': len(rows)}))
-    for r in rows:
+        # Reject lexical and physical aliases before reading any inputs.
+        # Publication repeats this check, then exclusively admits a complete
+        # staged report, so late collisions cannot replace prior bytes.
+        try:
+            report_destination(a.json, [a.cand, C.BASE / 'original.so',
+                                        resolve_original(C.BASE / 'original.so'),
+                                        C.BASE / 'functions.tsv'])
+        except ValueError as error:
+            ap.error(str(error))
+    # Every analysis read uses one admitted byte cohort, including symbols and
+    # original window boundaries. Replacing public paths cannot mix images.
+    original_blob = C.ORIG_PATH.read_bytes()
+    candidate_blob = a.cand.read_bytes()
+    inventory_blob = (C.BASE / 'functions.tsv').read_bytes()
+    with tempfile.TemporaryDirectory(prefix='pump-dataref-inputs-') as temporary:
+        directory = Path(temporary)
+        original_path, candidate_path = directory / 'original.so', directory / 'candidate.so'
+        original_path.write_bytes(original_blob)
+        candidate_path.write_bytes(candidate_blob)
+        original_path.chmod(0o400)
+        candidate_path.chmod(0o400)
+        res = audit(candidate_path, original_path, original_blob, inventory_blob.decode('utf-8'), a.width)
+    res = {'candidate': str(a.cand),
+           'candidate_sha256': hashlib.sha256(candidate_blob).hexdigest(),
+           'original_sha256': hashlib.sha256(original_blob).hexdigest(),
+           'window_inventory_sha256': hashlib.sha256(inventory_blob).hexdigest(), **res}
+    if a.json:
+        try:
+            report_destination(a.json, [a.cand, C.BASE / 'original.so', C.ORIG_PATH,
+                                        C.BASE / 'functions.tsv'])
+            publish_report(a.json, json.dumps(res, indent=1) + '\n')
+        except (OSError, ValueError) as error:
+            ap.error(str(error))
+    print(json.dumps({key: res[key] for key in ('width', 'clean', 'flagged')}))
+    for r in res['rows']:
         p = r['candidates'][0]
         print(r['window'], p['name'][:60], len(p['bad']), [(b['kind'], b.get('orig_txt', b.get('our_name')), b.get('our_txt')) for b in p['bad'][:2]])
 
