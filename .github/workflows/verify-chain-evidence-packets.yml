@@ -18,12 +18,12 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
-      # The 2026-10-29 chain family ships 102 verifiers, each replaying one
+      # The 2026-10-29 chain family ships 103 verifiers, each replaying one
       # packet's receipts against the three captured program images. No
       # workflow ran them, so a packet could drift from its own evidence and
       # stay green. Pin the exact count: a packet that disappears is a hard
       # failure, and a new one is added here deliberately.
-      EXPECTED_PACKETS: '102'
+      EXPECTED_PACKETS: '103'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,7 +36,7 @@ jobs:
       - name: Run every chain verifier
         run: |
           set -u
-          files=$(ls -1 research/*-chains-20261029/verify.py)
+          files=$(ls -1 research/*-chains-20261029/verify.py research/amm-multi-hop-split-boost-tf-state-transitions-20261029/verify.py)
           count=$(printf '%s\n' "$files" | wc -l | tr -d ' ')
           if [ "$count" != "$EXPECTED_PACKETS" ]; then
             echo "::error::found $count chain verifiers, expected $EXPECTED_PACKETS"
