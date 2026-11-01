@@ -31,6 +31,8 @@ HELPERS = {
         "bf3ae0bb3c3d57638b22d379b44674be5098c9a9a59243f38fb2d04e081df55c",
     },
     "scripts/deep_disassembly.py": {
+        "9bc109b8d2fbe0c0becb4b82199d7fbf2fa6048c6f54f0eb3f9cb489985ffdc2",
+        "d8ef84d3cc6fbb1a43161242bebd7d5158fbebabd70837feb867bb653645e310",
         "6203189864fd7c2a9cd8ad7363f78542c2f419b6f4388f416d9286f0ff67932f",
         "d2b9873473bbeea33bb5d953d0c6385b1127d81aedba652bb1b82de636849aa5",
         "47cfa5cf9b7e271ad2ea399220930ad238713b465b030181f74a1990a34275ce",

@@ -29,10 +29,16 @@ complete function-symbol range. A captured original may be stripped. Ranges must
 start and end on logical instruction boundaries, so neither half of a two-slot
 `LDDW` can be selected independently.
 
-Each input is read once and identified by SHA-256 in the report. Repeatable
+Each image and score receipt is read once and identified by SHA-256 in the report.
+Linked type-10 call symbols distinguish relocation identities even when their raw
+placeholder immediates are equal. Malformed, duplicate or non-instruction call
+relocations are rejected. Symbol labels remain diagnostic evidence, not behavioral
+equivalence or source attribution. Repeatable
 `--score-receipt` arguments accept `score.py --json` output, require its
 `candidate_sha256` to identify the candidate bytes, and require the selected
 original window and byte length to be present.
+These checks bind supplied receipt metadata; they do not authenticate its producer
+or establish that its asserted score flags were recomputed.
 
 The analyzer calls `score.normalize` unchanged. Exact raw and normalized equality
 are reported separately from every heuristic result.

@@ -126,7 +126,7 @@ def defined_dynamic_calls(elf):
             continue
         _, kind, _, section, value, size = struct.unpack_from("<IBBHQQ", b, sym[4] + index * 24)
         target = text[4] + value - text[3]
-        if (section != text_index or kind & 15 != 2 or value == 0 or size == 0
+        if (section != text_index or kind & 15 != 2 or size == 0
                 or (target, size) not in admitted):
             continue
         at = text[4] + address - text[3]

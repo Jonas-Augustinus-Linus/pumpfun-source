@@ -10,13 +10,17 @@ from collections import Counter, defaultdict
 import difflib
 import hashlib
 import json
+from io import BytesIO
 import struct
+import tempfile
 from pathlib import Path
 
 from compare_scores import load_report, publish_report
 from control_flow import LEGACY_CONDITIONAL_JUMPS, analyze as analyze_control_flow
 from elf_symbols import function_symbols
-from instruction_stream import decode_instructions, require_instruction_range
+from instruction_stream import decode_instructions, instruction_boundaries, require_instruction_range
+from elftools.elf.elffile import ELFFile
+from elftools.common.exceptions import ELFError
 from score import body, normalize, sections
 from score_admission import report_destination
 
@@ -72,7 +76,45 @@ def load_image_bytes(blob, role, path):
         'sections': secs,
         'symbols': symbols,
         'sha256': hashlib.sha256(blob).hexdigest(),
+        'relocated_calls': relocated_call_symbols(blob, secs),
     }
+
+
+def relocated_call_symbols(blob, secs):
+    """Bind legacy type-10 call sites to their actual linked symbol table.
+
+    A placeholder immediate is not a syscall identity. Symbol labels remain
+    diagnostic evidence and do not prove the target's behavior or provenance.
+    """
+    try:
+        elf = ELFFile(BytesIO(blob))
+        rel = elf.get_section_by_name('.rel.dyn')
+        if rel is None:
+            return {}
+        if rel['sh_type'] != 'SHT_REL' or rel['sh_entsize'] != 16 or rel['sh_size'] % 16:
+            raise ValueError('unsupported call relocation table')
+        if rel['sh_link'] >= elf.num_sections():
+            raise ValueError('call relocation linked table is out of bounds')
+        symbols = elf.get_section(rel['sh_link'])
+        if symbols['sh_type'] not in ('SHT_SYMTAB', 'SHT_DYNSYM') or symbols['sh_entsize'] != 24:
+            raise ValueError('call relocation requires a linked symbol table')
+        text = secs['.text']
+        boundaries = instruction_boundaries(body(blob, secs, text['addr'], text['size']))
+        result = {}
+        for row in rel.iter_relocations():
+            if row['r_info_type'] != 10:
+                continue
+            address, index = row['r_offset'], row['r_info_sym']
+            relative = address - text['addr']
+            if (relative not in boundaries or relative < 0 or relative + 8 > text['size']
+                    or blob[text['offset'] + relative] != 0x85):
+                raise ValueError('call relocation is not at a logical call instruction')
+            if index >= symbols.num_symbols() or address in result:
+                raise ValueError('invalid or duplicate call relocation symbol')
+            result[address] = symbols.get_symbol(index).name
+        return result
+    except (ELFError, IndexError, TypeError) as error:
+        raise ValueError('invalid linked call relocations') from error
 
 
 def select_window(image, exact_window=None, exact_symbol=None):
@@ -135,12 +177,18 @@ def _receipt_candidate_digest(document):
 def admit_receipt(path, candidate, original_window):
     """Bind a standard score receipt to the candidate bytes and selected original window."""
     path = Path(path)
-    text = path.read_text(encoding='utf-8')
+    receipt_blob = path.read_bytes()
+    text = receipt_blob.decode('utf-8')
     document = json.loads(text, object_pairs_hook=unique_json_fields)
     digest = _receipt_candidate_digest(document)
     if digest != candidate['sha256']:
         raise ValueError(f'score receipt candidate_sha256 does not match candidate bytes: {path}')
-    windows = load_report(path)
+    # The identity and memberships must describe one read cohort.
+    with tempfile.TemporaryDirectory(prefix='sbpf-residual-receipt-') as temporary:
+        snapshot = Path(temporary) / 'score.json'
+        snapshot.write_bytes(receipt_blob)
+        snapshot.chmod(0o400)
+        windows = load_report(snapshot)
     start = original_window['start']
     if start not in windows:
         raise ValueError(f'score receipt does not contain selected original window {start:#x}: {path}')
@@ -148,7 +196,7 @@ def admit_receipt(path, candidate, original_window):
         raise ValueError(f'score receipt window size differs at {start:#x}: {path}')
     return {
         'path': str(path.resolve()),
-        'sha256': hashlib.sha256(text.encode('utf-8')).hexdigest(),
+        'sha256': hashlib.sha256(receipt_blob).hexdigest(),
         'candidate_sha256': digest,
         'selected_window': {'start': start, **windows[start]},
     }
@@ -185,6 +233,8 @@ def _call_kind(row):
         return 'indirect'
     if row['opcode'] != 0x85:
         return None
+    if 'relocated_symbol' in row:
+        return 'syscall_or_relocated'
     if row['src'] == 1 and row['immediate'] != -1:
         return 'direct'
     return 'syscall_or_relocated'
@@ -203,6 +253,9 @@ def build_function_model(image, window):
     normalized_rows = decode_instructions(window['normalized'], window['start'])
     if [row['offset'] for row in raw_rows] != [row['offset'] for row in normalized_rows]:
         raise ValueError(f"{image['role']} normalization changed instruction boundaries")
+    for row in raw_rows:
+        if row['address'] in image['relocated_calls']:
+            row['relocated_symbol'] = image['relocated_calls'][row['address']]
     cfg = analyze_control_flow(window['raw'], window['start'])
     predecessors = defaultdict(list)
     for block in cfg['blocks']:
@@ -265,6 +318,8 @@ def _call_descriptor(row, symbols):
                           target_symbols=sorted({name for start, _size, name in symbols if start == target}))
     elif kind == 'syscall_or_relocated':
         descriptor['immediate'] = row['immediate']
+        if 'relocated_symbol' in row:
+            descriptor['relocated_symbol'] = row['relocated_symbol']
     elif kind == 'indirect':
         descriptor['register'] = row['immediate']
     return descriptor
@@ -577,7 +632,7 @@ def _call_identity(call):
     if call['kind'] == 'direct' and call['target_symbols']:
         return call['kind'], tuple(call['target_symbols'])
     if call['kind'] == 'syscall_or_relocated':
-        return call['kind'], call['immediate']
+        return call['kind'], ('symbol', call['relocated_symbol']) if 'relocated_symbol' in call else ('immediate', call['immediate'])
     if call['kind'] == 'indirect':
         return call['kind'], call['register']
     return call['kind'], None
@@ -627,11 +682,11 @@ def compare_calls(original, candidate):
                 residual_kind, classification, severity, call_index=index,
                 original=original_call, candidate=candidate_call, evidence=evidence,
             ))
-        elif kind == 'syscall_or_relocated' and original_call['immediate'] != candidate_call['immediate']:
+        elif kind == 'syscall_or_relocated' and _call_identity(original_call) != _call_identity(candidate_call):
             residuals.append(_residual(
                 'call_target', 'structural', 650, call_index=index,
                 original=original_call, candidate=candidate_call,
-                evidence='unmasked syscall-or-relocated immediate differs',
+                evidence='linked relocation symbol or unrelocated call immediate differs',
             ))
         elif kind == 'indirect' and original_call['register'] != candidate_call['register']:
             residuals.append(_residual(

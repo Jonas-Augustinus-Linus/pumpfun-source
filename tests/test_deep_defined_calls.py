@@ -108,6 +108,21 @@ class DefinedDynamicCallTests(unittest.TestCase):
                     self.assertEqual(record['mnemonic'], 'call handler')
                     self.assertEqual(record['extern_symbol'], 'handler')
 
+    def test_defined_function_at_zero_virtual_address_is_admitted(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'zero-address.so'
+            path.write_bytes(image(0))
+            elf = Elf(path)
+            data = bytearray(elf.b)
+            # Entry is a complete positive-size STT_FUNC in .text at VA zero.
+            struct.pack_into('<Q', data, elf.secs['.rel.dyn'][4] + 8, (1 << 32) | 10)
+            path.write_bytes(data)
+            elf = Elf(path)
+            record, _ = deep.decode_instruction(elf.b, 0x118, elf)
+            self.assertEqual(record['call_target'], 0x100)
+            self.assertEqual(record['call_name'], 'entry')
+            self.assertEqual(record['extern_symbol'], 'entry')
+
     def test_complete_cli_reclassifies_only_the_five_retained_defined_calls(self):
         report = probe.collect(ROOT, expected='fixed')
         self.assertTrue(report['all_input_bytes_preserved'])

@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import residual_analysis as residual
 import score
@@ -131,6 +132,28 @@ class InputAdmissionTests(unittest.TestCase):
                 residual.admit_receipt(receipt, candidate, original)
 
 
+    def test_score_receipt_identity_and_rows_use_one_read_cohort(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            receipt = Path(temporary) / 'score.json'
+            candidate = residual.load_image_bytes(elf_fixture(EXIT), 'candidate', Path('candidate.so'))
+            window = {'start': 0x1000, 'size': 8}
+            document = {'candidate_sha256': candidate['sha256'],
+                        'windows': {'4096': {'bytes': 8, 'normalized': False, 'raw': False}}}
+            original = json.dumps(document, indent=2).replace('\n', '\r\n').encode()
+            receipt.write_bytes(original)
+            real_load = residual.load_report
+            def replace_public_then_load(path):
+                document['candidate_sha256'] = '0' * 64
+                document['windows']['4096'].update(normalized=True, raw=True)
+                receipt.write_text(json.dumps(document))
+                return real_load(path)
+            with patch.object(residual, 'load_report', side_effect=replace_public_then_load):
+                admitted = residual.admit_receipt(receipt, candidate, window)
+            self.assertEqual(admitted['sha256'], hashlib.sha256(original).hexdigest())
+            self.assertFalse(admitted['selected_window']['raw'])
+            self.assertFalse(admitted['selected_window']['normalized'])
+
+
 class SyntheticResidualTests(unittest.TestCase):
     def kinds(self, original, candidate):
         return residual.Counter(row['kind'] for row in models(original, candidate)[1]['ranked'])
@@ -178,6 +201,43 @@ class SyntheticResidualTests(unittest.TestCase):
 
 
 class CapturedWindowIntegrationTests(unittest.TestCase):
+    def test_linked_symbol_changes_are_visible_despite_equal_call_bytes(self):
+        root = Path(__file__).resolve().parents[2]
+        original_path = root / 'evidence/original/pump/deployed.so'
+        source = original_path.read_bytes()
+        window = next(row for row in score.original_windows() if row['start'] == 0x22a10)
+        original = residual.load_image_bytes(source, 'original', original_path)
+        ow = residual.select_window(original, exact_window=(window['start'], window['bytes']))
+        om = residual.build_function_model(original, ow)
+        symbol = next(call['relocated_symbol'] for call in om['call_sequence'] if call.get('relocated_symbol'))
+        changed = bytearray(captured_symbol_fixture(source, window['start'], window['bytes'], 'selected'))
+        elf = residual.ELFFile(residual.BytesIO(changed))
+        rel = elf.get_section_by_name('.rel.dyn')
+        symbols = elf.get_section(rel['sh_link'])
+        strings = elf.get_section(symbols['sh_link'])
+        selected = next(item for item in symbols.iter_symbols() if item.name == symbol)
+        at = strings['sh_offset'] + selected['st_name']
+        changed[at] = ord('x') if changed[at] != ord('x') else ord('y')
+        candidate = residual.load_image_bytes(bytes(changed), 'candidate', Path('changed.so'))
+        cw = residual.select_window(candidate, exact_window=(window['start'], window['bytes']))
+        self.assertEqual(ow['raw'], cw['raw'])
+        cm = residual.build_function_model(candidate, cw)
+        self.assertTrue(any(row['kind'] == 'call_target' for row in residual.compare_calls(om, cm)))
+        self.assertEqual(original_path.read_bytes(), source)
+
+    def test_relocated_call_cannot_enter_an_lddw_continuation(self):
+        root = Path(__file__).resolve().parents[2]
+        source = (root / 'evidence/original/pump/deployed.so').read_bytes()
+        changed = bytearray(source)
+        elf = residual.ELFFile(residual.BytesIO(changed))
+        text, rel = elf.get_section_by_name('.text'), elf.get_section_by_name('.rel.dyn')
+        code = source[text['sh_offset']:text['sh_offset'] + text['sh_size']]
+        offset = next(row['offset'] for row in residual.decode_instructions(code) if row['opcode'] == 0x18)
+        entry = next(i for i, row in enumerate(rel.iter_relocations()) if row['r_info_type'] == 10)
+        struct.pack_into('<Q', changed, rel['sh_offset'] + entry * 16, text['sh_addr'] + offset + 8)
+        with self.assertRaisesRegex(ValueError, 'logical call instruction'):
+            residual.load_image_bytes(bytes(changed), 'original', Path('bad-relocation.so'))
+
     def test_admin_cto_capture_round_trips_as_exact_window(self):
         root = Path(__file__).resolve().parents[2]
         original_path = root / 'evidence/original/pump/deployed.so'
