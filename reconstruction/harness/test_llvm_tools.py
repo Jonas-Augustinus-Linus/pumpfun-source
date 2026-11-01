@@ -73,6 +73,30 @@ class ObjdumpTests(unittest.TestCase):
             self.assertEqual(score.candidate_functions(candidate), function_symbols(fixture()))
         self.assertEqual(win.objdump_text(self.root / 'candidate.so', 0x120, 0x130), {0x120: 'exit'})
 
+    def distribution(self, failure):
+        # Distribution LLVM: no SBF target for e_machine 263 unless a BPF triple is given.
+        path = self.root / 'llvm-objdump'
+        log = self.root / 'calls'
+        path.write_text(f'#!/bin/sh\necho "$1" >> "{log}"\ncase "$1" in\n'
+                        '--triple=bpfel) printf "      36:\\texit\\n";;\n'
+                        f'*) echo "{failure}" >&2; exit 1;;\nesac\n')
+        path.chmod(0o755)
+        os.environ['PUMP_OBJDUMP'] = str(path)
+        return log
+
+    def test_distribution_objdump_falls_back_to_bpf_triple(self):
+        log = self.distribution("llvm-objdump: error: 'candidate.so': can't find target: "
+                                "unable to get target for 'unknown--', see --version and --triple.")
+        with patch('sys.stderr'):
+            self.assertEqual(win.objdump_text(self.root / 'candidate.so', 0x120, 0x128), {0x120: 'exit'})
+        self.assertEqual(log.read_text().split(), ['-d', '--triple=bpfel'])
+
+    def test_other_objdump_failures_are_not_retried(self):
+        log = self.distribution("llvm-objdump: error: 'candidate.so': No such file or directory")
+        with patch('sys.stderr'), self.assertRaises(win.subprocess.CalledProcessError):
+            win.objdump_text(self.root / 'candidate.so', 0x120, 0x128)
+        self.assertEqual(log.read_text().split(), ['-d'])
+
 
 if __name__ == '__main__':
     unittest.main()

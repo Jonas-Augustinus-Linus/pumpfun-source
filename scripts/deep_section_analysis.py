@@ -33,12 +33,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
 from window_elf_reader import Elf
-def capture_directory(root, program):
-    # Publication-only consumers do not need the analyzer dependency.
-    from analyze import capture_directory as resolve_capture
-    return resolve_capture(root, program)
-
-from deep_disassembly import load_idl_discriminators, directory_identity, publish_packet, temporary_sibling
+from deep_disassembly import capture_directory, load_idl_discriminators, directory_identity, publish_packet, temporary_sibling
 
 SYSCALL_NAMES = {
     # SBPF hash_symbol_name: seed-zero MurmurHash3 x86_32 of symbol bytes.
@@ -643,7 +638,7 @@ def analyze_math_patterns(elf):
             else:
                 # Check for overflow detection pattern:
                 # comparison after arithmetic followed by error branch
-                if opcode in (0x25, 0x35, 0xa5, 0xb5) and prev_op in ("add", "sub", "mul"):
+                if opcode in (0x25, 0x2d, 0x35, 0x3d, 0xa5, 0xad, 0xb5, 0xbd) and prev_op in ("add", "sub", "mul"):
                     overflow_checks += 1
                 prev_op = None
 

@@ -49,6 +49,28 @@ class ControlFlowTests(unittest.TestCase):
             {'offset': 0, 'target': 8, 'error': 'conditional fallthrough outside function'},
         ])
 
+    def test_ordinary_instructions_cannot_fall_out_of_the_range(self):
+        for raw in (insn(0xb7), insn(0x7b), insn(0x79), insn(0x18) + bytes(8)):
+            with self.subTest(opcode=raw[0]):
+                result = analyze(raw)
+                self.assertEqual(result['diagnostics'], [
+                    {'offset': 0, 'target': len(raw), 'error': 'fallthrough outside function'},
+                ])
+                self.assertEqual(result['blocks'][0]['successors'], [
+                    {'target': len(raw), 'kind': 'fallthrough', 'internal': False},
+                ])
+
+    def test_terminal_calls_keep_existing_external_edge_behavior(self):
+        # A terminal call may not return; this decoder does not infer callee behavior.
+        for raw in (insn(0x85, regs=0x10, immediate=4), insn(0x85), insn(0x8d, immediate=3)):
+            with self.subTest(opcode=raw[0]):
+                self.assertEqual(analyze(raw)['diagnostics'], [])
+
+    def test_closed_exit_and_loop_are_not_boundary_fallthroughs(self):
+        for raw in (insn(0x95), insn(0xb7) + insn(0x95), insn(0x05, offset=-1)):
+            with self.subTest(raw=raw.hex()):
+                self.assertEqual(analyze(raw)['diagnostics'], [])
+
     def test_bad_ranges_and_truncated_lddw(self):
         for raw,start in [(b'',0),(bytes(7),0),(insn(0x18),0),(insn(0x95),1)]:
             with self.assertRaises(ValueError):analyze(raw,start)

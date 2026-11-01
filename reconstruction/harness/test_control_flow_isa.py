@@ -43,7 +43,7 @@ class ControlFlowISATests(unittest.TestCase):
                 self.assertEqual(result.returncode,0,result.stderr.decode('utf-8',errors='replace'))
                 self.assertEqual(json.loads(output.read_text(encoding='utf-8'))['calls'],[])
 
-    def test_all_nine_retained_images_remain_accepted_for_a_complete_instruction(self):
+    def test_all_nine_retained_images_decode_but_report_the_truncated_range(self):
         repo = Path(__file__).resolve().parents[2]
         paths = list((repo/'evidence').glob('*/*/deployed.so'))
         self.assertEqual(len(paths),9)
@@ -54,8 +54,31 @@ class ControlFlowISATests(unittest.TestCase):
                     size = 16 if image[text['offset']] == 0x18 else 8
                     output = Path(temporary)/f'{index}.json'
                     result = self.cli(path,text['addr'],size,output)
-                    self.assertEqual(result.returncode,0,result.stderr.decode('utf-8',errors='replace'))
-                    self.assertEqual(json.loads(output.read_text(encoding='utf-8'))['bytes'],size)
+                    self.assertEqual(result.returncode,1,result.stderr.decode('utf-8',errors='replace'))
+                    report = json.loads(output.read_text(encoding='utf-8'))
+                    self.assertEqual(report['bytes'],size)
+                    self.assertEqual(report['diagnostics'], [
+                        {'offset': 0, 'target': size, 'error': 'fallthrough outside function'},
+                    ])
+
+    def test_cli_reports_truncated_straight_line_and_accepts_complete_body(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            image = fixture()
+            image[424:440] = struct.pack('<BBhi', 0xb7, 0, 0, 0) + struct.pack('<BBhi', 0x95, 0, 0, 0)
+            candidate = root / 'candidate.so'
+            candidate.write_bytes(image)
+            for size, status in ((8, 1), (16, 0)):
+                with self.subTest(size=size):
+                    output = root / f'{size}.json'
+                    result = self.cli(candidate, 0x1000, size, output)
+                    self.assertEqual(result.returncode, status, result.stderr.decode('utf-8', errors='replace'))
+                    report = json.loads(output.read_text(encoding='utf-8'))
+                    self.assertEqual(json.loads(result.stdout), report)
+                    self.assertEqual(report['diagnostics'], [
+                        {'offset': 0, 'target': 8, 'error': 'fallthrough outside function'},
+                    ] if size == 8 else [])
+                    self.assertEqual(candidate.read_bytes(), image)
 
     def test_cli_reports_incomplete_branch_ranges(self):
         cases = ((0x05, 2, 'branch target outside function'),

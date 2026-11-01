@@ -6,6 +6,10 @@ Inspect an original or candidate function without an installed SDK:
 python3 reconstruction/harness/control_flow.py reconstruction/base/original.so --start 0x14f4e0 --size 13224 --json /tmp/buy-flow.json
 ```
 
+The canonical original also works in `core.symlinks=false` Git checkouts, where
+Git stores `original.so` as its exact link text. The existing original-input
+resolver reads the captured ELF in that case; arbitrary text files are not paths.
+
 The report binds the graph to the binary SHA-256. Block, edge and call-site offsets
 are relative to the selected function; direct-call targets are absolute addresses.
 It distinguishes conditional/unconditional branches, exits, calls and unreachable

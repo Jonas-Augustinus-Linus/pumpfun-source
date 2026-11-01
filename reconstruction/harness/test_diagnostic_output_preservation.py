@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import struct
 import subprocess
 import sys
 import tempfile
@@ -20,7 +21,9 @@ class DiagnosticOutputTests(unittest.TestCase):
                     harness, base = root/'harness', root/'base'
                     harness.mkdir(); base.mkdir()
                     copy_harness_modules(harness)
-                    image = bytes(fixture())
+                    image = fixture()
+                    image[424:432] = struct.pack('<BBhi', 0x95, 0, 0, 0)
+                    image = bytes(image)
                     (base/'original.so').write_bytes(image)
                     (base/'functions.tsv').write_text('program\tvariant\toriginal_start\toriginal_end\npump\tselected\t4096\t4104\n', encoding='utf-8')
                     candidate = root/'candidate.so'; candidate.write_bytes(image)

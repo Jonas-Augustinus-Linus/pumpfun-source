@@ -19,6 +19,11 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 FILES = {'README.md', 'RESULT.json', 'analyze.py', 'test_verify.py'}
 
+# Keep the recorded measurement bound to its original implementations.
+# Re-admit only this separately reviewed current implementation cohort.
+HISTORICAL_INPUTS = {'score.normalize': '534358ff50908fc0809aa9d9ed44a49fec4c17b1f6e101f4b6501fed39c78e91', 'score.body': '087b3a617cf9d7e1c4af95fd513b102f60479ec1e9d74f421b0d58d25f5ee5e2', 'score.sections': '8e9013e07ab2b0e442204b45fe21fbef291f472e9a46edb6875f5122464ab845', 'score.original_windows': 'bf2eb883a305bd151303f0dd2765f7caad0202da310a8efdb1dcd8609a36a8b0', 'score._window_rows': '9b8799d8f0084d992784ccc9b2f4c8de0df28fa1eaf7d7a775aba45d899c734a', 'elf_symbols.function_symbols': '6dd418d3e94f24293507b3d9b73fac76d637b033cf2c0496354947798188650b', 'instruction_stream.instruction_boundaries': '88d7104032691cfe1b9de90d2c5a493989c8620190142b6ddbbd7edd232345a3'}
+CURRENT_INPUTS = {'score.normalize': '534358ff50908fc0809aa9d9ed44a49fec4c17b1f6e101f4b6501fed39c78e91', 'score.body': '087b3a617cf9d7e1c4af95fd513b102f60479ec1e9d74f421b0d58d25f5ee5e2', 'score.sections': '248c0927f95803472d296b8fd9f436dcf03f0a282ca7b30d05924445b803c789', 'score.original_windows': 'bf2eb883a305bd151303f0dd2765f7caad0202da310a8efdb1dcd8609a36a8b0', 'score._window_rows': '9b8799d8f0084d992784ccc9b2f4c8de0df28fa1eaf7d7a775aba45d899c734a', 'elf_symbols.function_symbols': '63101691771f8bc9fc75ec280858571e1a4ee79dd895dd7bf6e9874a912ef07c', 'instruction_stream.instruction_boundaries': '88d7104032691cfe1b9de90d2c5a493989c8620190142b6ddbbd7edd232345a3'}
+
 
 def require(condition, message):
     if not condition:
@@ -89,7 +94,8 @@ def validate_result(result):
     require(source['path'] == 'programs/pump/src/multi_hop_curve_swap.rs', 'source path')
     require(source['sha256'] == '774c0e0f0b45e5fc924f5695a7c3106a11d93563f04c6d2ba8078097ea1161f9',
             'recorded source identity')
-    require(result['analysis_inputs'] == implementation_hashes(), 'measurement implementation identity')
+    require(result['analysis_inputs'] == HISTORICAL_INPUTS, 'historical measurement implementation identity')
+    require(implementation_hashes() == CURRENT_INPUTS, 'current measurement implementation identity')
     measurements = result['verified_measurements']
     require(isinstance(measurements, list) and len(measurements) == 1, 'measurement membership')
     row = measurements[0]

@@ -38,9 +38,11 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
 from window_elf_reader import Elf
 def capture_directory(root, program):
-    # Publication-only consumers do not need the analyzer dependency.
-    from analyze import capture_directory as resolve_capture
-    return resolve_capture(root, program)
+    # Publication-only consumers copy this module (plus window_elf_reader)
+    # without the analyzer; keep this mapping identical to analyze's pure
+    # path arithmetic so both resolve the same capture directories.
+    group = "dependencies" if program == "donation_relay" else "original"
+    return root / "evidence" / group / program
 
 
 # BPF opcode mnemonics
