@@ -41,7 +41,10 @@ def poisoned_module(directory):
     forged.write_text(FORGED, encoding='utf-8')
     cache = Path(importlib.util.cache_from_source(str(directory / 'helper.py')))
     cache.parent.mkdir()
-    py_compile.compile(str(forged), cfile=str(cache), doraise=True)
+    # Reproducible-build environments otherwise default to hash-based pycs.
+    # This fixture deliberately forges the timestamp/size admission header.
+    py_compile.compile(str(forged), cfile=str(cache), doraise=True,
+                       invalidation_mode=py_compile.PycInvalidationMode.TIMESTAMP)
     state = (directory / 'helper.py').stat()
     payload = bytearray(cache.read_bytes())
     payload[8:12] = struct.pack('<I', int(state.st_mtime) & 0xFFFFFFFF)
