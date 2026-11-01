@@ -284,6 +284,7 @@ def main():
             # The external context/key above remains the ordinary physical
             # wrapper. Only the fresh main Cargo plan uses this root-only hook.
             cache.env = env.copy()
+    tool_sha256 = {k: sha(v) for k, v in tools.items()}
     record = {
         "scope": __doc__,
         "workspace_layout": a.workspace_layout,
@@ -296,7 +297,7 @@ def main():
         "selected_toolchain": "v1.44",
         "target": target,
         "target_libraries_sha256": target_libraries_before,
-        "tool_sha256": {k: sha(v) for k, v in tools.items()},
+        "tool_sha256": tool_sha256,
         "command": command,
         "environment": {
             k: env[k]
@@ -376,6 +377,12 @@ def main():
         [str(tools["objcopy"]), "--strip-all", str(built), str(out / "candidate.so")],
         check=True,
     )
+    # The record hashed the tool paths before the build; sources and target
+    # libraries are already re-verified above. Bind the executables the same
+    # way: a tool replaced at its path during the build must not let the
+    # report name bytes that did not produce the artifact.
+    record["tools_unchanged"] = {k: sha(v) for k, v in tools.items()} == tool_sha256
+    check(record["tools_unchanged"], "selected SDK tools changed during compilation")
     record.update(
         unstripped_sha256=sha(out / "unstripped.so"),
         build_log_sha256=sha(out / "build.log"),
