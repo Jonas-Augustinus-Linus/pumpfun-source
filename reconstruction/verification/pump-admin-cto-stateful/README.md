@@ -54,3 +54,24 @@ uv run --python 3.12 --with solders==0.27.1 python -m unittest -v \
 
 The report is canonical JSON with deterministic gzip metadata and binds the
 complete Pump source tree, IDL, candidate, original, and dependency identities.
+
+## Receipt and publication admission
+
+Each run snapshots every executed program before any case and names those exact
+bytes. Source and fixture hashes remain separate from image identity; the
+captured Global templates are decoded directly from the retained account input.
+Case-specific real blockhash expiry keeps all twenty transaction identities
+distinct across the suite, and both images execute the same signed messages.
+
+The saved reader parses every transaction and verifies the positive header
+signature count, exact successful result vector, payer, ordinary signer keys,
+program/discriminator, signature and message hash. It recomputes account data
+lengths/hashes and JSON types, state continuity, failed-step rollback, events and
+semantic logs. Planned cases, steps, mint accounts and infrastructure dispositions
+are checked independently of the report's cached booleans. `--replay` additionally
+repeats all nine lifecycles and requires the complete deterministic report.
+
+Publication uses an exclusive staged report. Existing files, late aliases and
+failed staging do not replace inputs or a previous report. The added
+`test_receipts.py` uses captured images on both sides to test these transport and
+admission boundaries; that control makes no rebuilt-source parity claim.

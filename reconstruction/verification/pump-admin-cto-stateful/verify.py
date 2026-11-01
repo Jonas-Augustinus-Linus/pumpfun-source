@@ -15,6 +15,11 @@ def read(path):
 
 def verify(report, candidate):
     problems = []
+    expected_ids = {"pump": str(lifecycle.PUMP), "pump_amm": str(lifecycle.AMM),
+                    "pump_fees": str(lifecycle.FEES), "spl_token": str(lifecycle.TOKEN),
+                    "spl_token_2022": str(lifecycle.TOKEN22), "associated_token": str(lifecycle.ATA)}
+    if report.get("program_ids") != expected_ids:
+        problems.append("program_ids")
     if report.get("schema") != "pump-admin-cto-stateful-v1":
         problems.append("schema")
     if report.get("program_sha256") != lifecycle.program_hashes(candidate):

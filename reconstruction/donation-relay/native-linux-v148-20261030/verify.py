@@ -48,7 +48,7 @@ json.dump(module.elf_layout(sys.stdin.buffer.read()), sys.stdout)
 '''
 
 
-def elf_extent(analyzer, capture):
+def elf_extent(analyzer, capture, timeout=30):
     """Ask the checkout's analyzer for the extent from a child process.
 
     The analyzer is code from the tree under verification, and the checks it
@@ -58,13 +58,20 @@ def elf_extent(analyzer, capture):
     number, and a wrong number still has to agree with the pinned bytes.
     """
     analyzer = Path(analyzer)
-    result = subprocess.run([sys.executable, '-B', '-c', ANALYZER, str(analyzer)],
-                            input=capture, capture_output=True, cwd=analyzer.parent.parent)
+    try:
+        result = subprocess.run([sys.executable, '-I', '-B', '-c', ANALYZER, str(analyzer)],
+                                input=capture, capture_output=True,
+                                cwd=analyzer.parent.parent, timeout=timeout)
+    except subprocess.TimeoutExpired as error:
+        raise ValueError('analyzer timed out') from error
     if result.returncode or result.stderr:
         raise ValueError('analyzer failed: '
                          + result.stderr.decode('utf-8', 'replace')[-1500:])
     try:
-        return json.loads(result.stdout)['elf_extent']
+        value = json.loads(result.stdout)['elf_extent']
+        if type(value) is not int or not 0 <= value <= len(capture):
+            raise ValueError('analyzer returned an invalid extent')
+        return value
     except (json.JSONDecodeError, KeyError, TypeError):
         raise ValueError('analyzer returned no usable extent')
 

@@ -85,6 +85,21 @@ class AnalyzerIsolationTests(unittest.TestCase):
         result = run(IN_PROCESS_DRIVER, self.analyzer)
         self.assertEqual('replaced', result.stdout.strip())
 
+    def test_failed_malformed_or_out_of_range_answer_is_rejected(self):
+        for code in ("print('not JSON')", "import sys; print('bad', file=sys.stderr)",
+                     "raise SystemExit(3)", "def elf_layout(data): return {'elf_extent': True}",
+                     "def elf_layout(data): return {'elf_extent': -1}",
+                     "def elf_layout(data): return {'elf_extent': 1000}"):
+            with self.subTest(code=code):
+                self.analyzer.write_text(code)
+                with self.assertRaises(ValueError):
+                    verify.elf_extent(self.analyzer, b'ELF')
+
+    def test_child_timeout_is_a_failure(self):
+        self.analyzer.write_text('import time\ntime.sleep(10)\n')
+        with self.assertRaisesRegex(ValueError, 'timed out'):
+            verify.elf_extent(self.analyzer, b'ELF', timeout=0.05)
+
     def test_helper_returns_the_analyzer_number(self):
         self.assertEqual(1, verify.elf_extent(self.analyzer, b'\x7fELF'))
 
