@@ -105,7 +105,7 @@ do not treat that historical package path as an installed entrypoint.
 | `build_quote_fees.py` |  | Build recovered two-crate quote-selection code; compare unmodified object bytes. |
 | `build_quote_host.py` | ✓ | Build native recovered fee routing for original-versus-recovered tests. |
 | `build_reconstruction_candidate.py` |  | Proposed routing: defaults/old overrides retain the frozen historical helper. |
-| `build_supported_sbpf_candidate.py` |  | Proposed measured v1.53/v1.54 direct-Cargo adapter. --dry-run never invokes tools. |
+| `build_supported_sbpf_candidate.py` |  | Proposed measured v1.53/v1.54 direct-Cargo adapter. Selects the supplied manifest's package explicitly; --dry-run never invokes tools. |
 | `check_sbf_backend_diagnostics.py` |  | Reject reported backend errors even when Cargo returned zero; no runtime acceptance. |
 | `core_linux_v144_build.py` | ✓ | Fixed-source Fees v1.44 compile and recorded v1.52 strip pipeline. |
 | `measure_relay13_linux_v148.py` |  | SOURCE-ONLY PROPOSAL: one explicit Linux measurement, never a promotion tool. |
