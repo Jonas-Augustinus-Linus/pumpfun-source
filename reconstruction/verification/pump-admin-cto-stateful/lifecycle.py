@@ -36,7 +36,7 @@ COLLECT = next(row for row in IDL["instructions"] if row["name"] == "collect_cre
 P = Pubkey.from_string
 PUMP = P(IDL["address"])
 AMM = P("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA")
-FEES = P("pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtVcvB6cZPFQqE")
+FEES = P("pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ")
 TOKEN = P("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
 TOKEN22 = P("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb")
 ATA = P("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
@@ -65,6 +65,17 @@ STRICT_FIELDS = (
     "failure_class", "events", "semantic_logs", "inner_instructions",
     "return_data", "before", "after", "rollback_nonfee_equal",
 )
+EXPECTED_OUTCOMES = {
+    "native/reassign-fail-retry-collect": ["ok", "error:CtoNewCreatorRequired", "ok", "ok"],
+    "native/holder-transition-idempotent-retry": ["ok", "error:HolderRewardCreatorImmutable", "ok"],
+    "spl/wallet-collection-and-reassign": ["ok", "ok"],
+    "spl/frozen-wallet-leaves-fees": ["ok"],
+    "spl/frozen-shared-vault-rollback": ["error:TransactionErrorInstructionError((1, Tagged(InstructionErrorCustom(17))))", "ok"],
+    "spl/sharing-config-A-B-C": ["ok", "ok"],
+    "token22/reassign": ["ok"],
+    "cross-mint/isolation": ["ok", "ok", "ok"],
+    "atomic/wrong-fees-event-then-retry": ["error:ConstraintSeeds", "ok"],
+}
 
 
 def sha(raw: bytes) -> str:
@@ -276,6 +287,9 @@ class Harness:
         if wrong:
             names[wrong] = CREATORS[3].pubkey()
         metas = [AccountMeta(names[row["name"]], bool(row.get("signer")), bool(row.get("writable"))) for row in ADMIN_CTO["accounts"]]
+        # The recovered handler requires an ordinary wallet recipient to be
+        # writable when it opportunistically settles the old creator vault.
+        metas[8] = AccountMeta(metas[8].pubkey, False, True)
         holder = b"\0" if "holder" not in step else bytes([1, int(step["holder"])])
         fee = b"\0" if "fee" not in step else b"\1" + struct.pack("<Q", step["fee"])
         if step.get("new_none"):
@@ -430,11 +444,15 @@ def run_suite(candidate: Path) -> dict:
         rebuilt = run_image(candidate, scenario)
         mismatches, comparison = compare_runs(original, rebuilt)
         invariants = {"original": validate_run(original), "candidate": validate_run(rebuilt)}
+        observed = [receipt["outcome"] for receipt in original["receipts"]]
+        expected = EXPECTED_OUTCOMES[scenario["name"]]
         infrastructure = [f"{side}:{receipt['step']}" for side, run in (("original", original), ("candidate", rebuilt))
                           for receipt in run["receipts"] if receipt["failure_class"] == "infrastructure"]
         rows.append({"case": scenario["name"], "config": {k: v for k, v in scenario.items() if k != "steps"},
                      "steps": scenario["steps"], "original": original, "candidate": rebuilt,
                      "comparison": comparison, "mismatch_fields": mismatches,
+                     "expected_original_outcomes": expected, "observed_original_outcomes": observed,
+                     "oracle_mismatches": [] if observed == expected else [{"expected": expected, "observed": observed}],
                      "invariant_failures": invariants, "infrastructure_failures": infrastructure})
     return {"schema": "pump-admin-cto-stateful-v1", "scope": "Persistent signed admin_cto lifecycle differential; synthetic state, captured on-chain programs, no network.",
             "program_ids": {"pump": str(PUMP), "pump_amm": str(AMM), "pump_fees": str(FEES), "spl_token": str(TOKEN), "spl_token_2022": str(TOKEN22), "associated_token": str(ATA)},
@@ -442,6 +460,7 @@ def run_suite(candidate: Path) -> dict:
             "source_files": sources, "case_count": len(rows),
             "transaction_count_per_image": sum(len(row["original"]["receipts"]) for row in rows),
             "mismatch_cases": [row["case"] for row in rows if row["mismatch_fields"]],
+            "oracle_mismatch_cases": [row["case"] for row in rows if row["oracle_mismatches"]],
             "invariant_failure_cases": [row["case"] for row in rows if any(row["invariant_failures"].values())],
             "infrastructure_failure_cases": [row["case"] for row in rows if row["infrastructure_failures"]], "cases": rows}
 
@@ -476,9 +495,9 @@ def main() -> int:
     report = run_suite(args.candidate.resolve())
     report["negative_controls"] = negative_control(report)
     write_report(args.output, report)
-    summary_keys = ("case_count", "transaction_count_per_image", "mismatch_cases", "invariant_failure_cases", "infrastructure_failure_cases", "negative_controls")
+    summary_keys = ("case_count", "transaction_count_per_image", "mismatch_cases", "oracle_mismatch_cases", "invariant_failure_cases", "infrastructure_failure_cases", "negative_controls")
     print(json.dumps({key: report[key] for key in summary_keys}, indent=2))
-    failed = report["mismatch_cases"] or report["invariant_failure_cases"] or report["infrastructure_failure_cases"] or not all(report["negative_controls"].values())
+    failed = report["mismatch_cases"] or report["oracle_mismatch_cases"] or report["invariant_failure_cases"] or report["infrastructure_failure_cases"] or not all(report["negative_controls"].values())
     return 0 if args.allow_mismatches or not failed else 1
 
 

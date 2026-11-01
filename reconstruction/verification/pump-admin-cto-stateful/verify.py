@@ -30,7 +30,7 @@ def verify(report, candidate):
         problems.append("case_membership_or_order")
     if report.get("case_count") != len(rows):
         problems.append("case_count")
-    mismatched, invalid, infrastructure = [], [], []
+    mismatched, oracle, invalid, infrastructure = [], [], [], []
     transactions = 0
     for row in rows:
         transactions += len(row["original"]["receipts"])
@@ -43,11 +43,18 @@ def verify(report, candidate):
             problems.append(row["case"] + ":invariants")
         if differences:
             mismatched.append(row["case"])
+        observed = [receipt["outcome"] for receipt in row["original"]["receipts"]]
+        expected_outcomes = lifecycle.EXPECTED_OUTCOMES[row["case"]]
+        expected_oracle = [] if observed == expected_outcomes else [{"expected": expected_outcomes, "observed": observed}]
+        if row.get("expected_original_outcomes") != expected_outcomes or row.get("observed_original_outcomes") != observed or row.get("oracle_mismatches") != expected_oracle:
+            problems.append(row["case"] + ":oracle")
+        if expected_oracle:
+            oracle.append(row["case"])
         if any(invariants.values()):
             invalid.append(row["case"])
         if row.get("infrastructure_failures"):
             infrastructure.append(row["case"])
-    expected = {"transaction_count_per_image": transactions, "mismatch_cases": mismatched,
+    expected = {"transaction_count_per_image": transactions, "mismatch_cases": mismatched, "oracle_mismatch_cases": oracle,
                 "invariant_failure_cases": invalid, "infrastructure_failure_cases": infrastructure}
     for key, value in expected.items():
         if report.get(key) != value:
@@ -55,7 +62,7 @@ def verify(report, candidate):
     controls = lifecycle.negative_control(report) if rows else {}
     if controls != {"error": True, "after": True, "events": True} or report.get("negative_controls") != controls:
         problems.append("negative_controls")
-    if mismatched or invalid or infrastructure:
+    if mismatched or oracle or invalid or infrastructure:
         problems.append("qualification_failures")
     return problems
 
