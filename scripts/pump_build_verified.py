@@ -350,7 +350,7 @@ def main():
     )
     record["build_log_sha256"] = sha(out / "build.log")
     record["stack_warnings"] = [
-        line.strip() for line in (out / "build.log").read_text().splitlines()
+        line.strip() for line in (out / "build.log").read_text(encoding="utf-8").splitlines()
         if "exceeded max offset" in line
     ]
     record["stack_diagnostic_gate_passed"] = not record["stack_warnings"]

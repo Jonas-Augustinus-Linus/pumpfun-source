@@ -385,7 +385,7 @@ class DependencyCache:
             "Cargo configuration changed during build"
         ))
         artifacts = []
-        for line in log.read_text().splitlines():
+        for line in log.read_text(encoding="utf-8").splitlines():
             try:
                 r = json.loads(line)
             except ValueError:
