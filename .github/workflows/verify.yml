@@ -315,6 +315,7 @@ jobs:
               python -B scripts/test_amm_sell_torn_tail_append.py
               python -B scripts/test_bytecode_signatures_publication.py
               python -B scripts/test_bytecode_signatures_atomic_publication.py
+              python -B scripts/test_signature_register_comparisons.py
               python -B scripts/test_revalidate_all_publication.py
               python -B scripts/test_revalidate_all_atomic_publication.py
               python -B reconstruction/diagnostics/manifest-admission/test_run.py
