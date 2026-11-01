@@ -8,6 +8,7 @@ import subprocess
 from pathlib import Path
 
 import compare_scores
+import elf_symbols  # Admit lazy symbol-reader bytes before any build.
 import fastbuild
 import score
 from original_input import copy_original_inputs
