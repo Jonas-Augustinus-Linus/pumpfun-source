@@ -59,7 +59,8 @@ def configure(order, out, sdk, crate_name, physical_wrapper, data_certificate=No
     linker = Path(sdk) / f'rust/lib/rustlib/{host}/bin/rust-lld'
     check(linker.is_file(), 'SDK linker must be a file')
     files = [HERE / name for name in ['pump_text_layout.py', 'pump_text_layout_rustc.py',
-             'pump_text_layout_linker.py', 'pump_text_layout_default.ld']]
+             'pump_text_layout_linker.py', 'pump_text_layout_default.ld',
+             'pump_text_layout_rustc.sh', 'pump_text_layout_linker.sh']]
     if data_certificate:
         files += [HERE / name for name in pump_data_order.implementation_hashes()]
     helper_sha256 = {str(p): sha(p) for p in files}
@@ -74,7 +75,8 @@ def configure(order, out, sdk, crate_name, physical_wrapper, data_certificate=No
               'rustc_host': host, 'rustc_verbose_version': rustc_version,
               'external_wrapper': str(physical_wrapper), 'external_wrapper_sha256': external_wrapper_sha256,
               'link_receipt': str(Path(out) / 'link/linker-invocation.json')}
-    env = {'RUSTC_WRAPPER': str(HERE / 'pump_text_layout_rustc.py'),
+    env = {'RUSTC_WRAPPER': str(HERE / 'pump_text_layout_rustc.sh'),
+           'PUMP_VERIFIED_PYTHON': sys.executable,
            'PUMP_TEXT_ROOT_CRATE': crate_name,
            'PUMP_TEXT_PHYSICAL_WRAPPER': str(physical_wrapper),
            'PUMP_TEXT_LINKER': str(linker), 'PUMP_TEXT_SCRIPT': str(dest),
@@ -92,7 +94,7 @@ def rustc_command(rustc, args, env):
     kinds = [args[i + 1] for i, value in enumerate(args[:-1]) if value == '--crate-type']
     result = list(args)
     if name == env['PUMP_TEXT_ROOT_CRATE'] and 'cdylib' in kinds:
-        result += ['-C', 'linker=' + str(HERE / 'pump_text_layout_linker.py')]
+        result += ['-C', 'linker=' + str(HERE / 'pump_text_layout_linker.sh')]
     return [sys.executable, env['PUMP_TEXT_PHYSICAL_WRAPPER'], rustc, *result]
 
 

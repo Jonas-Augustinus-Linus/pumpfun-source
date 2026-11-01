@@ -5,9 +5,18 @@ captured originals and running differential tests in a local VM. Every Python
 script here is listed below by purpose; a check mark means a GitHub workflow runs it
 directly (others run as libraries of those steps or by hand). The non-Python files
 (`pump_rustc_source_path_wrapper.sh`, `core_linux_v144_inputs.json`,
+`pump_physical_source_wrapper.sh`, `pump_text_layout_rustc.sh`,
+`pump_text_layout_linker.sh`,
 `pump_text_layout_default.ld`, `pump_linux_v144_sbf_libraries.json`,
 `pump_linux_v144_sbpf_libraries.json` and `supported_sbpf_policies/`) are inputs
 to the build scripts.
+
+The verified builder's three `.sh` compiler/link launchers use its selected
+Python interpreter, including when `python3` is absent from `PATH`. The original
+Python implementations remain separate hash-bound inputs. Launcher hashes and selected
+interpreter paths participate in new verified dependency-cache keys and
+seed admission; older cache entries are preserved and are not silently reused
+under the changed route. See the [actual offline build controls](../research/verified-hook-interpreter-20261101/README.md).
 
 ## Conventions
 
