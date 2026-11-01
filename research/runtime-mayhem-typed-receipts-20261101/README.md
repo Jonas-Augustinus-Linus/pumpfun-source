@@ -44,7 +44,9 @@ No verifier check, source pin or ELF pin is disabled or rebound.
 - BuyV2, SellV2 and both PumpSwap directions: the four unchanged genuine signed
   rejection receipts in the existing
   `research/mayhem-v2-compressed-receipts/receipts/after-reports.tar.gz` from
-  [#3535](https://github.com/lalalune/pumpfun-source/pull/3535). Their exact
+  [#3535](https://github.com/lalalune/pumpfun-source/pull/3535). The committed support archive also retains the exact three differential sources
+  already bound by these receipts, so later signature-check changes cannot force
+  a source-pin rewrite or a historical Git lookup in CI. Their exact
   historical fixture sources come from
   `32d0ffd95e81fe31f13fc0497198f4a4175ce735`.
 

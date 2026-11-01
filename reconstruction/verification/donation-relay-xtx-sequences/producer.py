@@ -32,6 +32,7 @@ import argparse
 import importlib.util
 import json
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any, Callable
 
@@ -42,6 +43,8 @@ from solders.pubkey import Pubkey
 from solders.transaction import Transaction
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parents[2] / "scripts"))
+from pump_differential_output import PumpReport
 STATEFUL = HERE.parent / "donation-relay-stateful" / "producer.py"
 SPEC = importlib.util.spec_from_file_location("relay_stateful", STATEFUL)
 base = importlib.util.module_from_spec(SPEC)
@@ -92,7 +95,7 @@ class SequencePair(base.Pair):
             [self.fixture.fee, *signers],
             left.latest_blockhash(),
         )
-        if not all(tx.verify_with_results()):
+        if not tx.signatures or not all(tx.verify_with_results()):
             raise RuntimeError("locally signed transaction did not verify")
         addresses = watch | set(tx.message.account_keys)
         rows = {}
@@ -111,7 +114,7 @@ class SequencePair(base.Pair):
             mismatches = []
         return {
             "signature": str(tx.signatures[0]),
-            "signature_verified": all(tx.verify_with_results()),
+            "signature_verified": bool(tx.signatures) and all(tx.verify_with_results()),
             "mismatches": mismatches,
             "original": rows["original"],
             "candidate": rows["candidate"],
@@ -125,6 +128,8 @@ def check_expectations(steps: list[dict[str, Any]], spec: dict[str, Any], fee_pa
     replay corrupted expectations through it as a negative control.
     """
     problems: list[str] = []
+    if len(steps) != len(spec["step_errors"]):
+        return ["step_count"]
     for index, (step, expected_error) in enumerate(zip(steps, spec["step_errors"])):
         error = step["original"].get("error")
         if expected_error is None:
@@ -255,7 +260,22 @@ def execute(root: Path, candidate: Path, output: Path) -> bool:
     if not candidate.is_file():
         raise SystemExit(f"candidate does not exist: {candidate}")
     sources, source_digest = source_manifest(root)
-    cases = [run_case(name, original, candidate, token, associated) for name in CASE_NAMES]
+    publisher = PumpReport(output, root, candidate, __file__, overwrite=False,
+                           extra_inputs=[STATEFUL, *[path for path, _ in pins.values()],
+                                         *[root / name for name in sources]])
+    # Each VM loads one private copy of exactly the bytes this receipt names.
+    snapshots = {label: path.read_bytes() for label, (path, _) in pins.items()}
+    snapshots['candidate'] = candidate.read_bytes()
+    for label, (_, expected) in pins.items():
+        if base.sha(snapshots[label]) != expected:
+            raise SystemExit(f'{label} changed before snapshot admission')
+    with tempfile.TemporaryDirectory(prefix='relay-xtx-inputs-') as scratch:
+        private = {label: Path(scratch) / (label + '.so') for label in snapshots}
+        for label, data in snapshots.items():
+            private[label].write_bytes(data)
+        cases = [run_case(name, private['original'], private['candidate'],
+                          private['spl_token'], private['associated_token'])
+                 for name in CASE_NAMES]
     identities = transaction_identity(cases)
     control = negative_control(cases[0]["steps"][-1])
     control_detected = all(control.values())
@@ -270,8 +290,8 @@ def execute(root: Path, candidate: Path, output: Path) -> bool:
         "schema": "donation-relay-xtx-sequences-v1",
         "program": str(base.RELAY),
         "authority_boundary": {"production_relayer": str(base.RELAYER), "private_key_retained": False, "privileged_signer_injection": False},
-        "inputs": {label: {"path": str(path.relative_to(root)), "sha256": file_sha(path)} for label, (path, _) in pins.items()},
-        "candidate": {"sha256": file_sha(candidate), "bytes": candidate.stat().st_size,
+        "inputs": {label: {"path": str(path.relative_to(root)), "sha256": base.sha(snapshots[label])} for label, (path, _) in pins.items()},
+        "candidate": {"sha256": base.sha(snapshots["candidate"]), "bytes": len(snapshots["candidate"]),
                       "source_manifest_sha256": source_digest, "source_files": sources},
         "comparison": "same signed multi-instruction transaction in independent LiteSVMs; error, relevant logs, events, inner instructions, return data, and full watched before/after accounts; original-side step errors, failed-step rollback and decoded final state pinned per case",
         "case_count": len(cases),
@@ -284,8 +304,7 @@ def execute(root: Path, candidate: Path, output: Path) -> bool:
         "unsupported": unsupported,
         "cases": cases,
     }
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    publisher.write((json.dumps(report, indent=2, sort_keys=True) + "\n").encode("utf-8"))
     summary = {key: report[key] for key in ("case_count", "transaction_count", "matching_cases", "different_cases")}
     summary["negative_control_detected"] = control_detected
     summary["expected_state_control_detected"] = total_control

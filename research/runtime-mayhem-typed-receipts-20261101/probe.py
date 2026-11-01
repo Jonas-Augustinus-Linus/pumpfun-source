@@ -85,7 +85,11 @@ def prepare(repo, output, mode, revision=None, full=False):
     put(root, 'evidence/original/mayhem/deployed.so',
         (repo / 'evidence/original/mayhem/deployed.so').read_bytes())
     wrong = put(root, 'wrong-image.so', (repo / 'evidence/original/pump_fees/deployed.so').read_bytes())
-    support = tarfile.open(HERE / 'fixtures/historical-support.tar.gz')
+    support_path = HERE / 'fixtures/historical-support.tar.gz'
+    provenance = json.loads((HERE / 'fixtures/provenance.json').read_bytes())
+    if sha(support_path.read_bytes()) != provenance['support_archive_sha256']:
+        raise ValueError('historical support archive differs from its provenance')
+    support = tarfile.open(support_path)
     if mode in ('buy', 'sell'):
         raw = (git_bytes(repo, HISTORY, 'repro/mayhem/twentyfour/' + mode + '-differential.json.gz')
                if full else (HERE / 'fixtures' / (mode + '.json.gz')).read_bytes())

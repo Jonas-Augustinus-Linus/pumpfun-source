@@ -75,6 +75,18 @@
     "v2/scripts/mayhem_pump_swap_fixture.py": {
       "sha256": "198a23ee9e4eebeff673c335fde2dd7e3613a4aa8c836a319196f953d55c4224",
       "origin": "32d0ffd95e81fe31f13fc0497198f4a4175ce735:scripts/mayhem_pump_swap_fixture.py"
+    },
+    "v2/scripts/mayhem_buy_v2_differential.py": {
+      "sha256": "3ac8b3622fec4fd41552e90c6ca8ebc7a9a9e3fad058792ef92f2ac63cbc3fb8",
+      "origin": "9bd38c7d5a4684b647ab59fc8942ed56e990e3b3:scripts/mayhem_buy_v2_differential.py"
+    },
+    "v2/scripts/mayhem_sell_v2_differential.py": {
+      "sha256": "4ed249836651ef4113031fa32be8d00681d71f2bbda4bef88f59212e208687c3",
+      "origin": "9bd38c7d5a4684b647ab59fc8942ed56e990e3b3:scripts/mayhem_sell_v2_differential.py"
+    },
+    "v2/scripts/mayhem_pump_swap_differential.py": {
+      "sha256": "ebe4f665a255fa7e8d625dd420d02b4038eec60b9f36bf3dbce7a4bf6a63106f",
+      "origin": "9bd38c7d5a4684b647ab59fc8942ed56e990e3b3:scripts/mayhem_pump_swap_differential.py"
     }
   },
   "limits": "Bounded extracts preserve complete original case objects; only aggregate counts are recomputed. Candidate bytes are the exact historical compiler output. Nothing executes a VM.",
@@ -83,5 +95,5 @@
     "sha256": "9e4e19dfb3b3fefbec13ecfc0d43ffd2ff0bea7b74ac7b2fe14126d23c79c05b",
     "bytes": 667552
   },
-  "support_archive_sha256": "4e6e3e1f22c7b99daf86d2f81cce68a7d237584f444b15297438696f892df025"
+  "support_archive_sha256": "daae0a6c42161a251db35a8438bc74e26796d3be842236cb3272e3119278b660"
 }

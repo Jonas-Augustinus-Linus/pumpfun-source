@@ -8,6 +8,7 @@ against a report that the same rewrite emptied. The packet's published case
 count has to be written down in the verifier for the loop to be load bearing.
 """
 import gzip
+import hashlib
 import json
 import re
 import shutil
@@ -49,7 +50,15 @@ class PlanCaseCountPinned(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='plan-count-') as temporary:
             packet = Path(temporary) / 'packet'
             shutil.copytree(ROOT / 'research' / PACKET, packet)
-            (packet / 'runtime/plan.json.gz').write_bytes(gzip.compress(b'[]', mtime=0))
+            changed = gzip.compress(b'[]', mtime=0)
+            (packet / 'runtime/plan.json.gz').write_bytes(changed)
+            # Reach the independent plan-count gate after the manifest check.
+            manifest_path = packet / 'MANIFEST.json'
+            manifest = json.loads(manifest_path.read_text())
+            for entry in manifest['files']:
+                if entry['path'] == 'runtime/plan.json.gz':
+                    entry.update(sha256=hashlib.sha256(changed).hexdigest(), bytes=len(changed))
+            manifest_path.write_text(json.dumps(manifest, indent=1) + '\n')
             result = subprocess.run(
                 [sys.executable, '-I', '-B', str(packet / 'verify.py'), '--images', '{}'],
                 capture_output=True, text=True, timeout=120)

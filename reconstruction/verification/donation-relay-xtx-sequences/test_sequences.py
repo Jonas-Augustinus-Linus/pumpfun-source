@@ -83,6 +83,9 @@ class DeclarationTests(unittest.TestCase):
 class ExpectationCheckTests(unittest.TestCase):
     SPEC = {"step_errors": [None], "final_state": dict(DONOR_STATE)}
 
+    def test_truncated_steps_are_rejected(self):
+        self.assertEqual(xtx.check_expectations([], self.SPEC, FEE), ["step_count"])
+
     def test_matching_expectations_pass(self):
         self.assertEqual(xtx.check_expectations([fabricated_step()], self.SPEC, FEE), [])
 

@@ -1,10 +1,15 @@
 """A new run must not replace a retained sequence report."""
 import importlib.util
+import hashlib
+import io
+import json
+import shutil
 import os
 from pathlib import Path
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from unittest import mock
 
 HERE = Path(__file__).resolve().parent
@@ -46,6 +51,55 @@ class OutputRefusalTests(unittest.TestCase):
             with mock.patch.object(xtx, 'run_case', side_effect=RuntimeError('cases started')):
                 with self.assertRaisesRegex(RuntimeError, 'cases started'):
                     xtx.execute(ROOT, CANDIDATE, Path(temporary) / 'report.json')
+
+
+class PublicationAndSnapshotTests(unittest.TestCase):
+    def test_late_destination_does_not_replace_candidate(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            candidate = Path(temporary) / 'candidate.so'
+            output = Path(temporary) / 'report.json'
+            shutil.copyfile(CANDIDATE, candidate)
+            before = candidate.read_bytes()
+            real = xtx.run_case
+            def late(name, *args):
+                row = real(name, *args)
+                if name == xtx.CASE_NAMES[-1]:
+                    os.link(candidate, output)
+                return row
+            with mock.patch.object(xtx, 'run_case', side_effect=late):
+                with self.assertRaises((ValueError, FileExistsError)):
+                    xtx.execute(ROOT, candidate, output)
+            self.assertEqual(candidate.read_bytes(), before)
+            self.assertEqual(output.read_bytes(), before)
+            self.assertEqual(list(output.parent.glob('.report.json.*')), [])
+
+    def test_input_replacement_does_not_rebind_the_executed_image(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            candidate = Path(temporary) / 'candidate.so'
+            output = Path(temporary) / 'report.json'
+            shutil.copyfile(CANDIDATE, candidate)
+            before = candidate.read_bytes()
+            real = xtx.run_case
+            def replace(name, *args):
+                row = real(name, *args)
+                if name == xtx.CASE_NAMES[0]:
+                    candidate.write_bytes(b'changed after snapshot')
+                return row
+            with mock.patch.object(xtx, 'run_case', side_effect=replace), redirect_stdout(io.StringIO()):
+                self.assertTrue(xtx.execute(ROOT, candidate, output))
+            report = json.loads(output.read_bytes())
+            self.assertEqual(report['candidate']['sha256'], hashlib.sha256(before).hexdigest())
+            self.assertNotEqual(hashlib.sha256(candidate.read_bytes()).hexdigest(), report['candidate']['sha256'])
+            self.assertEqual((report['case_count'], report['transaction_count'], report['different_cases']), (7, 14, []))
+
+    def test_staging_failure_leaves_no_report_or_partial_file(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / 'report.json'
+            with mock.patch('pump_differential_output.os.fsync', side_effect=OSError('injected fsync')):
+                with self.assertRaisesRegex(OSError, 'injected fsync'):
+                    xtx.execute(ROOT, CANDIDATE, output)
+            self.assertFalse(output.exists())
+            self.assertEqual(list(output.parent.glob('.report.json.*')), [])
 
 
 if __name__ == '__main__':
