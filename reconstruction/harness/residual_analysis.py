@@ -6,19 +6,23 @@ matching in this module are explanatory heuristics and never establish byte
 identity, normalized identity, source attribution, or scorer acceptance.
 """
 import argparse
+from collections import Counter, defaultdict
+import difflib
 import hashlib
 import json
 import struct
 from pathlib import Path
 
 from compare_scores import load_report, publish_report
+from control_flow import LEGACY_CONDITIONAL_JUMPS, analyze as analyze_control_flow
 from elf_symbols import function_symbols
-from instruction_stream import require_instruction_range
+from instruction_stream import decode_instructions, require_instruction_range
 from score import body, normalize, sections
 from score_admission import report_destination
 
 
 SCHEMA = 'sbpf-residual-analysis-v1'
+BRANCH_OPCODES = LEGACY_CONDITIONAL_JUMPS | {0x05}
 
 
 def unique_json_fields(items):
@@ -166,6 +170,255 @@ def admit_inputs(original_path, candidate_path, original_selector, candidate_sel
     return original, candidate, original_window, candidate_window, admitted_receipts
 
 
+def _digest(value):
+    encoded = json.dumps(value, sort_keys=True, separators=(',', ':')).encode('utf-8')
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _call_kind(row):
+    if row['opcode'] == 0x8d:
+        return 'indirect'
+    if row['opcode'] != 0x85:
+        return None
+    if row['src'] == 1 and row['immediate'] != -1:
+        return 'direct'
+    return 'syscall_or_relocated'
+
+
+def _target_independent_token(row):
+    token = bytearray(row['bytes'])
+    if row['opcode'] in BRANCH_OPCODES:
+        token[2:4] = b'\0\0'
+    return token.hex()
+
+
+def build_function_model(image, window):
+    """Attach complete decoded instructions to the maintained CFG blocks."""
+    raw_rows = decode_instructions(window['raw'], window['start'])
+    normalized_rows = decode_instructions(window['normalized'], window['start'])
+    if [row['offset'] for row in raw_rows] != [row['offset'] for row in normalized_rows]:
+        raise ValueError(f"{image['role']} normalization changed instruction boundaries")
+    cfg = analyze_control_flow(window['raw'], window['start'])
+    predecessors = defaultdict(list)
+    for block in cfg['blocks']:
+        for edge in block['successors']:
+            if edge['internal']:
+                predecessors[edge['target']].append({'source': block['offset'], 'kind': edge['kind']})
+    blocks = []
+    for block in cfg['blocks']:
+        end = block['offset'] + block['bytes']
+        indexes = [index for index, row in enumerate(raw_rows)
+                   if block['offset'] <= row['offset'] < end]
+        rows = [raw_rows[index] for index in indexes]
+        norm = [normalized_rows[index] for index in indexes]
+        successors = [dict(edge) for edge in block['successors']]
+        predecessor_rows = sorted(predecessors[block['offset']], key=lambda row: (row['kind'], row['source']))
+        content_material = {
+            'tokens': [_target_independent_token(row) for row in norm],
+            'successor_kinds': [edge['kind'] for edge in successors],
+        }
+        structural_material = {
+            'opcodes': [row['opcode'] for row in rows],
+            'widths': [row['width'] for row in rows],
+            'calls': [_call_kind(row) for row in rows if _call_kind(row)],
+            'successor_kinds': [edge['kind'] for edge in successors],
+            'predecessor_kinds': [row['kind'] for row in predecessor_rows],
+            'reachable': block['reachable'],
+        }
+        blocks.append({
+            **block,
+            'absolute_address': window['start'] + block['offset'],
+            'predecessors': predecessor_rows,
+            'content_fingerprint': _digest(content_material),
+            'structural_fingerprint': _digest(structural_material),
+            '_instructions': rows,
+            '_normalized_instructions': norm,
+            '_content_material': content_material,
+            '_structural_material': structural_material,
+        })
+    return {
+        'start': window['start'],
+        'size': window['size'],
+        'raw_equal_sha256': hashlib.sha256(window['raw']).hexdigest(),
+        'normalized_sha256': hashlib.sha256(window['normalized']).hexdigest(),
+        'instructions': raw_rows,
+        'normalized_instructions': normalized_rows,
+        'blocks': blocks,
+        'calls': cfg['calls'],
+        'diagnostics': cfg['diagnostics'],
+        'cyclic_regions': cfg['cyclic_regions'],
+    }
+
+
+def _multiset_jaccard(left, right):
+    a, b = Counter(left), Counter(right)
+    return sum((a & b).values()) / max(1, sum((a | b).values()))
+
+
+def block_similarity(original, candidate):
+    """Deterministic structural heuristic; it is never an equality predicate."""
+    left = original['_structural_material']
+    right = candidate['_structural_material']
+    opcode_jaccard = _multiset_jaccard(left['opcodes'], right['opcodes'])
+    length_ratio = min(len(left['opcodes']), len(right['opcodes'])) / max(1, len(left['opcodes']), len(right['opcodes']))
+    order_ratio = difflib.SequenceMatcher(None, left['opcodes'], right['opcodes'], autojunk=False).ratio()
+    successor_equal = left['successor_kinds'] == right['successor_kinds']
+    predecessor_equal = left['predecessor_kinds'] == right['predecessor_kinds']
+    calls_equal = left['calls'] == right['calls']
+    terminal_equal = bool(left['opcodes'] and right['opcodes'] and left['opcodes'][-1] == right['opcodes'][-1])
+    score = (0.25 * opcode_jaccard + 0.25 * order_ratio + 0.15 * length_ratio
+             + 0.15 * successor_equal + 0.07 * predecessor_equal
+             + 0.08 * calls_equal + 0.05 * terminal_equal)
+    return round(score, 6)
+
+
+def match_blocks(original_model, candidate_model):
+    """Match blocks in reproducible stages and retain every uncertain choice."""
+    originals = {block['offset']: block for block in original_model['blocks']}
+    candidates = {block['offset']: block for block in candidate_model['blocks']}
+    mapping, reverse, matches, ambiguities = {}, {}, [], []
+
+    def claim(original_offset, candidate_offset, method, confidence, score, evidence):
+        if original_offset in mapping or candidate_offset in reverse:
+            return False
+        mapping[original_offset] = candidate_offset
+        reverse[candidate_offset] = original_offset
+        matches.append({
+            'original_offset': original_offset,
+            'candidate_offset': candidate_offset,
+            'method': method,
+            'confidence': confidence,
+            'similarity': round(score, 6),
+            'evidence': evidence,
+        })
+        return True
+
+    def unique_fingerprints(field, method, confidence, score):
+        left, right = defaultdict(list), defaultdict(list)
+        for offset, block in originals.items():
+            if offset not in mapping:
+                left[block[field]].append(offset)
+        for offset, block in candidates.items():
+            if offset not in reverse:
+                right[block[field]].append(offset)
+        for fingerprint in sorted(left.keys() & right.keys()):
+            if len(left[fingerprint]) == len(right[fingerprint]) == 1:
+                claim(left[fingerprint][0], right[fingerprint][0], method, confidence, score,
+                      [f'unique_{field}'])
+
+    unique_fingerprints('content_fingerprint', 'unique_content', 'high', 1.0)
+    unique_fingerprints('structural_fingerprint', 'unique_structure', 'high', 0.95)
+    if 0 in originals and 0 in candidates and 0 not in mapping and 0 not in reverse:
+        claim(0, 0, 'entry_anchor', 'medium', block_similarity(originals[0], candidates[0]),
+              ['function_entry_anchor'])
+
+    # A matched predecessor can identify a changed successor without relying on
+    # physical layout, but only when an edge kind is singular on both sides.
+    changed = True
+    while changed:
+        changed = False
+        for original_offset, candidate_offset in sorted(mapping.items()):
+            left_edges, right_edges = defaultdict(list), defaultdict(list)
+            for edge in originals[original_offset]['successors']:
+                if edge['internal'] and edge['target'] not in mapping:
+                    left_edges[edge['kind']].append(edge['target'])
+            for edge in candidates[candidate_offset]['successors']:
+                if edge['internal'] and edge['target'] not in reverse:
+                    right_edges[edge['kind']].append(edge['target'])
+            for kind in sorted(left_edges.keys() & right_edges.keys()):
+                if len(left_edges[kind]) != 1 or len(right_edges[kind]) != 1:
+                    continue
+                left_offset, right_offset = left_edges[kind][0], right_edges[kind][0]
+                similarity = block_similarity(originals[left_offset], candidates[right_offset])
+                if similarity >= 0.55 and claim(left_offset, right_offset, 'edge_context', 'medium', similarity,
+                                                [f'unique_{kind}_edge_from_matched_blocks']):
+                    changed = True
+
+    # Last resort: only accept a mutual unique best with a visible margin.
+    remaining_left = [offset for offset in originals if offset not in mapping]
+    remaining_right = [offset for offset in candidates if offset not in reverse]
+    scores = {}
+    for left_offset in remaining_left:
+        left_block = originals[left_offset]
+        for right_offset in remaining_right:
+            right_block = candidates[right_offset]
+            length_ratio = min(left_block['instructions'], right_block['instructions']) / max(
+                1, left_block['instructions'], right_block['instructions'])
+            if length_ratio >= 0.35 and left_block['reachable'] == right_block['reachable']:
+                scores[left_offset, right_offset] = block_similarity(left_block, right_block)
+
+    def ranked_for_left(offset):
+        return sorted(((score, right) for (left, right), score in scores.items() if left == offset),
+                      key=lambda row: (-row[0], row[1]))
+
+    def ranked_for_right(offset):
+        return sorted(((score, left) for (left, right), score in scores.items() if right == offset),
+                      key=lambda row: (-row[0], row[1]))
+
+    left_best, right_best = {}, {}
+    for offset in remaining_left:
+        ranked = ranked_for_left(offset)
+        if ranked:
+            margin = ranked[0][0] - (ranked[1][0] if len(ranked) > 1 else 0)
+            if ranked[0][0] >= 0.58 and margin >= 0.05:
+                left_best[offset] = ranked[0]
+            elif ranked[0][0] >= 0.58:
+                ambiguities.append({
+                    'original_offset': offset,
+                    'reason': 'heuristic candidate margin below 0.05',
+                    'candidates': [{'candidate_offset': right, 'similarity': score}
+                                   for score, right in ranked[:5]],
+                })
+    for offset in remaining_right:
+        ranked = ranked_for_right(offset)
+        if ranked:
+            margin = ranked[0][0] - (ranked[1][0] if len(ranked) > 1 else 0)
+            if ranked[0][0] >= 0.58 and margin >= 0.05:
+                right_best[offset] = ranked[0]
+    for left_offset, (score, right_offset) in sorted(left_best.items()):
+        if right_best.get(right_offset) == (score, left_offset):
+            confidence = 'medium' if score >= 0.8 else 'low'
+            claim(left_offset, right_offset, 'mutual_best_heuristic', confidence, score,
+                  ['mutual_unique_best', 'minimum_margin_0.05'])
+
+    matches.sort(key=lambda row: (row['original_offset'], row['candidate_offset']))
+    ambiguities.sort(key=lambda row: row['original_offset'])
+    return {
+        'matches': matches,
+        'mapping': mapping,
+        'reverse_mapping': reverse,
+        'ambiguities': ambiguities,
+        'unmatched_original': sorted(set(originals) - set(mapping)),
+        'unmatched_candidate': sorted(set(candidates) - set(reverse)),
+    }
+
+
+def public_block(block):
+    return {key: value for key, value in block.items() if not key.startswith('_')}
+
+
+def compare_graphs(original, candidate):
+    matching = match_blocks(original, candidate)
+    return {
+        'original': {
+            'block_count': len(original['blocks']),
+            'blocks': [public_block(block) for block in original['blocks']],
+            'diagnostics': original['diagnostics'],
+            'cyclic_regions': original['cyclic_regions'],
+        },
+        'candidate': {
+            'block_count': len(candidate['blocks']),
+            'blocks': [public_block(block) for block in candidate['blocks']],
+            'diagnostics': candidate['diagnostics'],
+            'cyclic_regions': candidate['cyclic_regions'],
+        },
+        'matching': {key: value for key, value in matching.items()
+                     if key not in ('mapping', 'reverse_mapping')},
+        '_mapping': matching['mapping'],
+        '_reverse_mapping': matching['reverse_mapping'],
+    }
+
+
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('original', type=Path, help='captured original ELF')
@@ -194,21 +447,44 @@ def analyze_admission(args):
     original, candidate, ow, cw, receipts = admit_inputs(
         args.original, args.candidate, _selector_args(args, 'original'),
         _selector_args(args, 'candidate'), args.score_receipt)
-    return {
+    original_model = build_function_model(original, ow)
+    candidate_model = build_function_model(candidate, cw)
+    control_flow = compare_graphs(original_model, candidate_model)
+    matching = control_flow['matching']
+    report = {
         'schema': SCHEMA,
         'scope': ('Diagnostic comparison. Heuristic similarity and block correspondence are not byte identity, '
                   'normalized identity, source attribution, or official score acceptance.'),
         'inputs': {'original': public_image(original, ow), 'candidate': public_image(candidate, cw)},
         'score_receipts': receipts,
+        'identity': {
+            'raw_equal': ow['raw'] == cw['raw'],
+            'normalized_equal': ow['normalized'] == cw['normalized'],
+            'equal_size': ow['size'] == cw['size'],
+        },
+        'instruction_counts': {
+            'original': len(original_model['instructions']),
+            'candidate': len(candidate_model['instructions']),
+        },
+        'control_flow': {key: value for key, value in control_flow.items() if not key.startswith('_')},
     }
+    report['_models'] = (original_model, candidate_model)
+    report['_mapping'] = control_flow['_mapping']
+    return report
 
 
 def render_admission(report):
     original, candidate = report['inputs']['original'], report['inputs']['candidate']
+    matching = report['control_flow']['matching']
     return '\n'.join([
-        'SBPF residual analysis (input admission)',
+        'SBPF residual analysis',
         f"original  {original['window']['start']:#x}+{original['window']['size']}  sha256={original['sha256']}",
         f"candidate {candidate['window']['start']:#x}+{candidate['window']['size']}  sha256={candidate['sha256']}",
+        f"identity raw={report['identity']['raw_equal']} normalized={report['identity']['normalized_equal']}",
+        (f"instructions {report['instruction_counts']['original']}/{report['instruction_counts']['candidate']}  "
+         f"blocks {report['control_flow']['original']['block_count']}/{report['control_flow']['candidate']['block_count']}  "
+         f"matched={len(matching['matches'])} ambiguous={len(matching['ambiguities'])} "
+         f"unmatched={len(matching['unmatched_original'])}/{len(matching['unmatched_candidate'])}"),
         f"score receipts: {len(report['score_receipts'])}",
         report['scope'],
     ]) + '\n'
@@ -222,7 +498,8 @@ def main(argv=None):
     try:
         report_destination(args.json, [args.original, args.candidate, *args.score_receipt])
         report = analyze_admission(args)
-        output = json.dumps(report, indent=2, sort_keys=True) + '\n'
+        public_report = {key: value for key, value in report.items() if not key.startswith('_')}
+        output = json.dumps(public_report, indent=2, sort_keys=True) + '\n'
         if args.json:
             publish_report(args.json, output)
     except (OSError, ValueError, KeyError, struct.error, json.JSONDecodeError) as error:
