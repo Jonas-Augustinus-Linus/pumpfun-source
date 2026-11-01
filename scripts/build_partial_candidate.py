@@ -22,8 +22,17 @@ for entry in (rustup_source/'toolchains').iterdir():
  if entry.name!='solana':(rustup/'toolchains'/entry.name).symlink_to(entry.resolve(),target_is_directory=True)
 (rustup/'settings.toml').write_text('version = "12"\ndefault_toolchain = '+json.dumps(active)+'\nprofile = "minimal"\n',encoding='utf-8',newline='\n')
 before=sources();cmd=['cargo','build-sbf','--manifest-path',str(manifest),'--tools-version',a.tools_version,'--offline','--sbf-sdk',str(sdk),'--sbf-out-dir',str(a.output/'artifacts'),'--','--locked','--offline']
-env=os.environ.copy();env['CARGO_TARGET_DIR']=str(a.output/'target');env['RUSTUP_HOME']=str(rustup)
+env=os.environ.copy()
+# Ambient settings that outrank the recorded recipe stay out, mirroring the
+# supported adapter's validate_environment policy in scrub form: the build
+# drops them, and only their names are recorded, never their values.
+OVERRIDE_NAMES={'RUSTFLAGS','CARGO_ENCODED_RUSTFLAGS','RUSTC','RUSTDOC','RUSTC_WRAPPER','RUSTC_WORKSPACE_WRAPPER','RUSTUP_TOOLCHAIN','RUSTC_BOOTSTRAP','RUST_TARGET_PATH','CC','CXX','AR','RANLIB','LD','LINKER','OBJDUMP','OBJCOPY','CFLAGS','CXXFLAGS','CPPFLAGS','LDFLAGS','RUSTDOCFLAGS','CARGO_INCREMENTAL','LD_PRELOAD','LD_LIBRARY_PATH','DYLD_LIBRARY_PATH','DYLD_INSERT_LIBRARIES'}
+OVERRIDE_PREFIXES=('CARGO_TARGET_','CARGO_PROFILE_','CARGO_BUILD_','CARGO_REGISTRY_','CARGO_REGISTRIES_','RUSTC_','RUSTDOC_','CC_','CXX_','AR_','RANLIB_','CFLAGS_','CXXFLAGS_','CPPFLAGS_','LDFLAGS_')
+scrubbed=sorted(k for k in env if k in OVERRIDE_NAMES or k.startswith(OVERRIDE_PREFIXES))
+for k in scrubbed:del env[k]
+env['CARGO_TARGET_DIR']=str(a.output/'target');env['RUSTUP_HOME']=str(rustup)
 recorded_env={'CARGO_TARGET_DIR':'<output>/target','RUSTUP_HOME':'<output>/rustup'}
+if scrubbed:recorded_env['scrubbed_environment']=scrubbed
 if 'CARGO_HOME' in env:recorded_env['CARGO_HOME']=str(pathlib.Path(env['CARGO_HOME']).resolve()).replace(str(ROOT),'<repo>')
 attempt={'scope':'Independent source build attempt; captured binaries are not compiler inputs. Failed attempts establish no binary identity.','program':a.program,'source_sha256':before,'selected_toolchain':a.tools_version,'command':[s.replace(str(a.output),'<output>').replace(str(ROOT),'<repo>') for s in cmd],'environment':recorded_env}
 (a.output/'build-attempt.json').write_text(json.dumps(attempt,indent=2)+'\n',encoding='utf-8',newline='\n')
