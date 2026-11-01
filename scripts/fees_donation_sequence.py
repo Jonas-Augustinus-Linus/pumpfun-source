@@ -85,7 +85,7 @@ class Recorder:
         return getattr(self.vm, name)
 
     def send_transaction(self, tx):
-        if not all(tx.verify_with_results()):
+        if not (tx.signatures and all(tx.verify_with_results())):
             raise AssertionError("Transaction signatures did not verify")
         before = snapshot(self.vm, tx)
         result = self.vm.send_transaction(tx)

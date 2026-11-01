@@ -124,7 +124,7 @@ def main():
         for case in (original, current):
             tx = VersionedTransaction.from_bytes(
                 base64.b64decode(case["signed_transaction_base64"]))
-            assert all(tx.verify_with_results()) and case["signatures_valid"]
+            assert (tx.signatures and all(tx.verify_with_results())) and case["signatures_valid"]
             historical.assert_account_event(case)
     print(json.dumps({"verified": True, "synthetic_signed_cases": 25,
                       "bounded_matches": 25, "successes": 13,

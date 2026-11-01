@@ -107,12 +107,12 @@ def run(c,binary=None):
  vm.set_account(payer.pubkey(),f.Account(10**10,b'',f.Pubkey.default()))
  signers=[payer]+([TRADER] if any(m.pubkey==TRADER.pubkey() and m.is_signer for m in metas) else [])
  tx=f.Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),f.Instruction(MAY,payload,metas)],payer.pubkey(),signers,vm.latest_blockhash())
- if not all(tx.verify_with_results()):
+ if not (tx.signatures and all(tx.verify_with_results())):
   raise RuntimeError('transaction signature verification failed')
  watched=list(dict.fromkeys(list(tx.message.account_keys)+keys))
  before={str(k):snap(vm.get_account(k)) for k in watched}
  result=vm.send_transaction(tx);failed=isinstance(result,f.FailedTransactionMetadata);meta=result.meta() if failed else result
- if not all(tx.verify_with_results()):
+ if not (tx.signatures and all(tx.verify_with_results())):
   raise RuntimeError('transaction signature verification failed')
  after={str(k):snap(vm.get_account(k)) for k in watched}
  return {'case':c,'error':str(result.err()) if failed else None,'signature':str(tx.signatures[0]),'signature_verified':True,'transaction_base64':base64.b64encode(bytes(tx)).decode(),'synthetic_trader':str(TRADER.pubkey()),'inputs':{'curve':[vt,vs,rt,rs],'reference':reference},'before':before,'after':after,'metadata':json.loads(meta.to_json())}

@@ -31,7 +31,7 @@ def run(c,binary=None):
   vm.set_account(key,Account(patch.get('lamports',a.lamports),bytes(d[:patch.get('length',len(d))]),Pubkey.from_string(patch.get('owner',str(a.owner)))))
  if 'wrong' in c:names[c['wrong']]=Pubkey.from_bytes(bytes([79])*32)
  metas=[AccountMeta(names[a['name']],False,a.get('writable',False) and a['name']!=c.get('readonly')) for a in IX['accounts']];metas=metas[:c.get('account_count',len(metas))]
- tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(P,bytes(IX['discriminator']),metas)],PAY.pubkey(),[PAY],vm.latest_blockhash());assert all(tx.verify_with_results());keys=set(names.values())|{PAY.pubkey()}
+ tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(P,bytes(IX['discriminator']),metas)],PAY.pubkey(),[PAY],vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()));keys=set(names.values())|{PAY.pubkey()}
  def snap():
   return {str(k):json.loads(vm.get_account(k).to_json()) if vm.get_account(k) and not vm.get_account(k).executable else None for k in keys}
  before=snap();r=vm.send_transaction(tx);fail=isinstance(r,FailedTransactionMetadata);m=r.meta() if fail else r;raw=json.loads(m.to_json())

@@ -51,7 +51,7 @@ def run(c,image):
  if op=='update_buyback_authority':payload+=bytes(OTHER.pubkey())
  if op=='update_buyback_claim_rate_limit':payload+=c.get('new_rate',77).to_bytes(8,'little',signed=True)
  signers=[PAYER]+[kp for kp in [AUTH,OTHER] if any(m.is_signer and m.pubkey==kp.pubkey() for m in metas)]
- tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,payload,metas)],PAYER.pubkey(),signers,vm.latest_blockhash());assert all(tx.verify_with_results())
+ tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,payload,metas)],PAYER.pubkey(),signers,vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
  def snap():
   out={}
   for name,key in names.items():

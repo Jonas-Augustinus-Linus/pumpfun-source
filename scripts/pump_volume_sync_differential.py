@@ -29,7 +29,7 @@ def run(c,binary=ORIGINAL):
  for i,a in enumerate(IX['accounts']):
   if c.get('readonly')==a['name']:metas[i]=AccountMeta(keys[i],False,False)
   if c.get('wrong')==a['name']:metas[i]=AccountMeta(OTHER,False,metas[i].is_writable)
- metas=metas[:c.get('account_count',len(metas))];payload=(bytes(IX['discriminator'])+bytes.fromhex(c.get('trailing','')))[:c.get('payload_length',99)];tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,payload,metas)],PAYER.pubkey(),[PAYER],vm.latest_blockhash());assert all(tx.verify_with_results())
+ metas=metas[:c.get('account_count',len(metas))];payload=(bytes(IX['discriminator'])+bytes.fromhex(c.get('trailing','')))[:c.get('payload_length',99)];tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,payload,metas)],PAYER.pubkey(),[PAYER],vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
  def snap():
   out={}
   for k in keys+[PAYER.pubkey(),OTHER]:

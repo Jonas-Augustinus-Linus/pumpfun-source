@@ -49,7 +49,7 @@ def run(c,image):
  if c.get('recipient_alias'):names['recipient']=names[c['recipient_alias']]
  metas=[AccountMeta(names[a['name']],a.get('signer',False) and not c.get('unsigned'),(a.get('writable',False) or c.get('writable')==a['name']) and c.get('readonly')!=a['name']) for a in IX['accounts']]
  payload=bytes(IX['discriminator'])+len(uid).to_bytes(4,'little')+uid+bytes([platform])
- tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PROGRAM,payload,metas)],PAYER.pubkey(),[PAYER]+([OTHER if c.get('other_authority') else AUTH] if not c.get('unsigned') else []),vm.latest_blockhash());assert all(tx.verify_with_results())
+ tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PROGRAM,payload,metas)],PAYER.pubkey(),[PAYER]+([OTHER if c.get('other_authority') else AUTH] if not c.get('unsigned') else []),vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
  def snap():
   result={}
   for name,key in {**names,'transaction_payer':PAYER.pubkey()}.items():

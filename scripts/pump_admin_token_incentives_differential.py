@@ -201,7 +201,7 @@ def run(binary, item, case, global_fixture):
                                          fee_payer.pubkey(), vm.latest_blockhash())
     signers = [fee_payer] if fee_payer == authority or case.get("unsigned_authority") else [fee_payer, authority]
     transaction = VersionedTransaction(message, signers)
-    assert all(transaction.verify_with_results())
+    assert (transaction.signatures and all(transaction.verify_with_results()))
     result = vm.send_transaction(transaction)
     error = str(result.err()) if hasattr(result, "err") else None
     meta = result.meta() if error else result

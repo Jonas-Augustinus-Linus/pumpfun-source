@@ -61,7 +61,7 @@ def run(c,binary=None):
  if c.get('unsigned'):metas=[AccountMeta(m.pubkey,False,m.is_writable) for m in metas]
  if 'count' in c:metas=metas[:c['count']]
  signers=[PAYER]+([AUTH] if any(m.is_signer and m.pubkey==AUTH.pubkey() for m in metas) else [])
- tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PUMP,bytes(IX['discriminator'])+holderarg+fee+new+bytes.fromhex(c.get('trailing','')),metas)],PAYER.pubkey(),signers,vm.latest_blockhash());assert all(tx.verify_with_results())
+ tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PUMP,bytes(IX['discriminator'])+holderarg+fee+new+bytes.fromhex(c.get('trailing','')),metas)],PAYER.pubkey(),signers,vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
  def snap():
   out={}
   for name,key in {**names,'transaction_payer':PAYER.pubkey()}.items():

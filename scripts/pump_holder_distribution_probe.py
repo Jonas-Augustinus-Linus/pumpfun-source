@@ -48,7 +48,7 @@ def run(c={},candidate=None):
  for wallet,d in zip(owners,dest):remaining += [AccountMeta(wallet,False,not c.get('readonly_owner')),AccountMeta(d,False,not c.get('readonly_dest'))]
  remaining += [AccountMeta(OTHER.pubkey(),False,True)]*c.get('extra_remaining',0)
  metas += remaining[:c.get('remaining_count',len(remaining))];payload=bytes(spec['discriminator'])+len(amounts).to_bytes(4,'little')+b''.join(n.to_bytes(8,'little') for n in amounts)
- tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PUMP,payload,metas)],PAYER.pubkey(),[PAYER]+([] if c.get('unsigned') else [AUTH]),vm.latest_blockhash());assert all(tx.verify_with_results())
+ tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PUMP,payload,metas)],PAYER.pubkey(),[PAYER]+([] if c.get('unsigned') else [AUTH]),vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
  def snap():
   out={}
   for k in tracked|set(tx.message.account_keys):

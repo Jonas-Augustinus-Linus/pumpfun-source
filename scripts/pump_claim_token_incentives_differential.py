@@ -233,7 +233,7 @@ def run_case(binary, case):
     before = {name: account_record(vm, key) for name, key in watched.items()}
     tx = Transaction.new_signed_with_payer([instruction], PAYER.pubkey(),
                                             [PAYER], vm.latest_blockhash())
-    assert all(tx.verify_with_results())
+    assert (tx.signatures and all(tx.verify_with_results()))
     result = vm.send_transaction(tx)
     failed = isinstance(result, FailedTransactionMetadata)
     meta = result.meta() if failed else result

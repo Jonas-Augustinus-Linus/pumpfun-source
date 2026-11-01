@@ -137,7 +137,7 @@ def run(binary, cases, surfpool, output):
                            if kp.pubkey() in keys[:header.num_required_signatures]]
                 tx = Transaction.new_signed_with_payer(instructions, fixtures.user.pubkey(), signers,
                     Hash.from_string(rpc('getLatestBlockhash')['value']['blockhash']))
-                if not all(tx.verify_with_results()):
+                if not (tx.signatures and all(tx.verify_with_results())):
                     raise AssertionError('Transaction signatures failed verification')
                 encoded = base64.b64encode(bytes(tx)).decode()
                 simulation = rpc('simulateTransaction', [encoded, {'encoding': 'base64', 'sigVerify': True, 'innerInstructions': True}])['value']

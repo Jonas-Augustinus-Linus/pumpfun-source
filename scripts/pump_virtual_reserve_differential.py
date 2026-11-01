@@ -86,7 +86,7 @@ def run(binary, case, *, programs=None, capture=None):
         payload = struct.pack('<H', len(f.SMVP_DISC)) + f.SMVP_DISC + bytes([2,9]) + b'sol-vault' + bytes([1,f.SOL_VAULT[1]])
         ix = f.Instruction(f.MAYHEM, payload, metas)
     tx = f.Transaction.new_signed_with_payer([ix], f.PAYER.pubkey(), [f.PAYER], vm.latest_blockhash())
-    if not all(tx.verify_with_results()):
+    if not (tx.signatures and all(tx.verify_with_results())):
         raise ValueError('transaction signature verification failed')
     def snapshot():
         out = {}

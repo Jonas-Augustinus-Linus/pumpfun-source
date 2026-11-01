@@ -40,7 +40,7 @@ class Fixture:
   metas=[AccountMeta(names[a['name']],a.get('signer',False) and not c.get('unsigned'),a.get('writable',False) and c.get('readonly')!=a['name']) for a in IX['accounts']]
   metas=metas[:c.get('account_count',len(metas))]
   payload=bytes(IX['discriminator'])+len(uid).to_bytes(4,'little')+uid+bytes([platform])+bytes.fromhex(c.get('trailing',''))
-  tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,payload,metas)],PAYER.pubkey(),[PAYER]+([authority] if any(m.pubkey==authority.pubkey() and m.is_signer for m in metas) else []),self.vm.latest_blockhash());assert all(tx.verify_with_results())
+  tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,payload,metas)],PAYER.pubkey(),[PAYER]+([authority] if any(m.pubkey==authority.pubkey() and m.is_signer for m in metas) else []),self.vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
   def snapshot():
    out={}
    for name,key in {**names,'transaction_payer':PAYER.pubkey()}.items():

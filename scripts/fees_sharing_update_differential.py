@@ -77,7 +77,7 @@ def run(c,binary=None):
  instructions=[set_compute_unit_limit(1400000)]
  if c.get('fund_pump_transfer'):instructions.append(transfer(TransferParams(from_pubkey=PAYER.pubkey(),to_pubkey=PV,lamports=c['fund_pump_transfer'])))
  instructions.append(Instruction(PROGRAM,payload,metas))
- tx=Transaction.new_signed_with_payer(instructions,PAYER.pubkey(),signers,vm.latest_blockhash());assert all(tx.verify_with_results())
+ tx=Transaction.new_signed_with_payer(instructions,PAYER.pubkey(),signers,vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
  def snap():
   out={}
   for name,key in {**names,**extras,'transaction_payer':PAYER.pubkey()}.items():

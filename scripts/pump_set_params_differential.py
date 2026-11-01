@@ -50,7 +50,7 @@ def run(c,binary=ORIGINAL):
   if not vm.get_account(k) or not vm.get_account(k).executable:vm.set_account(k,Account(c.get('recipient_lamports',10**9),bytes(c.get('recipient_length',0)),Pubkey.default()))
   keys.append(k);metas.append(AccountMeta(k,False,False))
  payload=bytes(IX['discriminator'])+args(c);payload=payload[:c.get('payload_length',len(payload))]+bytes.fromhex(c.get('trailing',''))
- tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,payload,metas)],PAYER.pubkey(),[PAYER]+([authority] if any(m.is_signer for m in metas) else []),vm.latest_blockhash());assert all(tx.verify_with_results())
+ tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,payload,metas)],PAYER.pubkey(),[PAYER]+([authority] if any(m.is_signer for m in metas) else []),vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
  def snap():return {str(k):json.loads(vm.get_account(k).to_json()) if vm.get_account(k) and not vm.get_account(k).executable else None for k in set(keys+[PAYER.pubkey(),OUTSIDER.pubkey()])}
  before=snap();r=vm.send_transaction(tx);fail=isinstance(r,FailedTransactionMetadata);m=r.meta() if fail else r;raw=json.loads(m.to_json())
  return dict(error=str(r.err()) if fail else None,before=before,after=snap(),events=[l for l in m.logs() if l.startswith('Program data: ')],inner=raw['inner_instructions'],returns=raw['return_data'],logs=m.logs(),signature_verification=True,transaction_base64=base64.b64encode(bytes(tx)).decode())

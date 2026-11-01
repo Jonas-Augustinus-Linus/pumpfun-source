@@ -42,7 +42,7 @@ def run(c,binary=None):
  if c.get('alternative_ata_wallet'):
   wallet=Pubkey.from_string(c['alternative_ata_wallet']);alternative_ata=Pubkey.find_program_address([bytes(wallet),bytes(token),bytes(quote)],ATA)[0]
   create=Instruction(ATA,bytes([0]),[AccountMeta(PAYER.pubkey(),True,True),AccountMeta(alternative_ata,False,True),AccountMeta(wallet,False,False),AccountMeta(quote,False,False),AccountMeta(Pubkey.default(),False,False),AccountMeta(token,False,False)])
-  bootstrap_tx=Transaction.new_signed_with_payer([create],PAYER.pubkey(),[PAYER],vm.latest_blockhash());assert all(bootstrap_tx.verify_with_results())
+  bootstrap_tx=Transaction.new_signed_with_payer([create],PAYER.pubkey(),[PAYER],vm.latest_blockhash());assert (bootstrap_tx.signatures and all(bootstrap_tx.verify_with_results()))
   created=vm.vm.send_transaction(bootstrap_tx);assert not isinstance(created,FailedTransactionMetadata),str(created)
   vm.keys.add(alternative_ata);account=vm.get_account(alternative_ata)
   assert account.owner==token and account.data[:32]==bytes(quote) and account.data[32:64]==bytes(wallet)
@@ -64,7 +64,7 @@ def run(c,binary=None):
  metas=metas[:c.get('account_count',len(metas))]
  payload=bytes(ix['discriminator'])+(bytes([c.get('initialize_ata',1)]) if ix['name'].endswith('_v2') else b'')
  signers=[PAYER]+([AUTH] if any(m.pubkey==AUTH.pubkey() and m.is_signer for m in metas) else [])
- tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PUMP,payload,metas)],PAYER.pubkey(),signers,vm.latest_blockhash());assert all(tx.verify_with_results())
+ tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PUMP,payload,metas)],PAYER.pubkey(),signers,vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
  def snap():
   out={}
   for key in vm.keys|set(names.values()):

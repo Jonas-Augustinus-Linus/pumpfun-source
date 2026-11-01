@@ -50,7 +50,7 @@ def run_cto(c,binary=None):
  metas=[AccountMeta(names[a['name']],a.get('signer',False),a.get('writable',False)) for a in IX['accounts']]
  assert not any(m.is_signer and m.pubkey==POOL_AUTH for m in metas)
  holderarg=b'\0' if 'holder' not in c else bytes([1,int(c['holder'])]);fee=b'\0' if 'fee_bps' not in c else b'\1'+c['fee_bps'].to_bytes(8,'little');new=b'\0' if c.get('new_none') else bytes([1])+bytes(Pubkey.from_string(c.get('new_creator',str(OTHER.pubkey()))))
- tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PUMP,bytes(IX['discriminator'])+holderarg+fee+new,metas)],PAYER.pubkey(),[PAYER,AUTH],vm.latest_blockhash());assert all(tx.verify_with_results())
+ tx=Transaction.new_signed_with_payer([set_compute_unit_limit(1400000),Instruction(PUMP,bytes(IX['discriminator'])+holderarg+fee+new,metas)],PAYER.pubkey(),[PAYER,AUTH],vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
  def snap():
   out={}
   for name,key in {**names,'transaction_payer':PAYER.pubkey()}.items():

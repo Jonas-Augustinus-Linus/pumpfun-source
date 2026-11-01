@@ -29,7 +29,7 @@ def run(amount=10**9,limit=0,overrides=None,candidate=None,unsigned=False,payloa
    a=h.vm.get_account(key)
    if not a or not a.executable:out[str(key)]=None if not a else {'data_hex':bytes(a.data).hex(),'lamports':a.lamports,'owner':str(a.owner)}
   return out
- before=snap();tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,data,m)],payer.pubkey(),[payer,PAYER] if separate_payer and not unsigned else [payer],h.vm.latest_blockhash());assert all(tx.verify_with_results());r=h.vm.send_transaction(tx);failed=isinstance(r,FailedTransactionMetadata);meta=r.meta() if failed else r
+ before=snap();tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,data,m)],payer.pubkey(),[payer,PAYER] if separate_payer and not unsigned else [payer],h.vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()));r=h.vm.send_transaction(tx);failed=isinstance(r,FailedTransactionMetadata);meta=r.meta() if failed else r
  return {'error':str(r.err())if failed else None,'logs':meta.logs(),'events':[x for x in meta.logs()if x.startswith('Program data: ')],'inner':json.loads(meta.to_json())['inner_instructions'],'return_data':json.loads(meta.to_json()).get('return_data'),'before':before,'after':snap(),'transaction_base64':base64.b64encode(bytes(tx)).decode()}
 
 def boost_transferfee(key,bps=100,maximum=2**64-1,withheld=0,writable=False):

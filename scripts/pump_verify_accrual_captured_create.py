@@ -33,7 +33,7 @@ def verify(candidate_path,runtime):
         need(len({r['transaction_base64'] for r in runs.values()})==1, 'same captured fixture wire')
         for run in runs.values():
             raw=base64.b64decode(run['transaction_base64'],validate=True); tx=VersionedTransaction.from_bytes(raw)
-            need(bytes(tx)==raw and all(tx.verify_with_results()), 'captured actual signatures'); txs+=1; sigs+=len(tx.signatures)
+            need(bytes(tx)==raw and (tx.signatures and all(tx.verify_with_results())), 'captured actual signatures'); txs+=1; sigs+=len(tx.signatures)
     original=(R/'evidence/original/pump/deployed.so').read_bytes(); old=(R/'repro/pump/canonical-frontier-20261028/candidate.so').read_bytes(); new=(P/'artifacts/candidate.so').read_bytes()
     blobs={sha(v):v for v in (original,old,new)}; loads=doc(d/'loader.json')['loads']
     need((txs,sigs,len(loads))==(42,84,42) and {r['elf_sha256'] for r in loads}==set(blobs), 'captured execution/signature/image totals')

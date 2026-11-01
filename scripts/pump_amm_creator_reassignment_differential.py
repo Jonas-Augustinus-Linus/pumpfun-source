@@ -37,7 +37,7 @@ def run_creator(c,binary=None):
  metas=metas[:c.get('account_count',len(metas))]
  data=bytes(ix['discriminator'])+bytes.fromhex(c.get('trailing',''))
  if 'payload_length' in c:data=data[:c['payload_length']]
- tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,data,metas)],PAYER.pubkey(),[PAYER],vm.latest_blockhash());assert all(tx.verify_with_results())
+ tx=Transaction.new_signed_with_payer([Instruction(PROGRAM,data,metas)],PAYER.pubkey(),[PAYER],vm.latest_blockhash());assert (tx.signatures and all(tx.verify_with_results()))
  def snap():
   out={}
   for k in set([x[0] for x in initial.values()]+[m.pubkey for m in metas]+[PAYER.pubkey()]):

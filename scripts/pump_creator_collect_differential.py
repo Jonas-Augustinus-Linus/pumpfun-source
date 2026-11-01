@@ -23,7 +23,7 @@ def execute(binary,mutation,amount=1000000):
   if mutation==a['name']+'_wrong':metas[i]=AccountMeta(Pubkey.default(),False,metas[i].is_writable)
  if mutation.startswith('missing_'):metas=metas[:int(mutation[8:])]
  creator_before=vm.get_account(creator)
- tx=Transaction.new_signed_with_payer([Instruction(P,bytes(idef['discriminator'])+(b'\xff' if mutation=='trailing_data' else b''),metas)],PAY.pubkey(),[PAY],vm.latest_blockhash());verified=tx.verify_with_results();assert all(verified);r=vm.send_transaction(tx);failed=isinstance(r,FailedTransactionMetadata);meta=r.meta() if failed else r;a=vm.get_account(vault);c=vm.get_account(creator)
+ tx=Transaction.new_signed_with_payer([Instruction(P,bytes(idef['discriminator'])+(b'\xff' if mutation=='trailing_data' else b''),metas)],PAY.pubkey(),[PAY],vm.latest_blockhash());verified=tx.verify_with_results();assert tx.signatures and all(verified);r=vm.send_transaction(tx);failed=isinstance(r,FailedTransactionMetadata);meta=r.meta() if failed else r;a=vm.get_account(vault);c=vm.get_account(creator)
  return {'transaction_base64':base64.b64encode(bytes(tx)).decode(),'signature_verification':verified,'error':str(r.err()) if failed else None,'account':json.loads(a.to_json()) if a else None,'creator':({'lamports_delta':c.lamports-creator_before.lamports,'executable_data_unchanged':c.data==creator_before.data} if c.executable else json.loads(c.to_json())) if c else None,'payer_lamports':vm.get_account(PAY.pubkey()).lamports,'logs':meta.logs(),'events':[s[14:] for s in meta.logs() if s.startswith('Program data: ')],'inner_instructions':json.loads(meta.to_json())['inner_instructions']}
 
 def cases():

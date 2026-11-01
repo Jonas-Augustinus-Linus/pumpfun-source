@@ -242,7 +242,7 @@ def snapshot(vm, keys):
 
 
 def run_one(vm, tx, keys):
-    assert all(tx.verify_with_results()) and tx.message.recent_blockhash == vm.latest_blockhash()
+    assert (tx.signatures and all(tx.verify_with_results())) and tx.message.recent_blockhash == vm.latest_blockhash()
     before = snapshot(vm, keys)
     result = vm.send_transaction(tx)
     failed = isinstance(result, FailedTransactionMetadata)
@@ -344,7 +344,7 @@ def execute(candidate, group, output, publisher=None):
         signers = [s for s in available if s.pubkey() in required]
         assert {s.pubkey() for s in signers} == required
         tx = Transaction.new_signed_with_payer([set_compute_unit_limit(1_400_000), ix], fee.pubkey(), signers, a.latest_blockhash())
-        assert all(tx.verify_with_results())
+        assert (tx.signatures and all(tx.verify_with_results()))
         keys = {Pubkey.from_string(k) for k in accounts} | set(tx.message.account_keys)
         left = run_one(a, tx, keys)
         right = run_one(b, tx, keys)
