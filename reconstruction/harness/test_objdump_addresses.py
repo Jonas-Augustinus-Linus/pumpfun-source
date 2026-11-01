@@ -2,6 +2,7 @@
 import os
 import io
 import contextlib
+from subprocess import CompletedProcess
 from types import SimpleNamespace
 from pathlib import Path
 import unittest
@@ -12,17 +13,17 @@ class ObjdumpAddressTests(unittest.TestCase):
     def test_sbf_and_bpf_instruction_indices_become_byte_addresses(self):
         for target in ('sbf', 'bpf'):
             output = f'candidate.so: file format elf64-{target}\n  36: lddw r0, 0x100\n  38: exit\n'
-            with patch.object(win, 'objdump', return_value='llvm-objdump'), patch.object(win.subprocess, 'check_output', return_value=output):
+            with patch.object(win, 'objdump', return_value='llvm-objdump'), patch.object(win.subprocess, 'run', return_value=CompletedProcess([], 0, stdout=output, stderr='')):
                 self.assertEqual(win.objdump_text(Path('candidate.so'), 0x120, 0x138), {0x120: 'lddw r0, 0x100', 0x130: 'exit'})
 
     def test_legacy_hex_byte_address_output_is_preserved(self):
-        with patch.object(win, 'objdump', return_value='llvm-objdump'), patch.object(win.subprocess, 'check_output', return_value='  120: exit\n'):
+        with patch.object(win, 'objdump', return_value='llvm-objdump'), patch.object(win.subprocess, 'run', return_value=CompletedProcess([], 0, stdout='  120: exit\n', stderr='')):
             self.assertEqual(win.objdump_text(Path('candidate.so'), 0x120, 0x128), {0x120: 'exit'})
 
     def test_sbf_hex_byte_address_output_is_preserved(self):
         # platform-tools v1.52 llvm-objdump reports elf64-sbf with hex byte-address labels.
         output = 'candidate.so: file format elf64-sbf\n     198: mov64 r1, r2\n     1a0: exit\n'
-        with patch.object(win, 'objdump', return_value='llvm-objdump'), patch.object(win.subprocess, 'check_output', return_value=output):
+        with patch.object(win, 'objdump', return_value='llvm-objdump'), patch.object(win.subprocess, 'run', return_value=CompletedProcess([], 0, stdout=output, stderr='')):
             self.assertEqual(win.objdump_text(Path('candidate.so'), 0x198, 0x1a8), {0x198: 'mov64 r1, r2', 0x1a0: 'exit'})
 
     def test_zero_start_disambiguates_the_next_instruction(self):
@@ -31,7 +32,7 @@ class ObjdumpAddressTests(unittest.TestCase):
                       f' {labels[0]}: lddw r0, 0x100\n'
                       f' {labels[1]}: mov64 r1, r2\n'
                       f' {labels[2]}: exit\n')
-            with self.subTest(labels=labels), patch.object(win, 'objdump', return_value='llvm-objdump'), patch.object(win.subprocess, 'check_output', return_value=output):
+            with self.subTest(labels=labels), patch.object(win, 'objdump', return_value='llvm-objdump'), patch.object(win.subprocess, 'run', return_value=CompletedProcess([], 0, stdout=output, stderr='')):
                 self.assertEqual(win.objdump_text(Path('candidate.so'), 0, 0x20),
                                  {0: 'lddw r0, 0x100', 0x10: 'mov64 r1, r2', 0x18: 'exit'})
 
