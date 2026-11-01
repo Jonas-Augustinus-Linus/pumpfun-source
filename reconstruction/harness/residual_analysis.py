@@ -245,9 +245,24 @@ def build_function_model(image, window):
         'normalized_instructions': normalized_rows,
         'blocks': blocks,
         'calls': cfg['calls'],
+        'call_sequence': [_call_descriptor(row, image['symbols']) for row in raw_rows if _call_kind(row)],
         'diagnostics': cfg['diagnostics'],
         'cyclic_regions': cfg['cyclic_regions'],
     }
+
+
+def _call_descriptor(row, symbols):
+    kind = _call_kind(row)
+    descriptor = {'offset': row['offset'], 'kind': kind}
+    if kind == 'direct':
+        target = row['address'] + 8 + row['immediate'] * 8
+        descriptor.update(target=target,
+                          target_symbols=sorted({name for start, _size, name in symbols if start == target}))
+    elif kind == 'syscall_or_relocated':
+        descriptor['immediate'] = row['immediate']
+    elif kind == 'indirect':
+        descriptor['register'] = row['immediate']
+    return descriptor
 
 
 def _multiset_jaccard(left, right):
@@ -419,6 +434,231 @@ def compare_graphs(original, candidate):
     }
 
 
+def _residual(kind, classification, severity, **details):
+    return {'kind': kind, 'classification': classification, 'severity': severity, **details}
+
+
+def _field_value(row, field):
+    value = row.get(field)
+    return value.hex() if isinstance(value, bytes) else value
+
+
+def _compare_instruction_fields(original_block, candidate_block):
+    """Align equal opcodes, then report normalized fields and raw register use."""
+    original = original_block['_instructions']
+    candidate = candidate_block['_instructions']
+    original_norm = original_block['_normalized_instructions']
+    candidate_norm = candidate_block['_normalized_instructions']
+    matcher = difflib.SequenceMatcher(None, [row['opcode'] for row in original],
+                                      [row['opcode'] for row in candidate], autojunk=False)
+    residuals, field_counts, examples = [], Counter(), []
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag != 'equal':
+            count = (i2 - i1) + (j2 - j1)
+            residuals.append(_residual(
+                'instruction_sequence', 'structural', 800 + count,
+                original_block=original_block['offset'], candidate_block=candidate_block['offset'],
+                operation=tag,
+                original_offsets=[row['offset'] for row in original[i1:i2]],
+                candidate_offsets=[row['offset'] for row in candidate[j1:j2]],
+                original_opcodes=[row['opcode'] for row in original[i1:i2]],
+                candidate_opcodes=[row['opcode'] for row in candidate[j1:j2]],
+            ))
+            continue
+        for left_index, right_index in zip(range(i1, i2), range(j1, j2)):
+            left_raw, right_raw = original[left_index], candidate[right_index]
+            left, right = original_norm[left_index], candidate_norm[right_index]
+            changed = {}
+            for field in ('dst', 'src'):
+                if left_raw[field] != right_raw[field]:
+                    changed[field] = {'original': left_raw[field], 'candidate': right_raw[field]}
+            # Branch displacement is classified with CFG evidence below.
+            if left['opcode'] not in BRANCH_OPCODES and left['displacement'] != right['displacement']:
+                changed['displacement'] = {'original': left['displacement'], 'candidate': right['displacement']}
+            if left['immediate'] != right['immediate']:
+                changed['immediate'] = {'original': left['immediate'], 'candidate': right['immediate']}
+            if left.get('lddw_reserved') != right.get('lddw_reserved'):
+                changed['lddw_reserved'] = {
+                    'original': _field_value(left, 'lddw_reserved'),
+                    'candidate': _field_value(right, 'lddw_reserved'),
+                }
+            field_counts.update(changed)
+            if changed and len(examples) < 12:
+                examples.append({'original_offset': left_raw['offset'],
+                                 'candidate_offset': right_raw['offset'], 'fields': changed})
+    if field_counts:
+        register_count = field_counts['dst'] + field_counts['src']
+        if register_count:
+            residuals.append(_residual(
+                'register_usage', 'structural', 400 + register_count,
+                original_block=original_block['offset'], candidate_block=candidate_block['offset'],
+                field_counts={key: field_counts[key] for key in ('dst', 'src') if field_counts[key]},
+                examples=[row for row in examples if set(row['fields']) & {'dst', 'src'}],
+            ))
+        other = {key: value for key, value in sorted(field_counts.items()) if key not in ('dst', 'src')}
+        if other:
+            residuals.append(_residual(
+                'instruction_fields', 'structural', 350 + sum(other.values()),
+                original_block=original_block['offset'], candidate_block=candidate_block['offset'],
+                field_counts=other,
+                examples=[row for row in examples if set(row['fields']) - {'dst', 'src'}],
+                evidence='values are compared after official score.normalize',
+            ))
+    return residuals
+
+
+def _edges_by_kind(block):
+    result = defaultdict(list)
+    for edge in block['successors']:
+        result[edge['kind']].append(edge)
+    return result
+
+
+def _compare_branches(original_block, candidate_block, mapping):
+    residuals = []
+    original_edges, candidate_edges = _edges_by_kind(original_block), _edges_by_kind(candidate_block)
+    for kind in sorted(original_edges.keys() | candidate_edges.keys()):
+        left, right = original_edges[kind], candidate_edges[kind]
+        if len(left) != len(right):
+            residuals.append(_residual(
+                'branch_edge_count', 'structural', 720 + abs(len(left) - len(right)),
+                original_block=original_block['offset'], candidate_block=candidate_block['offset'],
+                edge_kind=kind, original_count=len(left), candidate_count=len(right),
+            ))
+            continue
+        for original_edge, candidate_edge in zip(left, right):
+            if original_edge == candidate_edge and original_block['offset'] == candidate_block['offset']:
+                continue
+            mapped_target = mapping.get(original_edge['target']) if original_edge['internal'] else None
+            if (original_edge['internal'] and candidate_edge['internal']
+                    and mapped_target == candidate_edge['target']):
+                if (original_edge['target'] != candidate_edge['target']
+                        or original_block['offset'] != candidate_block['offset']):
+                    residuals.append(_residual(
+                        'branch_displacement_shift', 'positional', 110,
+                        original_block=original_block['offset'], candidate_block=candidate_block['offset'],
+                        edge_kind=kind, original_target=original_edge['target'],
+                        candidate_target=candidate_edge['target'],
+                        evidence='branch endpoints are matched blocks',
+                    ))
+            elif original_edge != candidate_edge:
+                residuals.append(_residual(
+                    'branch_target', 'structural', 700,
+                    original_block=original_block['offset'], candidate_block=candidate_block['offset'],
+                    edge_kind=kind, original=original_edge, candidate=candidate_edge,
+                    mapped_original_target=mapped_target,
+                ))
+    return residuals
+
+
+def _call_identity(call):
+    if call['kind'] == 'direct' and call['target_symbols']:
+        return call['kind'], tuple(call['target_symbols'])
+    if call['kind'] == 'syscall_or_relocated':
+        return call['kind'], call['immediate']
+    if call['kind'] == 'indirect':
+        return call['kind'], call['register']
+    return call['kind'], None
+
+
+def compare_calls(original, candidate):
+    left, right = original['call_sequence'], candidate['call_sequence']
+    residuals = []
+    left_kinds, right_kinds = [row['kind'] for row in left], [row['kind'] for row in right]
+    if left_kinds != right_kinds:
+        matcher = difflib.SequenceMatcher(None, left_kinds, right_kinds, autojunk=False)
+        residuals.append(_residual(
+            'call_ordering', 'structural', 680 + abs(len(left) - len(right)),
+            original_count=len(left), candidate_count=len(right),
+            operations=[{'operation': tag, 'original_range': [i1, i2], 'candidate_range': [j1, j2]}
+                        for tag, i1, i2, j1, j2 in matcher.get_opcodes() if tag != 'equal'],
+            original_kinds=left_kinds, candidate_kinds=right_kinds,
+        ))
+    left_identities, right_identities = list(map(_call_identity, left)), list(map(_call_identity, right))
+    if left_identities != right_identities and Counter(left_identities) == Counter(right_identities):
+        residuals.append(_residual(
+            'call_identity_ordering', 'structural', 670,
+            original=[list(value) for value in left_identities],
+            candidate=[list(value) for value in right_identities],
+            evidence='resolved symbol/syscall/register identities form equal multisets in a different order',
+        ))
+    for index, (original_call, candidate_call) in enumerate(zip(left, right)):
+        if original_call['kind'] != candidate_call['kind']:
+            continue
+        kind = original_call['kind']
+        if kind == 'direct' and original_call['target'] != candidate_call['target']:
+            left_names, right_names = original_call['target_symbols'], candidate_call['target_symbols']
+            common = sorted(set(left_names) & set(right_names))
+            if left_names and right_names and set(left_names) == set(right_names):
+                classification, residual_kind, severity = 'positional', 'call_target_shift', 105
+                evidence = 'both ELF symbol tables identify the same complete target-name set'
+            elif common:
+                classification, residual_kind, severity = 'ambiguous', 'call_target_difference', 250
+                evidence = 'ELF target symbol aliases overlap but are not identical'
+            elif left_names and right_names:
+                classification, residual_kind, severity = 'structural', 'call_target', 650
+                evidence = 'ELF target symbol-name sets differ'
+            else:
+                classification, residual_kind, severity = 'ambiguous', 'call_target_difference', 250
+                evidence = 'one or both call targets lack an exact ELF function symbol'
+            residuals.append(_residual(
+                residual_kind, classification, severity, call_index=index,
+                original=original_call, candidate=candidate_call, evidence=evidence,
+            ))
+        elif kind == 'syscall_or_relocated' and original_call['immediate'] != candidate_call['immediate']:
+            residuals.append(_residual(
+                'call_target', 'structural', 650, call_index=index,
+                original=original_call, candidate=candidate_call,
+                evidence='unmasked syscall-or-relocated immediate differs',
+            ))
+        elif kind == 'indirect' and original_call['register'] != candidate_call['register']:
+            residuals.append(_residual(
+                'call_register', 'structural', 430, call_index=index,
+                original=original_call, candidate=candidate_call,
+            ))
+    return residuals
+
+
+def classify_residuals(original, candidate, mapping):
+    original_blocks = {block['offset']: block for block in original['blocks']}
+    candidate_blocks = {block['offset']: block for block in candidate['blocks']}
+    residuals = []
+    for offset in sorted(set(original_blocks) - set(mapping)):
+        block = original_blocks[offset]
+        residuals.append(_residual('unmatched_original_block', 'structural', 1000 + block['instructions'],
+                                   original_block=offset, instructions=block['instructions']))
+    reverse = {value: key for key, value in mapping.items()}
+    for offset in sorted(set(candidate_blocks) - set(reverse)):
+        block = candidate_blocks[offset]
+        residuals.append(_residual('unmatched_candidate_block', 'structural', 1000 + block['instructions'],
+                                   candidate_block=offset, instructions=block['instructions']))
+    for original_offset, candidate_offset in sorted(mapping.items()):
+        original_block, candidate_block = original_blocks[original_offset], candidate_blocks[candidate_offset]
+        if (original_block['content_fingerprint'] == candidate_block['content_fingerprint']
+                and original_offset != candidate_offset):
+            residuals.append(_residual(
+                'block_position_shift', 'positional', 100,
+                original_block=original_offset, candidate_block=candidate_offset,
+                delta=candidate_offset - original_offset,
+                evidence='target-independent normalized block content and edge kinds are equal',
+            ))
+        residuals.extend(_compare_instruction_fields(original_block, candidate_block))
+        residuals.extend(_compare_branches(original_block, candidate_block, mapping))
+    residuals.extend(compare_calls(original, candidate))
+    residuals.sort(key=lambda row: (-row['severity'], row['classification'], row['kind'],
+                                    row.get('original_block', 1 << 63), row.get('candidate_block', 1 << 63)))
+    for rank, row in enumerate(residuals, 1):
+        row['rank'] = rank
+    classifications = Counter(row['classification'] for row in residuals)
+    kinds = Counter(row['kind'] for row in residuals)
+    return {
+        'count': len(residuals),
+        'by_classification': dict(sorted(classifications.items())),
+        'by_kind': dict(sorted(kinds.items())),
+        'ranked': residuals,
+    }
+
+
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('original', type=Path, help='captured original ELF')
@@ -451,6 +691,7 @@ def analyze_admission(args):
     candidate_model = build_function_model(candidate, cw)
     control_flow = compare_graphs(original_model, candidate_model)
     matching = control_flow['matching']
+    residuals = classify_residuals(original_model, candidate_model, control_flow['_mapping'])
     report = {
         'schema': SCHEMA,
         'scope': ('Diagnostic comparison. Heuristic similarity and block correspondence are not byte identity, '
@@ -467,16 +708,28 @@ def analyze_admission(args):
             'candidate': len(candidate_model['instructions']),
         },
         'control_flow': {key: value for key, value in control_flow.items() if not key.startswith('_')},
+        'residuals': residuals,
     }
     report['_models'] = (original_model, candidate_model)
     report['_mapping'] = control_flow['_mapping']
     return report
 
 
-def render_admission(report):
+def _location(row):
+    locations = []
+    if 'original_block' in row:
+        locations.append(f"o+{row['original_block']:#x}")
+    if 'candidate_block' in row:
+        locations.append(f"c+{row['candidate_block']:#x}")
+    if 'call_index' in row:
+        locations.append(f"call[{row['call_index']}]")
+    return ' '.join(locations) or '-'
+
+
+def render_admission(report, top=20):
     original, candidate = report['inputs']['original'], report['inputs']['candidate']
     matching = report['control_flow']['matching']
-    return '\n'.join([
+    lines = [
         'SBPF residual analysis',
         f"original  {original['window']['start']:#x}+{original['window']['size']}  sha256={original['sha256']}",
         f"candidate {candidate['window']['start']:#x}+{candidate['window']['size']}  sha256={candidate['sha256']}",
@@ -486,8 +739,17 @@ def render_admission(report):
          f"matched={len(matching['matches'])} ambiguous={len(matching['ambiguities'])} "
          f"unmatched={len(matching['unmatched_original'])}/{len(matching['unmatched_candidate'])}"),
         f"score receipts: {len(report['score_receipts'])}",
+        (f"residuals={report['residuals']['count']} "
+         + ' '.join(f'{key}={value}' for key, value in report['residuals']['by_classification'].items())),
         report['scope'],
-    ]) + '\n'
+    ]
+    if top:
+        lines.append('')
+        lines.append(f'top residuals (showing {min(top, report["residuals"]["count"])}):')
+        for row in report['residuals']['ranked'][:top]:
+            lines.append(f"{row['rank']:>3}  {row['classification']:<10} {row['kind']:<28} "
+                         f"severity={row['severity']:<4} {_location(row)}")
+    return '\n'.join(lines) + '\n'
 
 
 def main(argv=None):
@@ -504,7 +766,7 @@ def main(argv=None):
             publish_report(args.json, output)
     except (OSError, ValueError, KeyError, struct.error, json.JSONDecodeError) as error:
         parser.exit(2, f'residual_analysis.py: error: {error}\n')
-    print(output if args.format == 'json' else render_admission(report), end='')
+    print(output if args.format == 'json' else render_admission(report, args.top), end='')
     return 0
 
 
