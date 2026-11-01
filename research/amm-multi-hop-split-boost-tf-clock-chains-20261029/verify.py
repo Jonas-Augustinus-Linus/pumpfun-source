@@ -250,6 +250,21 @@ def error_matches(recorded, expected):
                for code in recorded.split("Custom(")[1:])
 
 
+def require_prefix(expect, key):
+    """A step may omit a field its sequence has not reached, never one it has.
+
+    Steps before the first declared value legitimately leave the key out. A
+    later step that drops it would skip the check while the PASS line still
+    claims the field was compared, so the sequence has to keep it.
+    """
+    seen = False
+    for index, exp in enumerate(expect):
+        present = key in exp
+        if seen and not present:
+            fail(f"expectation {index} drops {key}")
+        seen = seen or present
+
+
 def tok_amount(entry):
     if entry is None:
         return None
@@ -552,6 +567,7 @@ def main():
             recs = by_case.get(label, {}).get(image)
             if recs is None or len(recs) != len(expect):
                 fail(f"{label}/{image}: {0 if recs is None else len(recs)} receipts, expected {len(expect)}")
+            require_prefix(expect, "cfg")
             for rec, exp in zip(recs, expect):
                 tag = f"{label}/{image}/{rec['step']}"
                 tx = Transaction.from_bytes(base64.b64decode(rec["transaction_base64"]))
