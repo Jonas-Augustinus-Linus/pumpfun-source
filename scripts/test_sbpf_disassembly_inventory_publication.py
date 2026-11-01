@@ -20,7 +20,7 @@ def fake_check_output(command, **kwargs):
 
 
 class InventoryPublicationTests(unittest.TestCase):
-    def run_main(self, inventory):
+    def run_main(self, inventory, prepare=None, expected_error=None):
         directory = Path(self.enterContext(tempfile.TemporaryDirectory()))
         source = directory / 'tool'
         executable = source / 'target/release/sbpf'
@@ -28,6 +28,8 @@ class InventoryPublicationTests(unittest.TestCase):
         executable.write_bytes(b'not executed by this test')
         (source / 'Cargo.lock').write_text('')
         output = directory / 'inventory'
+        if prepare is not None:
+            prepare(output)
         argv = ['inventory', '--tool-source', str(source), '--output', str(output)]
         inputs = [('one', Path('one.so')), ('two', Path('two.so'))]
         with patch.object(sys, 'argv', argv), \
@@ -36,10 +38,12 @@ class InventoryPublicationTests(unittest.TestCase):
                 patch.object(tool, 'inventory', inventory), \
                 patch.object(tool.Path, 'glob', lambda self, pattern: iter(())), \
                 contextlib.redirect_stdout(io.StringIO()):
-            try:
-                tool.main()
-            except ValueError:
-                pass
+            with (self.assertRaises(expected_error) if expected_error
+                  else contextlib.nullcontext()):
+                try:
+                    tool.main()
+                except ValueError:
+                    pass
         return output
 
     def test_failed_program_leaves_no_output_directory(self):
@@ -60,6 +64,63 @@ class InventoryPublicationTests(unittest.TestCase):
         output = self.run_main(inventory)
         self.assertEqual(sorted(p.name for p in output.iterdir()),
                          ['manifest.json', 'one.json.gz', 'two.json.gz'])
+
+    def test_existing_output_links_are_refused_without_following(self):
+        for populated in (False, True):
+            with self.subTest(populated=populated):
+                def prepare(output):
+                    target = output.parent / 'target'
+                    if populated:
+                        target.mkdir()
+                        (target / 'keep').write_bytes(b'existing')
+                    output.symlink_to(target, target_is_directory=True)
+
+                def inventory(*_args):
+                    self.fail('output link must be rejected before disassembly')
+
+                output = self.run_main(inventory, prepare, FileExistsError)
+                self.assertTrue(output.is_symlink())
+                target = output.parent / 'target'
+                if populated:
+                    self.assertEqual((target / 'keep').read_bytes(), b'existing')
+                else:
+                    self.assertFalse(target.exists())
+                self.assertEqual(list(output.parent.glob('.inventory.*')), [])
+
+    def test_existing_empty_and_full_directories_are_preserved(self):
+        for populated in (False, True):
+            with self.subTest(populated=populated):
+                identity = []
+
+                def prepare(output):
+                    output.mkdir()
+                    identity.append(output.stat().st_ino)
+                    if populated:
+                        (output / 'keep').write_bytes(b'existing')
+
+                def inventory(*_args):
+                    self.fail('existing output must be rejected before disassembly')
+
+                output = self.run_main(inventory, prepare, FileExistsError)
+                self.assertEqual(output.stat().st_ino, identity[0])
+                self.assertEqual(sorted(p.name for p in output.iterdir()),
+                                 ['keep'] if populated else [])
+
+    def test_late_empty_directory_is_preserved_and_staging_removed(self):
+        identity = []
+
+        def inventory(_tool, name, _path, staging):
+            if name == 'one':
+                output = staging.parent / 'inventory'
+                output.mkdir()
+                identity.append(output.stat().st_ino)
+            (staging / (name + '.json.gz')).write_bytes(b'complete')
+            return {'name': name}
+
+        output = self.run_main(inventory, expected_error=FileExistsError)
+        self.assertEqual(output.stat().st_ino, identity[0])
+        self.assertEqual(list(output.iterdir()), [])
+        self.assertEqual(list(output.parent.glob('.inventory.*')), [])
 
 
 if __name__ == '__main__':
