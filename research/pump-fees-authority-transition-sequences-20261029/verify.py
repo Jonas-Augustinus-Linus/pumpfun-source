@@ -17,6 +17,7 @@ from solders.transaction import Transaction
 from solders.transaction_metadata import FailedTransactionMetadata
 
 HERE = pathlib.Path(__file__).resolve().parent
+COMPARED = ['error', 'custom_error', 'error_number', 'return_hex', 'events', 'program_logs', 'state']
 CONFIG_PROGRAM = Pubkey.from_string('6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P')
 ZERO = Pubkey.default()
 CONFIG_DISC = hashlib.sha256(b'account:FeeConfig').digest()[:8]
@@ -95,6 +96,8 @@ def main():
     arg = a.images.strip()
     images = json.loads(arg if arg.startswith('{') else pathlib.Path(arg).read_text())
     report = json.loads(gzip.decompress((HERE / 'runtime/report.json.gz').read_bytes()))
+    if report['compared_fields'] != COMPARED:
+        print(f'FAIL: compared fields {report["compared_fields"]} != {COMPARED}'); sys.exit(1)
     receipts = [json.loads(l) for l in gzip.decompress((HERE / 'runtime/receipts.jsonl.gz').read_bytes()).splitlines()]
     problems = []
     for name in ['original', 'candidate']:
