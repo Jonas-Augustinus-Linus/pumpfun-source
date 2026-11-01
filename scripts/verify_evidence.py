@@ -48,9 +48,23 @@ def check(ok,msg='evidence check failed'):
     # Explicit check instead of `assert`: `python -O` / PYTHONOPTIMIZE strips asserts,
     # which made a corrupted capture report "9 captures verified".
     if not ok: raise EvidenceError(msg)
+
+
+def read_evidence_json(path):
+    """Require one value per field before checking capture or provenance claims."""
+    def unique_fields(pairs):
+        record = {}
+        for key, value in pairs:
+            if key in record:
+                raise EvidenceError(f'{path.name}: duplicate evidence field: {key}')
+            record[key] = value
+        return record
+    return json.loads(path.read_text(encoding='utf-8'), object_pairs_hook=unique_fields)
+
+
 def main():
     count=0
-    upstream=json.loads((ROOT/'evidence/upstream/provenance.json').read_text())
+    upstream=read_evidence_json(ROOT/'evidence/upstream/provenance.json')
     listed=frozenset(upstream['file_sha256'])
     missing=sorted(EXPECTED_UPSTREAM-listed); unexpected=sorted(listed-EXPECTED_UPSTREAM)
     check(not missing, f'upstream IDL missing from evidence/upstream/provenance.json: {missing}')
@@ -58,7 +72,7 @@ def main():
     for name,expected in upstream['file_sha256'].items():
         check(sha((ROOT/'evidence/upstream'/name).read_bytes())==expected)
     for f in sorted((ROOT/'evidence').glob('**/capture.json')):
-        m=json.loads(f.read_text()); folder=f.parent; key=folder.relative_to(ROOT).as_posix()
+        m=read_evidence_json(f); folder=f.parent; key=folder.relative_to(ROOT).as_posix()
         # The gate exists to publish finalized snapshots, but the declared commitment
         # was never read: a capture taken at `processed`/`confirmed` still passed.
         check(m.get('commitment')=='finalized', f'{key}: commitment {m.get("commitment")!r}')
