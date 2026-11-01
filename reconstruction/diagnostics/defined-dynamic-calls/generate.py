@@ -5,6 +5,7 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import shutil
 import struct
 import sys
 import types
@@ -92,22 +93,31 @@ def classifier(archived):
 
 
 def generate(root, output):
-    root, output = Path(root).resolve(), Path(output).resolve()
-    if output.exists():
+    root, output = Path(root).resolve(), Path(output).absolute()
+    if output.exists() or output.is_symlink():
         raise ValueError('output already exists; preserve prior packets')
     roadmap, reader, proof, bindings = load_sources(root)
     roadmap.Elf = resolved_reader(reader)
     classify = classifier(roadmap)
     roadmap.analyze_window_patterns = lambda elf, start, end: proof.window_patterns(
         roadmap, elf, start, end, classify)
-    roadmap.generate_roadmap(output)
-    bindings['adapter_sha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
-    (output / 'dynamic-call-inputs.json').write_text(json.dumps(bindings, indent=2) + '\n',
-                                                               encoding='utf-8', newline='\n')
-    manifest = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(output.iterdir())
-                if p.is_file() and p.name != 'manifest.json'}
-    (output / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n',
-                                               encoding='utf-8', newline='\n')
+    # Match the other maintained roadmap adapters: publish only the complete
+    # roadmap plus this adapter's attribution, without replacing a late writer.
+    from deep_disassembly import rename_directory, temporary_sibling
+    output.parent.mkdir(parents=True, exist_ok=True)
+    stage = temporary_sibling(output, 'staging')
+    try:
+        roadmap.generate_roadmap(stage)
+        bindings['adapter_sha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+        (stage / 'dynamic-call-inputs.json').write_text(json.dumps(bindings, indent=2) + '\n',
+                                                                   encoding='utf-8', newline='\n')
+        manifest = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(stage.iterdir())
+                    if p.is_file() and p.name != 'manifest.json'}
+        (stage / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n',
+                                                   encoding='utf-8', newline='\n')
+        rename_directory(stage, output)
+    finally:
+        shutil.rmtree(stage, ignore_errors=True)
 
 
 if __name__ == '__main__':
