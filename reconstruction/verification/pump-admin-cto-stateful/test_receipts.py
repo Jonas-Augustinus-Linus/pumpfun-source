@@ -42,8 +42,8 @@ class ActualReceiptAdmissionTests(unittest.TestCase):
             for side in ('original', 'candidate'):
                 rows = report['cases'][0][side]['receipts']
                 if mode == 'type':
-                    account = next(a for a in rows[0]['before'].values() if a and a['lamports'] == 0)
-                    account['lamports'] = False
+                    account = next(a for a in rows[0]['before'].values() if a)
+                    account['lamports'] = float(account['lamports'])
                 elif mode == 'continuity':
                     rows[1]['before'][str(life.GLOBAL)]['lamports'] += 1
                     rows[1]['before_hash'] = life.canonical_hash(rows[1]['before'])
