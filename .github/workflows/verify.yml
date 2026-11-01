@@ -242,6 +242,7 @@ jobs:
               python -B scripts/test_verify_pump_set_mayhem_params_8099_recount.py
               python -B scripts/test_qualification_archive_determinism.py
               python -B scripts/test_rebuild_workflow_action_pins.py
+              python -B scripts/test_workflow_git_context.py
               python -B scripts/test_macos_v144_qualification_optimization.py
               python -B scripts/test_mayhem_initialize_state_optimization.py
               python -B scripts/test_mayhem_initialize_state_exit.py

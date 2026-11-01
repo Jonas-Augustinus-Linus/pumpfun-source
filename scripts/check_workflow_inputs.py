@@ -3,6 +3,7 @@
 import argparse
 import itertools
 import json
+import os
 import posixpath
 import re
 import shlex
@@ -64,7 +65,14 @@ def strip_comment(line):
 
 
 def git(root, *args):
-    return subprocess.check_output(['git', '-C', str(root), *args])
+    # Hooks and enclosing Git commands export repository-local routing. Those
+    # variables override -C, so baseline/head reads could inspect another repo.
+    environment = dict(os.environ)
+    local = subprocess.check_output(['git', 'rev-parse', '--local-env-vars'],
+                                    text=True).splitlines()
+    for name in local:
+        environment.pop(name, None)
+    return subprocess.check_output(['git', '-C', str(root), *args], env=environment)
 
 
 def matrix_rows(job):
