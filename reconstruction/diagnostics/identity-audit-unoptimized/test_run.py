@@ -149,5 +149,27 @@ class ReviewedSourceControls(unittest.TestCase):
         self.assertEqual(output.read_bytes(), b'late writer receipt')
 
 
+class CurrentAnalyzerBindingTests(unittest.TestCase):
+    def test_nine_capture_audits_match_direct_execution_in_all_modes(self):
+        path = ROOT / 'research/identity-analyzer-binding-20261101/probe.py'
+        spec = importlib.util.spec_from_file_location('identity_binding_probe', path)
+        probe = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(probe)
+        report = probe.reproduce(ROOT)
+        self.assertEqual(len(report['rows']), 10)
+        for row in report['rows']:
+            with self.subTest(row=row):
+                self.assertEqual(row['exit'], 0)
+                self.assertTrue(row['matches_direct'])
+        self.assertEqual(len(report['controls']), 12)
+        for row in report['controls']:
+            with self.subTest(control=row):
+                self.assertTrue(row['rejected'])
+                if 'reached_digest_check' in row:
+                    self.assertTrue(row['reached_digest_check'])
+        self.assertTrue(report['temporary_inputs_preserved'])
+        self.assertTrue(report['repository_inputs_preserved'])
+
+
 if __name__ == '__main__':
     unittest.main()
