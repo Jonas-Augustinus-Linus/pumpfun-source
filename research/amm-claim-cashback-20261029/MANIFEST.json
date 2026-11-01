@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "files": {
+    "README.md": "4363da3e9583193f31f679e364070ae5bcba6d0786f0f3d7fc987b445c52f95c",
+    "producer.py": "62d7e1bd960d36e153f0de210f440dcb50b3312fa4672bc2fd03ecd3b80789e7",
+    "runtime/raw-transactions-part1.jsonl.gz": "7cf40cccf46853fda5d5ecd8e31b00e8be5a40b2eafb9b9bbac48aa039da355b",
+    "runtime/raw-transactions-part2.jsonl.gz": "b69b1b6b87429900893540f8bb1dab66ba3634eeaf17c89ac0ef12f6dc47d476",
+    "runtime/raw-transactions-part3.jsonl.gz": "efc2540a4ab6fa726e8e23d104cbb88665c6d98a2d693f903027710caa5ae7fa",
+    "runtime/raw-transactions-part4.jsonl.gz": "69e8a9bdf52b9e812e41bed074fb879c525a09675f33ad28315dfd2da550cc5b",
+    "runtime/raw-transactions-part5.jsonl.gz": "7682679ab5c91cba5a6ac1f5c98df592398c76b0e3dc4d5bfa49780fc282f4a0",
+    "runtime/report.json.gz": "aa72786f32ffd72dcb145baf0db28f8e6815ac125d440cf1bb58b8d895ca23ea",
+    "verify.py": "10b934a3aa2bb1d0d1457d45935a3aca0cd68845003fa2e1db70ca05299956e9"
+  },
+  "repository_inputs": {
+    "evidence/original/pump_amm/deployed.so": "6a7ad34596d83b4c435b32f458a56e718e9f82eb4ad38e4316616d15d24d8ff7",
+    "evidence/dependencies/spl_token/deployed.so": "8190d3f7ceb6cb7a7a8d8924bff89f9f611e15ce1f806f2b6237f3311a98f697",
+    "evidence/dependencies/spl_token_2022/deployed.so": "15a2e615a42e20f31714bbaaee43002ae6f1cda2e8d7118243117ab3c1342e2d",
+    "scripts/pump_amm_cashback_differential.py": "4fa93069c31a53c719b670b49bfba463b96d6228076804940c74d8e8d7ce1051",
+    "scripts/pump_amm_liquidity_differential.py": "08449c9da8c560330eeb5b560a26cdd553d260084e78bd54d4dc7edb914320b4",
+    "scripts/pump_amm_reusable_harness.py": "19b7b2439db913e8dd187deba0aa561aa537bfe06a35007470e0f215c94f1cf2"
+  }
+}

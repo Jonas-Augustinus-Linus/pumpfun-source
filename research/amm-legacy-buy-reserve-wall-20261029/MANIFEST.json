@@ -1,0 +1,26 @@
+{
+  "files": {
+    "README.md": "07426e662826ddd492d5829a9d20f1e16daa8f54f69b4967b5d561cc7da562dd",
+    "producer.py": "46c07903d01c03e2992f9f1059bab96bcfde61a07dad2dd3a2ed25f79dcf002c",
+    "runtime/raw-transactions-part1.jsonl.gz": "8ae30caca8238319d7069dfe34f4d7a7e9daa54c16ca624ec3afe3de8dd716cf",
+    "runtime/raw-transactions-part2.jsonl.gz": "72b29df021c135bbdb6e6a5296f8e7b999c3c4b91e74d092ae7c912eb94619c4",
+    "runtime/raw-transactions-part3.jsonl.gz": "0e09211d7ba1d99bf0f7517e7774774a215735492916301a28c4d3c02ec631be",
+    "runtime/raw-transactions-part4.jsonl.gz": "98a23753f5ba668ed03c1b27c04125e5de873e1b7c2da4661ef7570da6e609be",
+    "runtime/raw-transactions-part5.jsonl.gz": "160751362493c46be183d03b4e51837a6601460b950fe024e9852562ca1f50c4",
+    "runtime/report.json.gz": "6a2d18f8adc7cd501a6ebe472461742ed244cf80f185274cb5e811462b50f2f8",
+    "verify.py": "39fb01352d0e2b7d39e89e15da6375066c79ec0c91d81609be27f98b9acab8b9"
+  },
+  "repository_inputs": {
+    "evidence/original/pump_amm/deployed.so": "6a7ad34596d83b4c435b32f458a56e718e9f82eb4ad38e4316616d15d24d8ff7",
+    "evidence/upstream/pump_amm.json": "b7d8c57a4d9c4dd0109a9ab893052352333252d4eedced10ac091d4d66cab89b",
+    "evidence/upstream/pump.json": "7616681ea557975f9f623ac211080f22a93060781eaf4765b0a488d980997207",
+    "scripts/pump_amm_legacy_buy_differential.py": "f50117d8d9cfb15ab540c467a6bc50c135ad7878b84fba71adb370436ed1097d",
+    "scripts/pump_amm_legacy_sell_differential.py": "f9c889069563cc133f29568d185ea068a3b106c67c3f6a75389af824dca8db66",
+    "scripts/pump_amm_trade_v2_differential.py": "a66c8bac5eb610392aef041f716428038b297e42e24af0a54a4a4715d9c5c6bb",
+    "scripts/pump_amm_liquidity_differential.py": "08449c9da8c560330eeb5b560a26cdd553d260084e78bd54d4dc7edb914320b4",
+    "scripts/pump_amm_reusable_harness.py": "19b7b2439db913e8dd187deba0aa561aa537bfe06a35007470e0f215c94f1cf2",
+    "research/imported-lab/analysis/pump_fun/amm-v2-trade-fixture.json": "2e775505852caf55203c826ee08b9341aa275f52f59a933c4fb0740535ee316f",
+    "research/imported-lab/analysis/pump_fun/config-snapshot.json": "17b886a6b4aa7fdc89f2fca9a1b67b318d33998794da59fe4df1fe89ca70bd27"
+  },
+  "schema": 1
+}

@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "files": {
+    "README.md": "993abfa0f89d9c488e3afa51cf7d79a75a676409ff121a0231b97ba640874275",
+    "producer.py": "d5f9f5069485c2ae87e6c96b5891261178f2a37b949c6140b632656da57004b5",
+    "runtime/raw-transactions-part1.jsonl.gz": "fbcb2757265ce040ae71131032eaafb500aa2398fc6a23da6906aedf34b77502",
+    "runtime/raw-transactions-part2.jsonl.gz": "caa338e60fcc224f000cbabe72a7d5f8229e184a4b7b2f7dda7240140f299258",
+    "runtime/raw-transactions-part3.jsonl.gz": "8eb625eea499b0ea3db56e37558e7f0357b17b2135218cdebfd58ca5b069ffae",
+    "runtime/raw-transactions-part4.jsonl.gz": "29dd61a4233c48a1f4b16b557346ab272ca08829a675671291e62aef5cfb5227",
+    "runtime/raw-transactions-part5.jsonl.gz": "ff6b909e17aebc7b9424ef946badba0ae4440a8e43c1daf715ba36e2813c2402",
+    "runtime/raw-transactions-part6.jsonl.gz": "5135e2f18036688b24564202f9621eec32de805b8566120b6cca9596c8af6289",
+    "runtime/report.json.gz": "fd31a98c01dd61ec0c201cb621bd3ea0da10ffd661af4ec3aec6740f7a201548",
+    "verify.py": "05cee4b8e4056366faa3b2381ece3327ce2649368347c47871dee3a7f1b2c1ec"
+  },
+  "repository_inputs": {
+    "evidence/original/pump_amm/deployed.so": "6a7ad34596d83b4c435b32f458a56e718e9f82eb4ad38e4316616d15d24d8ff7",
+    "evidence/dependencies/spl_token/deployed.so": "8190d3f7ceb6cb7a7a8d8924bff89f9f611e15ce1f806f2b6237f3311a98f697",
+    "evidence/dependencies/spl_token_2022/deployed.so": "15a2e615a42e20f31714bbaaee43002ae6f1cda2e8d7118243117ab3c1342e2d",
+    "evidence/dependencies/associated_token/deployed.so": "6804554e69fd3a58caa191dc4a58f4c67223d30ca28ab8987f39fc18d2f7374d",
+    "scripts/pump_amm_admin_differential.py": "cc3834231f951e3dbf36f38504d85f3135c0edf3792fabecd12fae10c493a72b",
+    "scripts/pump_amm_liquidity_differential.py": "08449c9da8c560330eeb5b560a26cdd553d260084e78bd54d4dc7edb914320b4",
+    "scripts/pump_amm_boost_burn_differential.py": "33cbe16b5d1fba0f529abaa2eccc5779cb1274ddfec7e43248e18983061b4d9e",
+    "scripts/pump_amm_reusable_harness.py": "19b7b2439db913e8dd187deba0aa561aa537bfe06a35007470e0f215c94f1cf2"
+  }
+}

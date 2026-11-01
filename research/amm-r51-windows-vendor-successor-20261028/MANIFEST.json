@@ -1,0 +1,142 @@
+{
+  ".gitattributes": {
+    "bytes": 22,
+    "sha256": "3a0270c65e2c71c2a8df0081df1240a4537116429c191723334c30112aa1eb3c"
+  },
+  "PUBLICATION-VERIFIED.json": {
+    "bytes": 6076,
+    "sha256": "82a10dfda16801c4e2a6bbc8442b79b0992c4d63c006baf8ab593d8c29a22b31"
+  },
+  "README.md": {
+    "bytes": 7567,
+    "sha256": "1b6525de6e6488478aa791f743bb30ae7543c8929190bb579c8b998c3ad94525"
+  },
+  "ROOT-REVIEW.json": {
+    "bytes": 2194,
+    "sha256": "ff8aebe82dad049807f5fb3687939a7e00181b7e29b53e42e010f97be7995b53"
+  },
+  "build.py": {
+    "bytes": 7425,
+    "sha256": "3400e5aa0fc3d84f8cdfd254565b37499eda044b4cfeee880bb4af8355ebfe57"
+  },
+  "changes.patch": {
+    "bytes": 43344,
+    "sha256": "6ccc9089a4cc45d921a94cd10cae64cf568b628e6f9072a88f0d0433bed31268"
+  },
+  "check_vendor.py": {
+    "bytes": 6097,
+    "sha256": "e21479a89addb611df733db7222f864b927c84e340dcce4573038bd790ebec3f"
+  },
+  "failure-control.json": {
+    "bytes": 1592,
+    "sha256": "f7ba0c5ac79bbd520510259797b86667730247429c5704a26a5bd1a43bb58150"
+  },
+  "host-tools.json": {
+    "bytes": 165,
+    "sha256": "6dfd9dcd25b79a806e0817883c63209e8429b2ae811a71f51c4d4507b091ba2e"
+  },
+  "installer-sparse-closure.json": {
+    "bytes": 527,
+    "sha256": "86de1bb5f01a2f47b8b3244abe0c8a00eaff90c9bc1722b01d82aa6794f0feb5"
+  },
+  "linux-neutral-link-control.json": {
+    "bytes": 30577,
+    "sha256": "18121f9c9631e576791b2e436efc1a07477631e889f1179b55338ddfa9169c4a"
+  },
+  "linux-sysroot-inputs.json": {
+    "bytes": 5681,
+    "sha256": "7abcb8f4b4d0797db09f39b2e31b0fe1e286a416993addabffdd9aaa05b47ad9"
+  },
+  "native-driver-review.json": {
+    "bytes": 1164,
+    "sha256": "6176e00433223c3c001e7e65e1af3ff4917378eedcb4d914979b2e2c8a3b8c68"
+  },
+  "native-pin-audit.json": {
+    "bytes": 2641,
+    "sha256": "a3535e4aabcd41a080b2c43a60962d6013530e8203669d2c7630b26d6917956d"
+  },
+  "parent-proposal.json": {
+    "bytes": 872,
+    "sha256": "e50b1342fc607f9fae00a65aaf13ee3073bbd9cc3cf0961c585455c8f760f502"
+  },
+  "parent-workflow-lint.json": {
+    "bytes": 537,
+    "sha256": "8e01671abbc32f8ca5a5c803f1f094d0426decd4f294d0affdac8b896f359175"
+  },
+  "prepare.py": {
+    "bytes": 7096,
+    "sha256": "c3c80727da137c9f8574ce0292ccfc36fe7f5b686ff589c40bfaa14891c627eb"
+  },
+  "previous-hosted-failure.json": {
+    "bytes": 800,
+    "sha256": "c0aa22e556f539e343fba8d07e4d4bd726946d31a6c198b95de8c47bec6dd9bc"
+  },
+  "previous-hosted-failure.log.gz": {
+    "bytes": 1472,
+    "sha256": "3b6516c25982a684df7d6ec7408c575ea24bbda5ae440d79ca73ddb8452b9e02"
+  },
+  "proposal-pins.json": {
+    "bytes": 2450,
+    "sha256": "da142b05d28628561e7d9eaf42d5a238746c6e2316d1e2f3a92316cc305595d3"
+  },
+  "retain.py": {
+    "bytes": 1682,
+    "sha256": "0a036e6bd1ad04dc4aadb45fb748c9d590314fae01ad4e0bdf70d96a4c65f01e"
+  },
+  "retention-control.json": {
+    "bytes": 916,
+    "sha256": "01a477403032d57c6d7f08c92045f6160a9c930b17f7b83fdbe823d9bac9ac20"
+  },
+  "review.json": {
+    "bytes": 2502,
+    "sha256": "0cd9fe6bd2705eb57c5997061116458d2414f7af57cc544ecec91ae08a7193e5"
+  },
+  "sdk-components.json.gz": {
+    "bytes": 118961,
+    "sha256": "77233af8a2f353976b3e4a31703c1005c910c1ebfc9b052ddcf211ddf61a24cf"
+  },
+  "setup-python-ref-observed.json": {
+    "bytes": 318,
+    "sha256": "a87d8bf46df667a7f4abb9f440ea978dabdb3b30e82ed8bcb412616bb773a1f6"
+  },
+  "source-binding.json": {
+    "bytes": 9032,
+    "sha256": "319ca716f2dd16fc7686d46f94c6aa53fc51ca7e907536f9b0c219df8c72263a"
+  },
+  "source.tar.gz": {
+    "bytes": 104635,
+    "sha256": "aaaf7ac67b672ca8759a898e6e56af455f72fadf2cf4dd752ecbbe232a7044f0"
+  },
+  "vendor-acquisition.json": {
+    "bytes": 64331,
+    "sha256": "26b97fda7e87a0f25c35b37ad999b8058d4dc0d07304dbf6eea3d3b0d7400818"
+  },
+  "vendor-control.json.gz": {
+    "bytes": 28303,
+    "sha256": "4f6190225ff3ee16e7dba87986733da02ab8bf8b8e8c772698262a47fac5ae1b"
+  },
+  "vendor-files.json.gz": {
+    "bytes": 375221,
+    "sha256": "82a1cdd4c982788d7faf6159e08eafa42fbc09f6cf892a1a975bb76545ec71dd"
+  },
+  "vendor-retention-control.json": {
+    "bytes": 837,
+    "sha256": "ed8923059632207a21f228f13926544c3baa4b75ee5fe4036fb634ac71abfdfe"
+  },
+  "vendor.py": {
+    "bytes": 4260,
+    "sha256": "38fb4f63ed530e0043ad432b2118d9d9e468f5b58e9f1bddc2b205a36013a466"
+  },
+  "verify.py": {
+    "bytes": 3840,
+    "sha256": "4e6509be06c47d88b1cef82bb448146a1ce651e1dedcf3b9ec23c31f9aca11e7"
+  },
+  "workflow-lint.json": {
+    "bytes": 263,
+    "sha256": "2361bad8a70fdd5f25aa70e81a3b60c81ac8b8fd5f916879e4883890666b3a0b"
+  },
+  "workflow.proposal.yml": {
+    "bytes": 4457,
+    "sha256": "23d47ae76f763248fd8f5310f1566887093b6f6bb71dc3658cd1b4fa2f9fcf03"
+  }
+}

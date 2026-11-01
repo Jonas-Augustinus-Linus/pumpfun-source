@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "files": {
+    "README.md": "841990181f9b04b1e3aac66ec8a5414bdbab80068270658661533354f779e539",
+    "producer.py": "162943c2ddfb208e9a339fe1a256f849e9fec8d2bea91248e73936d75da3397a",
+    "runtime/raw-transactions.jsonl.gz": "d082e4e342287716474c4a5d6b8605ef6c22bc2f530c4a79e5fd9b18f5fcc0c1",
+    "runtime/report.json.gz": "cd624c586ab5a1129cdb0bd8230c9cadcf1600625eebb863ecbb192c1942b4de",
+    "verify.py": "87505c1250f24f037be6811d58928322eaa2c09e061fefa4e56a5c14e63cf93f"
+  },
+  "repository_inputs": {
+    "research/amm-multi-hop-group-slice-recovery/artifacts/candidate.so.gz": "1f25c51a89ed4c269dd7af1732c4a55dbc3fb908b6c9f5ecac69560cfe1026bd",
+    "research/amm-transfer-fee-diagnostic-recovery/artifacts/candidate.so.gz": "c00c011f12544cb7494e900efd99a3fcee7213a32e0257bf2e8f064d64d73453",
+    "research/imported-lab/analysis/pump_fun/amm-v2-trade-fixture.json": "2e775505852caf55203c826ee08b9341aa275f52f59a933c4fb0740535ee316f",
+    "research/imported-lab/analysis/pump_fun/config-snapshot.json": "17b886a6b4aa7fdc89f2fca9a1b67b318d33998794da59fe4df1fe89ca70bd27",
+    "evidence/upstream/pump_amm.json": "b7d8c57a4d9c4dd0109a9ab893052352333252d4eedced10ac091d4d66cab89b",
+    "evidence/original/pump_amm/deployed.so": "6a7ad34596d83b4c435b32f458a56e718e9f82eb4ad38e4316616d15d24d8ff7",
+    "evidence/dependencies/spl_token/deployed.so": "8190d3f7ceb6cb7a7a8d8924bff89f9f611e15ce1f806f2b6237f3311a98f697",
+    "evidence/dependencies/spl_token_2022/deployed.so": "15a2e615a42e20f31714bbaaee43002ae6f1cda2e8d7118243117ab3c1342e2d",
+    "evidence/original/pump_fees/deployed.so": "4f2955d0f6b40cc9ff7daa18ccad7d19119ba1249759f4e7e3bb691beee6b35e",
+    "programs/pump-amm/src/utils/transfer_fee.rs": "6685421e57809ca18c04abe381a9466141c3075d384cd3e88b429e3e71760701"
+  }
+}

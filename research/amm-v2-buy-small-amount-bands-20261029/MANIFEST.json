@@ -1,0 +1,24 @@
+{
+  "files": {
+    "README.md": "1fef3f45c68ed44c9569430341f7e3c40dc243adaa1c4afe4845df1e9f1f4c2b",
+    "producer.py": "d2e4c07a070f33f57404b5d1b2b717582e19c0013b574a177f6aee5b792e2aca",
+    "runtime/raw-transactions-part1.jsonl.gz": "1fc580ed79856d332a07dc96df5db03fdb1a3591053b8a84c4dd573b9e80eb48",
+    "runtime/raw-transactions-part2.jsonl.gz": "1e5c56cc4e3d22715ef86527334c8a60a8ac27cb302fd5bee9182354032b6cb8",
+    "runtime/raw-transactions-part3.jsonl.gz": "ace23846ac25240725456ad726d47bbe7abc89dbcef5854b3274db47be83592f",
+    "runtime/raw-transactions-part4.jsonl.gz": "6deea4ed10c634eabaf2e9e81b35fae4b83ef1a5af8b3802a81443d694dd3812",
+    "runtime/raw-transactions-part5.jsonl.gz": "765e80bd1aa60445e64f4e26d89217ecaa09c9c4353cea4f9229f35c15f01051",
+    "runtime/raw-transactions-part6.jsonl.gz": "8e7b7cd385362055667c4a2c9d41eb34bc4d87084803066215c5f236ea79a2d6",
+    "runtime/raw-transactions-part7.jsonl.gz": "2c65fcb0e24555ec1f5088e19889a81644012b107bdefce69788d1384cbcb6fc",
+    "runtime/report.json.gz": "01eee019eb907d37813e2f739ade6c05345f9aeebe51a2b4b19b741a86f0406b",
+    "verify.py": "493d4b60c5cadb69144248fe9b3249ef4d56f844f4b614f8edbacc3939622c55"
+  },
+  "repository_inputs": {
+    "research/imported-lab/analysis/pump_fun/amm-v2-trade-fixture.json": "2e775505852caf55203c826ee08b9341aa275f52f59a933c4fb0740535ee316f",
+    "research/imported-lab/analysis/pump_fun/config-snapshot.json": "17b886a6b4aa7fdc89f2fca9a1b67b318d33998794da59fe4df1fe89ca70bd27",
+    "evidence/upstream/pump_amm.json": "b7d8c57a4d9c4dd0109a9ab893052352333252d4eedced10ac091d4d66cab89b",
+    "evidence/dependencies/spl_token/deployed.so": "8190d3f7ceb6cb7a7a8d8924bff89f9f611e15ce1f806f2b6237f3311a98f697",
+    "evidence/dependencies/spl_token_2022/deployed.so": "15a2e615a42e20f31714bbaaee43002ae6f1cda2e8d7118243117ab3c1342e2d",
+    "evidence/original/pump_fees/deployed.so": "4f2955d0f6b40cc9ff7daa18ccad7d19119ba1249759f4e7e3bb691beee6b35e",
+    "evidence/original/pump/deployed.so": "7a19affaa2c6187e04a5fe0ea298cee81fa5eb8c24cfcc30d85f615e89f7b02d"
+  }
+}

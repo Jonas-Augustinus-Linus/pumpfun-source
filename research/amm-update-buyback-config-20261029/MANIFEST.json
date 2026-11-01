@@ -1,0 +1,37 @@
+{
+  "files": {
+    "README.md": "5453d9602b4824e6850f51570dee2aa77fc223c22b658c2b499f76e8524e9337",
+    "producer.py": "5f526bbe0f9c24705ffdde041584125cf617cbc95ee75d25b0a337b1d2fc0640",
+    "runtime/raw-transactions-part1.jsonl.gz": "c9058445f64217c3a90274d1176aeff2104eb3f7cc7b726230aa518404abbb05",
+    "runtime/raw-transactions-part10.jsonl.gz": "7cb19b8e4162371cbd9b1902cf4706e8598531af4eeb76710c16d47a8c508ebc",
+    "runtime/raw-transactions-part11.jsonl.gz": "822359ec5cd4c0676de536ac3f79e04480d52d81967e93b406292ecd10840d63",
+    "runtime/raw-transactions-part12.jsonl.gz": "f18e5eaf138daaf9f2f365184d50a71a42d5d57dbdadbab7ea8aadef99501079",
+    "runtime/raw-transactions-part13.jsonl.gz": "f224490db5f2fca0bd408086b21db439136b427af7c83d152ab94cfc00158ae4",
+    "runtime/raw-transactions-part2.jsonl.gz": "f53ca873d0bf7a42db2ba38704064aa104436ea10bb547b39decfefe99a7b636",
+    "runtime/raw-transactions-part3.jsonl.gz": "d80b03b0f7679a94d9d5c1a7c74798a95ca9a941dbf7217fd4b7fbd007b5f602",
+    "runtime/raw-transactions-part4.jsonl.gz": "dbe9eb1bae73fc9200af0a56b4bc90fc7cad4ecc77c92ad74c0b36a65a67817e",
+    "runtime/raw-transactions-part5.jsonl.gz": "30fea7f0390ca0286b886c1d9c85ab34b434a6aee9dc78f9e57e306ef72cd07f",
+    "runtime/raw-transactions-part6.jsonl.gz": "9aad7e860b186b5018af10671a5fb2062c77e0ca882f10f24ee64cd34f4cb240",
+    "runtime/raw-transactions-part7.jsonl.gz": "85f46a39c572cbfeeac9428dcb80ee950b7057b52c58497efcf4327c9d895c5e",
+    "runtime/raw-transactions-part8.jsonl.gz": "30f33f1acdaa6ae25c2c68e0ef412529cab3b102c9e939e10a2f3525bd97abe0",
+    "runtime/raw-transactions-part9.jsonl.gz": "17ff1c43b1aff6f94cad01702047e2796d97dcdb92bac9f68425e3453c0cf85e",
+    "runtime/report.json.gz": "b0583a555afe829e4fa80094b5ab0bf9dfdfa2af3f0d36f86a02547b17b8cc3e",
+    "verify.py": "5c3eec18e574fbadb0cca5f634abaff4eb5c0672294f535a4781a8b3a9a8893b"
+  },
+  "repository_inputs": {
+    "evidence/original/pump_amm/deployed.so": "6a7ad34596d83b4c435b32f458a56e718e9f82eb4ad38e4316616d15d24d8ff7",
+    "evidence/upstream/pump_amm.json": "b7d8c57a4d9c4dd0109a9ab893052352333252d4eedced10ac091d4d66cab89b",
+    "programs/pump-amm/src/instructions/admin/mod.rs": "40c345fe99f2e7a54329a4f0027957dd1c0da4ffb35bc3847ac67946f0fbba7e",
+    "programs/pump-amm/src/instructions/admin/update_buyback_config.rs": "6de76bbf64548fd896cb83e3193b102d48807f9fc391546ca95de2484aaff4d3",
+    "programs/pump-amm/src/instructions/swap/trade_v2.rs": "fb6cdce6b56aee56cf2870aa1d81ffdb550c08f1303735bb02c15834a4e8e08e",
+    "programs/pump-amm/src/lib.rs": "e5238caf68c86c7b4a4215ca8722018bbee471da0a2a5cfc4477d88a3f0d27c1",
+    "programs/pump-amm/src/state/global_config.rs": "297ddc2d58d6443eed88bf4c0d6bed5c36121712646f5ab12bdec1981b28065a",
+    "research/imported-lab/analysis/pump_fun/amm-v2-trade-fixture.json": "2e775505852caf55203c826ee08b9341aa275f52f59a933c4fb0740535ee316f",
+    "research/imported-lab/analysis/pump_fun/config-snapshot.json": "17b886a6b4aa7fdc89f2fca9a1b67b318d33998794da59fe4df1fe89ca70bd27",
+    "scripts/pump_amm_admin_differential.py": "cc3834231f951e3dbf36f38504d85f3135c0edf3792fabecd12fae10c493a72b",
+    "scripts/pump_amm_liquidity_differential.py": "08449c9da8c560330eeb5b560a26cdd553d260084e78bd54d4dc7edb914320b4",
+    "scripts/pump_amm_reusable_harness.py": "19b7b2439db913e8dd187deba0aa561aa537bfe06a35007470e0f215c94f1cf2",
+    "scripts/pump_amm_trade_v2_differential.py": "a66c8bac5eb610392aef041f716428038b297e42e24af0a54a4a4715d9c5c6bb"
+  },
+  "schema": 1
+}

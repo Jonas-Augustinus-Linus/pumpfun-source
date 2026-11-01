@@ -1,0 +1,89 @@
+{
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "ba0c3642229e8725acc00104d714a246bb57fd1c816368910dd2831e6a03fc64",
+      "bytes": 10494
+    },
+    {
+      "path": "fixture-bindings.json",
+      "sha256": "22ceb729bb373e4a5c57c416856368e9026b118fe1af702f7f2ef9c28b7046e8",
+      "bytes": 73796
+    },
+    {
+      "path": "producer.py",
+      "sha256": "78d8b62965be5e732a3126f97d32613715dfcbedf107c74f3281b5341aa4ff02",
+      "bytes": 33210
+    },
+    {
+      "path": "runtime/raw-transactions-part01.jsonl.gz",
+      "sha256": "1b07ae0bb88db0d25060c5e1d512504e9536bbd0b572134e76b89fde4739a8e9",
+      "bytes": 4316
+    },
+    {
+      "path": "runtime/raw-transactions-part02.jsonl.gz",
+      "sha256": "525a5530ee0fc3a231b7d00a66e6131522958a64f331668edc308daaaa2f8e6d",
+      "bytes": 4057
+    },
+    {
+      "path": "runtime/raw-transactions-part03.jsonl.gz",
+      "sha256": "d02aae3af92a0ec831dade27277d74a0f332a081f67c43aff0ab3fc6f8290bb1",
+      "bytes": 4407
+    },
+    {
+      "path": "runtime/raw-transactions-part04.jsonl.gz",
+      "sha256": "9b519d58a48746bfef352140f8af34eb15c648184ba63bcbb07f521c4df9a01b",
+      "bytes": 5519
+    },
+    {
+      "path": "runtime/raw-transactions-part05.jsonl.gz",
+      "sha256": "e1e3f0509e7ea08f1915e0ae5fecb0c874f0907a299273d4a06e2c013420fd6b",
+      "bytes": 6252
+    },
+    {
+      "path": "runtime/raw-transactions-part06.jsonl.gz",
+      "sha256": "0901fbfb9b5efc6283ac78ba42c42bfd9fc8bf48dfbba4d3d54ca18fd8d7aa53",
+      "bytes": 4840
+    },
+    {
+      "path": "runtime/raw-transactions-part07.jsonl.gz",
+      "sha256": "e6629e1463e88fd45d4e0d3e86def4b4c7a6d775189ceddb5bd651352e4f5c6a",
+      "bytes": 4631
+    },
+    {
+      "path": "runtime/raw-transactions-part08.jsonl.gz",
+      "sha256": "f416fae2299e0e8cabb2867e8efb8de87b730d164f526b7464271ad863aa2a97",
+      "bytes": 4461
+    },
+    {
+      "path": "runtime/raw-transactions-part09.jsonl.gz",
+      "sha256": "4af922caf535ace407847ba0cb48007221cbf7fdc8dc3df7dd44e31ec2fcc09a",
+      "bytes": 5442
+    },
+    {
+      "path": "runtime/raw-transactions-part10.jsonl.gz",
+      "sha256": "db55ff98fdbfa2669d70f1cf26cff24ef7b1bdaa3b1f05a2132c1f64de516401",
+      "bytes": 6215
+    },
+    {
+      "path": "runtime/raw-transactions-part11.jsonl.gz",
+      "sha256": "283106177f268a46557fe09b515475d02201657d5839defd1e3250e19f9e3719",
+      "bytes": 3095
+    },
+    {
+      "path": "runtime/report.json.gz",
+      "sha256": "d1aeb694343fe4f978da821fde65a903c41c5ce9e2b4489155e24ee41a87a905",
+      "bytes": 2261
+    },
+    {
+      "path": "test_verify.py",
+      "sha256": "3d6f8105b725a877262f1a94fa5578e39ca4f663f1458d8480c00118dbad284e",
+      "bytes": 5397
+    },
+    {
+      "path": "verify.py",
+      "sha256": "ae2c6552478861e5c9e1000eaec69154a379657393b4dfd53e6f45caf8b39395",
+      "bytes": 19049
+    }
+  ]
+}

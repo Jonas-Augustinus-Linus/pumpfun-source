@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "files": {
+    "README.md": "b865c54dd629d72b87f919819fd633f9ef6dcd32f1ddab25aa18982afc518ceb",
+    "producer.py": "533bd10b1d9348aae0c42a937cd09aa7bac607e3fba65e24d08c4a07c66b3127",
+    "runtime/raw-transactions-part1.jsonl.gz": "8a98aab6d7502133b62b9892e8b426d4eb2bafae50e3e16c830be23d9520beba",
+    "runtime/raw-transactions-part2.jsonl.gz": "90a8b31e40f0c5ae850f90dbf13a8ee936be03cfb17d527b06f8090bb80b1f03",
+    "runtime/raw-transactions-part3.jsonl.gz": "68591c42e93e04066133c4c2badba744f7524bd2fc3c59204436ef6355796ab3",
+    "runtime/raw-transactions-part4.jsonl.gz": "a80f589009e98ddcdb1dd269d72976e360a6c8956b82f6d03dffc9911964466a",
+    "runtime/raw-transactions-part5.jsonl.gz": "30dc82254241a1d00a0b3ac4cf774dc74bef18e0d63ce3b19ae7420c2018783c",
+    "runtime/raw-transactions-part6.jsonl.gz": "9e8f473e6c93eb2c9bec7c7ad78a295db88470505ac952482698b379eb54c83a",
+    "runtime/report.json.gz": "948f59084e4f64fbb4299bb013771057f8d400edf7f5fc67a49f4960b3da4836",
+    "verify.py": "09ea248f6038b884475f00d5bab8b1904c4dd01e27783618744571fda764ef64"
+  },
+  "repository_inputs": {
+    "evidence/original/pump_amm/deployed.so": "6a7ad34596d83b4c435b32f458a56e718e9f82eb4ad38e4316616d15d24d8ff7",
+    "scripts/pump_amm_extend_differential.py": "657acb414c44ecbebe2ea5457126df18252f22994ecb8f071c3950b986d14c63",
+    "scripts/pump_amm_liquidity_differential.py": "08449c9da8c560330eeb5b560a26cdd553d260084e78bd54d4dc7edb914320b4",
+    "scripts/pump_amm_admin_differential.py": "cc3834231f951e3dbf36f38504d85f3135c0edf3792fabecd12fae10c493a72b",
+    "scripts/pump_amm_reusable_harness.py": "19b7b2439db913e8dd187deba0aa561aa537bfe06a35007470e0f215c94f1cf2"
+  }
+}

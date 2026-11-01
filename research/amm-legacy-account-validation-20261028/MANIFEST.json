@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "files": {
+    "README.md": "0b36d7ff6e88632a28d8cf6629bc383ca58f390bbffc01fa49420faa4b86e96b",
+    "producer.py": "caf0afac23d99118f6d64c9582af92c8eea169d0b2e677644ddde94bb4a3fb34",
+    "runtime/raw-transactions-part1.jsonl.gz": "9fd0a891309a8003c323528c97109c516eaaa993cb7acfcc03742fc378b14019",
+    "runtime/raw-transactions-part2.jsonl.gz": "1de8d73453bb7b2f65a890cbe97f7914b58d762f65158d84200d93e81ac18440",
+    "runtime/raw-transactions-part3.jsonl.gz": "45ffb77fc4ff1e607d81c901c70e416f50d1be6b00abdae27fd7bce0a7421c23",
+    "runtime/raw-transactions-part4.jsonl.gz": "4b52907ab1a37fe6ea954d04cc544e2abaff792464ae332380221dda90392d32",
+    "runtime/report.json.gz": "85412d9b54e09ed35121c95b587ffa05179894e2e9e425de07d5ec9afc8fad0c",
+    "verify.py": "4b8ae46807449b889536190008595a1d427beee8c6642974f5ca7f609f205218"
+  },
+  "repository_inputs": {
+    "research/amm-multi-hop-group-slice-recovery/artifacts/candidate.so.gz": "1f25c51a89ed4c269dd7af1732c4a55dbc3fb908b6c9f5ecac69560cfe1026bd",
+    "research/amm-transfer-fee-diagnostic-recovery/artifacts/candidate.so.gz": "c00c011f12544cb7494e900efd99a3fcee7213a32e0257bf2e8f064d64d73453",
+    "research/imported-lab/analysis/pump_fun/amm-v2-trade-fixture.json": "2e775505852caf55203c826ee08b9341aa275f52f59a933c4fb0740535ee316f",
+    "research/imported-lab/analysis/pump_fun/config-snapshot.json": "17b886a6b4aa7fdc89f2fca9a1b67b318d33998794da59fe4df1fe89ca70bd27",
+    "evidence/upstream/pump_amm.json": "b7d8c57a4d9c4dd0109a9ab893052352333252d4eedced10ac091d4d66cab89b",
+    "evidence/dependencies/spl_token/deployed.so": "8190d3f7ceb6cb7a7a8d8924bff89f9f611e15ce1f806f2b6237f3311a98f697",
+    "evidence/dependencies/spl_token_2022/deployed.so": "15a2e615a42e20f31714bbaaee43002ae6f1cda2e8d7118243117ab3c1342e2d",
+    "evidence/original/pump_fees/deployed.so": "4f2955d0f6b40cc9ff7daa18ccad7d19119ba1249759f4e7e3bb691beee6b35e",
+    "evidence/dependencies/associated_token/deployed.so": "6804554e69fd3a58caa191dc4a58f4c67223d30ca28ab8987f39fc18d2f7374d"
+  }
+}

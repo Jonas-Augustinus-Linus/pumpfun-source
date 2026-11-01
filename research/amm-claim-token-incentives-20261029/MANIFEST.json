@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "files": {
+    "README.md": "341fa31c4787e368eeac6963bdf93d0ab4d479cba5baf7812f6d6f4afe88e76f",
+    "producer.py": "da5a0319e9d72c3fb7d8bbed3a7ced7059edf3b758d50653bc196c072b4aac9c",
+    "runtime/raw-transactions-part1.jsonl.gz": "d46d96abb76e999eecd76c0dcbf90d0010834e8a30d8c4aba8d97088d6fca0be",
+    "runtime/raw-transactions-part10.jsonl.gz": "eac2fd9723d0cf85fe9afab31d8984bebf2d6bbde62287ce9d1b777d88e34666",
+    "runtime/raw-transactions-part11.jsonl.gz": "20a510604f39944e7fc3d0e74e91bbc7b53fd8b690ae8fa2687c6d59ef2b7615",
+    "runtime/raw-transactions-part12.jsonl.gz": "e58dc714d6532b77a79e7accb00ed009a17cbb169bcc6df56eb61aca6c0b14ad",
+    "runtime/raw-transactions-part2.jsonl.gz": "177b21361dad0889d9b346e2f59cbbd54ad68125d1cb5745ed7d61e255541d00",
+    "runtime/raw-transactions-part3.jsonl.gz": "98962c2ba9f38537935326ed229830596f79d824b26749eb2c0199109664593d",
+    "runtime/raw-transactions-part4.jsonl.gz": "e0ce7bc1f2bd6ca36e3757af56d2223446151b34d2eec3a4eb2dd69eb22fcf46",
+    "runtime/raw-transactions-part5.jsonl.gz": "51bf17be976a8ada7cc2574f20df2154bda269bb16f8bb74768790728384d55b",
+    "runtime/raw-transactions-part6.jsonl.gz": "6d789379287e8ef79dd79f6c4aa225ee740aea6e5bd57eb63b1f4180bf6e310e",
+    "runtime/raw-transactions-part7.jsonl.gz": "8b5b691b2daa5cf1fd91c25f9313d22b361b4cc5a1b5eeee943855601876a559",
+    "runtime/raw-transactions-part8.jsonl.gz": "72d894e42b891dbec0cb7b5ce9a74609a5073249efadab8ae5b9c191df808d82",
+    "runtime/raw-transactions-part9.jsonl.gz": "0c760e7650e938348394dabaf1f5662f1080e6096b0c1da0d275f14c5d9cfec3",
+    "runtime/report.json.gz": "29300ab74bc31867b3e33187c959c0cbe459e0d9c9c3e15b0672b36f97e26400",
+    "verify.py": "6161c5b3fb4e87db96b1cc793966ff43a4ef822d6f1b455e9346b1c6ee4923a5"
+  },
+  "repository_inputs": {
+    "evidence/original/pump_amm/deployed.so": "6a7ad34596d83b4c435b32f458a56e718e9f82eb4ad38e4316616d15d24d8ff7",
+    "evidence/dependencies/spl_token/deployed.so": "8190d3f7ceb6cb7a7a8d8924bff89f9f611e15ce1f806f2b6237f3311a98f697",
+    "evidence/dependencies/spl_token_2022/deployed.so": "15a2e615a42e20f31714bbaaee43002ae6f1cda2e8d7118243117ab3c1342e2d",
+    "scripts/pump_amm_incentives_differential.py": "b5f1f520aec909178d625d1c4a7d33ba3801f91a8c5d7eab11e8ae244a07472c",
+    "scripts/pump_amm_admin_differential.py": "cc3834231f951e3dbf36f38504d85f3135c0edf3792fabecd12fae10c493a72b",
+    "scripts/pump_amm_reusable_harness.py": "19b7b2439db913e8dd187deba0aa561aa537bfe06a35007470e0f215c94f1cf2",
+    "research/amm-multi-hop-group-slice-recovery/artifacts/candidate.so.gz": "1f25c51a89ed4c269dd7af1732c4a55dbc3fb908b6c9f5ecac69560cfe1026bd",
+    "research/amm-transfer-fee-diagnostic-recovery/artifacts/candidate.so.gz": "c00c011f12544cb7494e900efd99a3fcee7213a32e0257bf2e8f064d64d73453"
+  }
+}
