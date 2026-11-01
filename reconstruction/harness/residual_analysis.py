@@ -414,6 +414,8 @@ def public_block(block):
 
 def compare_graphs(original, candidate):
     matching = match_blocks(original, candidate)
+    confidence_counts = Counter(row['confidence'] for row in matching['matches'])
+    method_counts = Counter(row['method'] for row in matching['matches'])
     return {
         'original': {
             'block_count': len(original['blocks']),
@@ -429,6 +431,14 @@ def compare_graphs(original, candidate):
         },
         'matching': {key: value for key, value in matching.items()
                      if key not in ('mapping', 'reverse_mapping')},
+        'matching_summary': {
+            'by_confidence': dict(sorted(confidence_counts.items())),
+            'by_method': dict(sorted(method_counts.items())),
+            'matched': len(matching['matches']),
+            'ambiguous': len(matching['ambiguities']),
+            'unmatched_original': len(matching['unmatched_original']),
+            'unmatched_candidate': len(matching['unmatched_candidate']),
+        },
         '_mapping': matching['mapping'],
         '_reverse_mapping': matching['reverse_mapping'],
     }
@@ -652,6 +662,8 @@ def classify_residuals(original, candidate, mapping):
     classifications = Counter(row['classification'] for row in residuals)
     kinds = Counter(row['kind'] for row in residuals)
     return {
+        'ranking': ('severity descending; then classification, kind, original block and candidate block. '
+                    'Severity ranks structural gaps above ambiguous evidence and positional shifts.'),
         'count': len(residuals),
         'by_classification': dict(sorted(classifications.items())),
         'by_kind': dict(sorted(kinds.items())),
@@ -696,6 +708,10 @@ def analyze_admission(args):
         'schema': SCHEMA,
         'scope': ('Diagnostic comparison. Heuristic similarity and block correspondence are not byte identity, '
                   'normalized identity, source attribution, or official score acceptance.'),
+        'normalization': {
+            'implementation': 'reconstruction/harness/score.py:normalize',
+            'policy': 'official scorer normalization is invoked unchanged on each selected window',
+        },
         'inputs': {'original': public_image(original, ow), 'candidate': public_image(candidate, cw)},
         'score_receipts': receipts,
         'identity': {
@@ -726,6 +742,22 @@ def _location(row):
     return ' '.join(locations) or '-'
 
 
+def _detail(row):
+    if 'field_counts' in row:
+        return ','.join(f'{key}:{value}' for key, value in sorted(row['field_counts'].items()))
+    if row['kind'] == 'instruction_sequence':
+        return (f"{row['operation']} {len(row['original_offsets'])}=>{len(row['candidate_offsets'])} instructions")
+    if 'edge_kind' in row:
+        left = row.get('original_target', row.get('original'))
+        right = row.get('candidate_target', row.get('candidate'))
+        return f"{row['edge_kind']} {left}=>{right}"
+    if row['kind'].startswith('unmatched_'):
+        return f"instructions={row['instructions']}"
+    if 'delta' in row:
+        return f"delta={row['delta']:+#x}"
+    return ''
+
+
 def render_admission(report, top=20):
     original, candidate = report['inputs']['original'], report['inputs']['candidate']
     matching = report['control_flow']['matching']
@@ -748,7 +780,7 @@ def render_admission(report, top=20):
         lines.append(f'top residuals (showing {min(top, report["residuals"]["count"])}):')
         for row in report['residuals']['ranked'][:top]:
             lines.append(f"{row['rank']:>3}  {row['classification']:<10} {row['kind']:<28} "
-                         f"severity={row['severity']:<4} {_location(row)}")
+                         f"severity={row['severity']:<4} {_location(row)} {_detail(row)}".rstrip())
     return '\n'.join(lines) + '\n'
 
 
