@@ -299,6 +299,8 @@ def main():
         report = json.load(fh)
     if report["case_count"] != 38 or report["receipt_count"] != 258:
         fail(f"counts {report['case_count']} cases / {report['receipt_count']} receipts")
+    if len(report["cases"]) != report["case_count"]:
+        fail(f"case list {len(report['cases'])} != {report['case_count']}")
     if report["counts"] != {"cases": 38, "receipts": 258, "parts": 26}:
         fail(f"counts block {report['counts']}")
     if report["mismatches"] != []:
