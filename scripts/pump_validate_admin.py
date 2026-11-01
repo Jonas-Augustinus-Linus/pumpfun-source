@@ -23,6 +23,12 @@ CAPTURE = next(x for x in json.loads((ROOT / 'research/imported-lab/analysis/pum
 DATA = bytearray(base64.b64decode(CAPTURE['data_base64']))
 DATA[9:41] = bytes(AUTHORITY.pubkey())
 
+# Retained parts of an outcome. The invoke frames and the compute-unit tally in
+# `logs` differ between any two builds of the same source, so they are excluded;
+# the framework's own lines are compared, which is what the event_wrong and
+# missing_event mutations below exist to move.
+COMPARED = ['error', 'data_hex', 'lamports', 'anchor_logs']
+
 
 def execute(binary, instruction, arg, mutation):
     vm = LiteSVM().with_transaction_history(0)
@@ -61,10 +67,12 @@ def execute(binary, instruction, arg, mutation):
     r = vm.send_transaction(tx)
     failed = isinstance(r, FailedTransactionMetadata)
     meta = r.meta() if failed else r
+    logs = meta.logs()
     result = {'error': str(r.err()) if failed else None,
               'data_hex': vm.get_account(global_key).data.hex(),
               'lamports': vm.get_account(global_key).lamports,
-              'logs': meta.logs()}
+              'logs': logs,
+              'anchor_logs': [line for line in logs if line.startswith(('Program log: ', 'Program data: '))]}
     return result
 
 
@@ -92,20 +100,20 @@ def main():
             for mutation in mutations if value == 1 else ['none']:
                 args = bytes([value])
                 results = [execute(binary, name, args, mutation) for binary in [original, a.candidate]]
-                same = all(results[0][k] == results[1][k] for k in ['error', 'data_hex', 'lamports'])
+                same = all(results[0][k] == results[1][k] for k in COMPARED)
                 cases.append({'instruction': name, 'value': value, 'mutation': mutation, 'match': same, 'original': results[0], 'candidate': results[1]})
         if name.startswith('toggle'):
             results = [execute(binary, name, b'\x01', 'state_disabled') for binary in [original, a.candidate]]
-            same = all(results[0][k] == results[1][k] for k in ['error', 'data_hex', 'lamports'])
+            same = all(results[0][k] == results[1][k] for k in COMPARED)
             cases.append({'instruction':name, 'value':1, 'mutation':'state_disabled', 'match':same, 'original':results[0], 'candidate':results[1]})
         for args in [b'', b'\x01\x05']:
             results = [execute(binary, name, args, 'none') for binary in [original, a.candidate]]
-            same = all(results[0][k] == results[1][k] for k in ['error', 'data_hex', 'lamports'])
+            same = all(results[0][k] == results[1][k] for k in COMPARED)
             cases.append({'instruction': name, 'args_hex': args.hex(), 'mutation': 'none', 'match': same, 'original': results[0], 'candidate': results[1]})
     for n in range(9):
         args = bytes([255])*n
         results = [execute(binary, names[0], args, 'raw_instruction_data') for binary in [original, a.candidate]]
-        same = all(results[0][k] == results[1][k] for k in ['error', 'data_hex', 'lamports'])
+        same = all(results[0][k] == results[1][k] for k in COMPARED)
         cases.append({'instruction':'raw', 'args_hex':args.hex(), 'mutation':'raw_instruction_data', 'match':same, 'original':results[0], 'candidate':results[1]})
     mismatches = [i for i,c in enumerate(cases) if not c['match']]
     sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
