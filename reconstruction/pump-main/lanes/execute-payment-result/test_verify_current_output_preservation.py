@@ -100,7 +100,7 @@ class VerifyCurrentOutputPreservationTests(unittest.TestCase):
         self.candidate.write_bytes(b'candidate-bytes')
         self.objdump = root / 'objdump'
         self.objdump.write_bytes(b'objdump-bytes')
-        self.watched = [self.control, self.candidate,
+        self.watched = [self.control, self.candidate, self.objdump,
                         base / 'original.so', base / 'functions.tsv']
         self.before = {path: digest(path) for path in self.watched}
         self.base = base
@@ -136,6 +136,9 @@ class VerifyCurrentOutputPreservationTests(unittest.TestCase):
 
     def test_output_cannot_replace_the_window_inventory(self):
         self.exercise_refusal(self.base / 'functions.tsv')
+
+    def test_output_cannot_replace_the_declared_objdump(self):
+        self.exercise_refusal(self.objdump)
 
     def test_separate_output_still_publishes(self):
         report = Path(self.scratch.name) / 'report.json'

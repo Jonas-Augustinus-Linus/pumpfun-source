@@ -18,10 +18,10 @@
   "analysis_inputs": {
     "score.normalize": "534358ff50908fc0809aa9d9ed44a49fec4c17b1f6e101f4b6501fed39c78e91",
     "score.body": "087b3a617cf9d7e1c4af95fd513b102f60479ec1e9d74f421b0d58d25f5ee5e2",
-    "score.sections": "248c0927f95803472d296b8fd9f436dcf03f0a282ca7b30d05924445b803c789",
+    "score.sections": "8e9013e07ab2b0e442204b45fe21fbef291f472e9a46edb6875f5122464ab845",
     "score.original_windows": "bf2eb883a305bd151303f0dd2765f7caad0202da310a8efdb1dcd8609a36a8b0",
     "score._window_rows": "9b8799d8f0084d992784ccc9b2f4c8de0df28fa1eaf7d7a775aba45d899c734a",
-    "elf_symbols.function_symbols": "63101691771f8bc9fc75ec280858571e1a4ee79dd895dd7bf6e9874a912ef07c",
+    "elf_symbols.function_symbols": "6dd418d3e94f24293507b3d9b73fac76d637b033cf2c0496354947798188650b",
     "instruction_stream.instruction_boundaries": "88d7104032691cfe1b9de90d2c5a493989c8620190142b6ddbbd7edd232345a3"
   },
   "verified_measurements": [
