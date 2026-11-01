@@ -15,7 +15,21 @@ sys.dont_write_bytecode = True
 import argparse, gzip, hashlib, json, pathlib
 
 HERE = pathlib.Path(__file__).resolve().parent
+
+
+def verify_manifest():
+    """The packet pins every file it ships; check them before the producer runs."""
+    manifest = json.loads((HERE / 'MANIFEST.json').read_text())
+    for entry in manifest['files']:
+        path = HERE / entry['path']
+        data = path.read_bytes() if path.is_file() else None
+        if (data is None or len(data) != entry['bytes']
+                or hashlib.sha256(data).hexdigest() != entry['sha256']):
+            raise SystemExit(f'packet member differs from MANIFEST.json: {entry["path"]}')
+
+
 sys.path.insert(0, str(HERE))
+verify_manifest()
 import producer  # noqa: E402
 
 
