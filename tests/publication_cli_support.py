@@ -133,6 +133,6 @@ class PublicationCase:
       self.assertEqual(self.output.read_bytes(),b'prior receipt')
      else:
       self.assertEqual(result.returncode,0,result.stdout+result.stderr)
-      report=self.report();self.assertEqual(report.get('case_count',len(report['cases'])),2);self.assertEqual(report['mismatches'],[])
+      report=self.report();self.assertIn('case_count',report.keys());self.assertIs(type(report['case_count']),int);self.assertIs(type(report['cases']),list);self.assertEqual(report['case_count'],2);self.assertEqual(report['mismatches'],[])
       if mode=='original':self.assertTrue(all(r.get('match') is None for r in report['cases']))
       if mode=='recreate':self.assertEqual(Path((self.root/'recreated.txt').read_text()).read_bytes(),b'later staging owner')
