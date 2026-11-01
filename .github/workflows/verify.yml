@@ -486,6 +486,7 @@ jobs:
               python -B reconstruction/verification/pump-migration-lifecycle/test_lifecycle.py
               python -B reconstruction/verification/pump-migration-lifecycle/test_output_refusal.py
               python -B reconstruction/verification/pump-admin-cto-stateful/test_lifecycle.py
+              python -B reconstruction/verification/pump-admin-cto-stateful/test_receipts.py
               python -B reconstruction/verification/mayhem-dispatch-boundaries/test_inventory.py
               python -B reconstruction/verification/mayhem-dispatch-boundaries/test_producer.py
           - suite: host-fragments

@@ -10,6 +10,8 @@ import hashlib
 import json
 import struct
 import sys
+import re
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -25,11 +27,11 @@ from solders.transaction_metadata import FailedTransactionMetadata
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "scripts"))
-import pump_validate_admin as pump_fixture  # noqa: E402
-import pump_amm_admin_differential as amm_fixture  # noqa: E402
+from pump_differential_output import PumpReport  # noqa: E402
 
 IDL_PATH = ROOT / "evidence/upstream/pump.json"
-IDL = json.loads(IDL_PATH.read_text(encoding="utf-8"))
+IDL_BYTES = IDL_PATH.read_bytes()
+IDL = json.loads(IDL_BYTES)
 ADMIN_CTO = next(row for row in IDL["instructions"] if row["name"] == "admin_cto")
 COLLECT = next(row for row in IDL["instructions"] if row["name"] == "collect_creator_fee")
 
@@ -59,6 +61,22 @@ CAPTURED = {
     "spl_token_2022": ROOT / "evidence/dependencies/spl_token_2022/deployed.so",
     "associated_token": ROOT / "evidence/dependencies/associated_token/deployed.so",
 }
+
+CONFIG_PATH = ROOT / "research/imported-lab/analysis/pump_fun/config-snapshot.json"
+CONFIG_BYTES = CONFIG_PATH.read_bytes()
+CONFIG_ACCOUNTS = json.loads(CONFIG_BYTES)["accounts"]
+PUMP_CONFIG = next(row for row in CONFIG_ACCOUNTS if row["program_name"] == "pump")
+AMM_CONFIG = next(row for row in CONFIG_ACCOUNTS if row["program_name"] == "pump_amm")
+# Same captured templates used by the maintained fixture helpers; decode these
+# exact retained bytes directly, without executing the unrelated suite modules.
+PUMP_GLOBAL_TEMPLATE = bytearray(base64.b64decode(PUMP_CONFIG["data_base64"]))
+PUMP_GLOBAL_TEMPLATE[9:41] = bytes(Keypair.from_seed(bytes([201]) * 32).pubkey())
+AMM_GLOBAL_TEMPLATE = bytearray(base64.b64decode(AMM_CONFIG["data_base64"]))
+AMM_GLOBAL_TEMPLATE[8:40] = bytes(Keypair.from_seed(bytes([201]) * 32).pubkey())
+AMM_CONFIG_KEY = P(AMM_CONFIG["address"])
+PRODUCER_PATHS = (Path(__file__), ROOT / "scripts/pump_differential_output.py", IDL_PATH, CONFIG_PATH)
+LOADED_INPUT_SHA256 = {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+                       for path in PRODUCER_PATHS}
 
 STRICT_FIELDS = (
     "transaction_base64", "signature", "message_sha256", "error", "outcome",
@@ -117,7 +135,7 @@ def token_data(mint: Pubkey, owner: Pubkey, amount: int, state: int = 1) -> byte
 def semantic_logs(logs: list[str]) -> list[str]:
     result = []
     for line in logs:
-        if " consumed " in line:
+        if re.fullmatch(r"Program [1-9A-HJ-NP-Za-km-z]+ consumed \d+ of \d+ compute units", line):
             continue
         if line.startswith("Program ") and (" invoke [" in line or line.endswith((" success", " failed"))):
             continue
@@ -155,14 +173,17 @@ class MintFixture:
 
 
 class Harness:
-    def __init__(self, pump_image: Path, config: dict):
+    def __init__(self, pump_image: Path, config: dict, images=None, case_index=0):
         self.config = copy.deepcopy(config)
         self.vm = (LiteSVM().with_sigverify(True).with_blockhash_check(True)
                    .with_transaction_history(128).with_log_bytes_limit(None))
+        for _ in range(case_index * 8):
+            self.vm.expire_blockhash()
         self.vm.set_clock(Clock(1_000, 0, 0, 0, 1_700_000_000))
-        for address, image in ((PUMP, pump_image), (AMM, CAPTURED["pump_amm"]),
-                               (FEES, CAPTURED["pump_fees"]), (TOKEN, CAPTURED["spl_token"]),
-                               (TOKEN22, CAPTURED["spl_token_2022"]), (ATA, CAPTURED["associated_token"])):
+        images = CAPTURED if images is None else images
+        for address, image in ((PUMP, pump_image), (AMM, images["pump_amm"]),
+                               (FEES, images["pump_fees"]), (TOKEN, images["spl_token"]),
+                               (TOKEN22, images["spl_token_2022"]), (ATA, images["associated_token"])):
             self.vm.add_program_from_file(address, image)
         self.tracked: set[Pubkey] = set()
         self.mints = [self._mint_fixture(i, mode) for i, mode in enumerate(config.get("mints", ["native"]))]
@@ -185,14 +206,14 @@ class Harness:
         return MintFixture(f"mint-{index}", mint, quote, token, curve, pool_authority, pool, sharing, holder)
 
     def _seed(self) -> None:
-        global_data = bytearray(pump_fixture.DATA)
+        global_data = bytearray(PUMP_GLOBAL_TEMPLATE)
         global_data[418:450] = bytes(ADMIN.pubkey())
         global_data[1045] = 1
         global_data[1046:1054] = (300).to_bytes(8, "little")
         global_data[1086] = 1
         self.put(GLOBAL, Account(10**9, bytes(global_data), PUMP))
-        amm_data = bytearray(amm_fixture.RAW)
-        self.put(amm_fixture.CONFIG_KEY, Account(10**9, bytes(amm_data), AMM))
+        amm_data = bytearray(AMM_GLOBAL_TEMPLATE)
+        self.put(AMM_CONFIG_KEY, Account(10**9, bytes(amm_data), AMM))
         for keypair in [PAYER, ADMIN, *CREATORS]:
             self.put(keypair.pubkey(), Account(10**12, b"", SYSTEM))
         for event in (PUMP_EVENT, AMM_EVENT, FEES_EVENT):
@@ -255,6 +276,7 @@ class Harness:
             rows[str(key)] = None if value is None else {
                 "lamports": value.lamports, "owner": str(value.owner),
                 "data_len": len(value.data), "data_sha256": sha(bytes(value.data)),
+                "executable": value.executable, "rent_epoch": value.rent_epoch,
                 "data_base64": base64.b64encode(bytes(value.data)).decode(),
             }
         return rows
@@ -276,7 +298,7 @@ class Harness:
             "creator_vault": vault, "creator_vault_quote_token_account": ata(vault, fixture.quote, fixture.token_program),
             "holder_creator_vault": holder_vault,
             "holder_creator_vault_quote_token_account": ata(holder_vault, fixture.quote, fixture.token_program),
-            "pump_amm": AMM, "amm_global_config": amm_fixture.CONFIG_KEY, "pool_authority": fixture.pool_authority,
+            "pump_amm": AMM, "amm_global_config": AMM_CONFIG_KEY, "pool_authority": fixture.pool_authority,
             "pool": fixture.pool, "pump_amm_event_authority": AMM_EVENT,
             "coin_creator_vault_authority": amm_vault,
             "coin_creator_vault_ata": ata(amm_vault, fixture.quote, fixture.token_program),
@@ -375,8 +397,8 @@ def scenarios() -> list[dict]:
     ]
 
 
-def run_image(image: Path, scenario: dict) -> dict:
-    harness = Harness(image, scenario)
+def run_image(image: Path, scenario: dict, images=None, case_index=0) -> dict:
+    harness = Harness(image, scenario, images, case_index)
     initial = harness.snapshot()
     receipts = [harness.execute(step, index) for index, step in enumerate(scenario["steps"], 1)]
     signatures = [row["signature"] for row in receipts]
@@ -394,8 +416,8 @@ def compare_runs(original: dict, candidate: dict) -> tuple[list[str], list[dict]
         return mismatches + ["receipt_count"], []
     comparison = []
     for left, right in zip(original["receipts"], candidate["receipts"]):
-        strict = [field for field in STRICT_FIELDS if left.get(field) != right.get(field)]
-        diagnostic = [field for field in ("logs", "compute_units") if left.get(field) != right.get(field)]
+        strict = [field for field in STRICT_FIELDS if canonical_hash(left.get(field)) != canonical_hash(right.get(field))]
+        diagnostic = [field for field in ("logs", "compute_units") if canonical_hash(left.get(field)) != canonical_hash(right.get(field))]
         comparison.append({"step": left["step"], "mismatch_fields": strict, "diagnostic_difference_fields": diagnostic})
         mismatches.extend(f"{left['step']}:{field}" for field in strict)
     return mismatches, comparison
@@ -409,23 +431,79 @@ def source_manifest() -> tuple[dict, str]:
     return rows, canonical_hash(rows)
 
 
+def input_hashes():
+    actual = {str(path.relative_to(ROOT)): file_sha(path) for path in PRODUCER_PATHS}
+    if actual != LOADED_INPUT_SHA256:
+        raise ValueError("loaded producer input changed")
+    return actual
+
+
 def validate_run(run: dict) -> list[str]:
+    """Recompute signature, state, log and continuity evidence from raw records."""
     failures = []
-    signatures = [row["signature"] for row in run["receipts"]]
-    if len(signatures) != len(set(signatures)):
-        failures.append("duplicate-signature")
-    for row in run["receipts"]:
-        if not row["signature_verification"] or not all(row["signature_verification"]):
-            failures.append(row["step"] + ":signature-verification")
-        if row["error"] and row["rollback_nonfee_equal"] is not True:
-            failures.append(row["step"] + ":non-atomic-failure")
-        for index, mint in enumerate(run["mint_accounts"]):
-            if index == row["mint_index"]:
-                continue
-            for name in ("curve", "pool", "sharing"):
-                key = mint[name]
-                if row["before"].get(key) != row["after"].get(key):
-                    failures.append(row["step"] + f":cross-mint-{index}-{name}")
+    previous = None
+    signatures = []
+    try:
+        for row in run["receipts"]:
+            tag = row["step"]
+            raw = base64.b64decode(row["transaction_base64"], validate=True)
+            tx = Transaction.from_bytes(raw)
+            required = tx.message.header.num_required_signatures
+            checked = list(tx.verify_with_results())
+            if (bytes(tx) != raw or required < 1 or len(tx.signatures) != required
+                    or checked != [True] * required or canonical_hash(row["signature_verification"]) != canonical_hash(checked)
+                    or row["signature"] != str(tx.signatures[0])
+                    or row["message_sha256"] != sha(bytes(tx.message))
+                    or row["recent_blockhash"] != str(tx.message.recent_blockhash)
+                    or tx.message.account_keys[0] != PAYER.pubkey()
+                    or [str(key) for key in tx.message.account_keys[:required]] !=
+                       [str(PAYER.pubkey()), *([str(ADMIN.pubkey())] if row["operation"] == "admin_cto" else [])]
+                    or tx.message.account_keys[tx.message.instructions[-1].program_id_index] != PUMP
+                    or bytes(tx.message.instructions[-1].data[:8]) != bytes((ADMIN_CTO if row["operation"] == "admin_cto" else COLLECT)["discriminator"])):
+                failures.append(tag + ":signature-verification")
+            signatures.append(str(tx.signatures[0]) if tx.signatures else "unsigned")
+            for stage in ("before", "after"):
+                state = row[stage]
+                if row[stage + "_hash"] != canonical_hash(state):
+                    failures.append(tag + ":" + stage + "-hash")
+                for key, account in state.items():
+                    P(key)
+                    if account is None:
+                        continue
+                    data = base64.b64decode(account["data_base64"], validate=True)
+                    P(account["owner"])
+                    if (type(account["lamports"]) is not int or account["lamports"] < 0
+                            or account["lamports"] >= 2**64
+                            or type(account["rent_epoch"]) is not int or not 0 <= account["rent_epoch"] < 2**64
+                            or type(account["executable"]) is not bool
+                            or type(account["data_len"]) is not int
+                            or len(data) != account["data_len"] or sha(data) != account["data_sha256"]):
+                        failures.append(tag + ":account-snapshot")
+            before, after = row["before"], row["after"]
+            if previous is None:
+                if run["initial_state_hash"] != canonical_hash(before):
+                    failures.append(tag + ":initial-state")
+            elif canonical_hash(previous) != canonical_hash(before):
+                failures.append(tag + ":state-continuity")
+            previous = after
+            nonfee = lambda stage: {key: value for key, value in stage.items() if key != str(PAYER.pubkey())}
+            rollback = None if row["error"] is None else canonical_hash(nonfee(before)) == canonical_hash(nonfee(after))
+            if rollback != row["rollback_nonfee_equal"] or rollback is False:
+                failures.append(tag + ":non-atomic-failure")
+            if (row["outcome"] != outcome(row["logs"], row["error"])
+                    or row["failure_class"] != failure_class(row["error"])
+                    or row["semantic_logs"] != semantic_logs(row["logs"])
+                    or row["events"] != [line[14:] for line in row["logs"] if line.startswith("Program data: ")]):
+                failures.append(tag + ":derived-receipt-fields")
+            for index, mint in enumerate(run["mint_accounts"]):
+                if index != row["mint_index"]:
+                    for name in ("curve", "pool", "sharing"):
+                        if canonical_hash(before.get(mint[name])) != canonical_hash(after.get(mint[name])):
+                            failures.append(tag + f":cross-mint-{index}-{name}")
+        if len(signatures) != len(set(signatures)):
+            failures.append("duplicate-signature")
+    except (KeyError, TypeError, ValueError, IndexError) as error:
+        failures.append("malformed-receipt:" + type(error).__name__)
     return failures
 
 
@@ -437,26 +515,37 @@ def program_hashes(candidate: Path) -> dict:
 
 def run_suite(candidate: Path) -> dict:
     sources, source_digest = source_manifest()
-    hashes = program_hashes(candidate)
+    inputs = input_hashes()
+    snapshots = {name: path.read_bytes() for name, path in CAPTURED.items()}
+    snapshots["pump_candidate"] = candidate.read_bytes()
+    hashes = {name: sha(raw) for name, raw in snapshots.items()}
     rows = []
-    for scenario in scenarios():
-        original = run_image(CAPTURED["pump_original"], scenario)
-        rebuilt = run_image(candidate, scenario)
-        mismatches, comparison = compare_runs(original, rebuilt)
-        invariants = {"original": validate_run(original), "candidate": validate_run(rebuilt)}
-        observed = [receipt["outcome"] for receipt in original["receipts"]]
-        expected = EXPECTED_OUTCOMES[scenario["name"]]
-        infrastructure = [f"{side}:{receipt['step']}" for side, run in (("original", original), ("candidate", rebuilt))
-                          for receipt in run["receipts"] if receipt["failure_class"] == "infrastructure"]
-        rows.append({"case": scenario["name"], "config": {k: v for k, v in scenario.items() if k != "steps"},
-                     "steps": scenario["steps"], "original": original, "candidate": rebuilt,
-                     "comparison": comparison, "mismatch_fields": mismatches,
-                     "expected_original_outcomes": expected, "observed_original_outcomes": observed,
-                     "oracle_mismatches": [] if observed == expected else [{"expected": expected, "observed": observed}],
-                     "invariant_failures": invariants, "infrastructure_failures": infrastructure})
+    with tempfile.TemporaryDirectory(prefix="pump-cto-stateful-") as scratch:
+        images = {name: Path(scratch) / (name + ".so") for name in snapshots}
+        for name, raw in snapshots.items():
+            images[name].write_bytes(raw)
+        for case_index, scenario in enumerate(scenarios()):
+            original = run_image(images["pump_original"], scenario, images, case_index)
+            rebuilt = run_image(images["pump_candidate"], scenario, images, case_index)
+            mismatches, comparison = compare_runs(original, rebuilt)
+            invariants = {"original": validate_run(original), "candidate": validate_run(rebuilt)}
+            observed = [receipt["outcome"] for receipt in original["receipts"]]
+            expected = EXPECTED_OUTCOMES[scenario["name"]]
+            infrastructure = [f"{side}:{receipt['step']}" for side, run in (("original", original), ("candidate", rebuilt))
+                              for receipt in run["receipts"] if receipt["failure_class"] == "infrastructure"]
+            rows.append({"case": scenario["name"], "config": {k: v for k, v in scenario.items() if k != "steps"},
+                         "steps": scenario["steps"], "original": original, "candidate": rebuilt,
+                         "comparison": comparison, "mismatch_fields": mismatches,
+                         "expected_original_outcomes": expected, "observed_original_outcomes": observed,
+                         "oracle_mismatches": [] if observed == expected else [{"expected": expected, "observed": observed}],
+                         "invariant_failures": invariants, "infrastructure_failures": infrastructure})
+    for side in ("original", "candidate"):
+        signatures = [receipt["signature"] for row in rows for receipt in row[side]["receipts"]]
+        if len(signatures) != len(set(signatures)):
+            raise ValueError("suite reused a transaction signature")
     return {"schema": "pump-admin-cto-stateful-v1", "scope": "Persistent signed admin_cto lifecycle differential; synthetic state, captured on-chain programs, no network.",
             "program_ids": {"pump": str(PUMP), "pump_amm": str(AMM), "pump_fees": str(FEES), "spl_token": str(TOKEN), "spl_token_2022": str(TOKEN22), "associated_token": str(ATA)},
-            "program_sha256": hashes, "idl_sha256": file_sha(IDL_PATH), "source_manifest_sha256": source_digest,
+            "program_sha256": hashes, "idl_sha256": sha(IDL_BYTES), "producer_input_sha256": inputs, "source_manifest_sha256": source_digest,
             "source_files": sources, "case_count": len(rows),
             "transaction_count_per_image": sum(len(row["original"]["receipts"]) for row in rows),
             "mismatch_cases": [row["case"] for row in rows if row["mismatch_fields"]],
@@ -478,10 +567,11 @@ def negative_control(report: dict) -> dict:
     return checks
 
 
-def write_report(path: Path, report: dict) -> None:
+def write_report(path: Path, report: dict, publisher=None) -> None:
     raw = (json.dumps(report, sort_keys=True, separators=(",", ":")) + "\n").encode()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(gzip.compress(raw, mtime=0) if path.suffix == ".gz" else raw)
+    if publisher is None:
+        publisher = PumpReport(path, ROOT, None, __file__, overwrite=False, extra_inputs=[*CAPTURED.values(), *PRODUCER_PATHS])
+    publisher.write(gzip.compress(raw, mtime=0) if path.suffix == ".gz" else raw)
 
 
 def main() -> int:
@@ -492,9 +582,12 @@ def main() -> int:
     args = parser.parse_args()
     if args.output.exists() or args.output.is_symlink():
         raise SystemExit(f"refusing to overwrite existing report: {args.output}")
+    publisher = PumpReport(args.output, ROOT, args.candidate, __file__, overwrite=False,
+                           extra_inputs=[*CAPTURED.values(), *PRODUCER_PATHS,
+                                         *[ROOT / name for name in source_manifest()[0]]])
     report = run_suite(args.candidate.resolve())
     report["negative_controls"] = negative_control(report)
-    write_report(args.output, report)
+    write_report(args.output, report, publisher)
     summary_keys = ("case_count", "transaction_count_per_image", "mismatch_cases", "oracle_mismatch_cases", "invariant_failure_cases", "infrastructure_failure_cases", "negative_controls")
     print(json.dumps({key: report[key] for key in summary_keys}, indent=2))
     failed = report["mismatch_cases"] or report["oracle_mismatch_cases"] or report["invariant_failure_cases"] or report["infrastructure_failure_cases"] or not all(report["negative_controls"].values())

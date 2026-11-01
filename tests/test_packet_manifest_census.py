@@ -6,6 +6,9 @@ never named, so it is never hashed: the packet carries it, the record does not
 mention it, and the verifier still reports success.
 """
 import json
+import importlib.util
+import py_compile
+import struct
 import shutil
 import subprocess
 import sys
@@ -62,6 +65,57 @@ class PacketManifestCensus(unittest.TestCase):
             result = run(packet)
         self.assertNotIn(MARKER, result.stdout + result.stderr)
         self.assertIn('/nonexistent/', result.stdout + result.stderr)
+
+
+    def test_nested_manifest_name_is_not_an_ignored_file(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            packet = Path(temporary) / 'packet'
+            shutil.copytree(PACKET, packet)
+            (packet / 'runtime/MANIFEST.json').write_text('{}')
+            result = run(packet)
+            self.assertIn(MARKER, result.stdout + result.stderr)
+            self.assertIn('runtime/MANIFEST.json', result.stdout + result.stderr)
+
+    def test_valid_cached_producer_cannot_bypass_source_admission(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            packet = root / 'packet'
+            shutil.copytree(PACKET, packet)
+            producer = packet / 'producer.py'
+            source = root / 'cached_source.py'
+            marker = root / 'executed'
+            source.write_text('from pathlib import Path\nPath(' + repr(str(marker)) + ').write_text("executed")\n')
+            cached = Path(importlib.util.cache_from_source(str(producer)))
+            cached.parent.mkdir(parents=True, exist_ok=True)
+            py_compile.compile(str(source), cfile=str(cached), doraise=True)
+            data = bytearray(cached.read_bytes())
+            data[8:16] = struct.pack('<II', int(producer.stat().st_mtime), producer.stat().st_size)
+            cached.write_bytes(data)
+            result = run(packet)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('cached Python bytecode', result.stdout + result.stderr)
+            self.assertFalse(marker.exists(), 'unlisted cached producer executed')
+
+    def test_symlink_and_repeated_manifest_path_are_rejected(self):
+        for mode in ('symlink', 'duplicate'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                packet = root / 'packet'
+                shutil.copytree(PACKET, packet)
+                if mode == 'symlink':
+                    producer = packet / 'producer.py'
+                    outside = root / 'producer.py'
+                    producer.replace(outside)
+                    producer.symlink_to(outside)
+                else:
+                    path = packet / 'MANIFEST.json'
+                    data = json.loads(path.read_text())
+                    data['files'].append(dict(data['files'][0]))
+                    path.write_text(json.dumps(data))
+                result = run(packet)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('symlink' if mode == 'symlink' else 'duplicate packet manifest path',
+                              result.stdout + result.stderr)
 
 
 if __name__ == '__main__':

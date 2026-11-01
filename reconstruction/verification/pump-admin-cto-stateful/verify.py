@@ -19,6 +19,8 @@ def verify(report, candidate):
         problems.append("schema")
     if report.get("program_sha256") != lifecycle.program_hashes(candidate):
         problems.append("program_sha256")
+    if report.get("producer_input_sha256") != lifecycle.input_hashes():
+        problems.append("producer_input_sha256")
     sources, digest = lifecycle.source_manifest()
     if report.get("source_files") != sources or report.get("source_manifest_sha256") != digest:
         problems.append("source_manifest")
@@ -32,7 +34,25 @@ def verify(report, candidate):
         problems.append("case_count")
     mismatched, oracle, invalid, infrastructure = [], [], [], []
     transactions = 0
+    all_signatures = {"original": [], "candidate": []}
     for row in rows:
+        plan = next((item for item in planned if item["name"] == row["case"]), None)
+        if plan is None:
+            problems.append("unplanned_case"); continue
+        if row.get("steps") != plan["steps"] or row.get("config") != {k: v for k, v in plan.items() if k != "steps"}:
+            problems.append(row["case"] + ":plan")
+        expected_mints = [lifecycle.Harness._mint_fixture(index, mode)
+                          for index, mode in enumerate(plan.get("mints", ["native"]))]
+        expected_accounts = [{"mint": str(m.mint), "curve": str(m.curve), "pool": str(m.pool), "sharing": str(m.sharing)}
+                             for m in expected_mints]
+        for side in ("original", "candidate"):
+            receipts = row[side]["receipts"]
+            if (len(receipts) != len(plan["steps"]) or row[side].get("mint_accounts") != expected_accounts
+                    or any(receipt.get("step") != step["name"] or receipt.get("operation") != step["op"]
+                           or receipt.get("mint_index") != step.get("mint", 0)
+                           for receipt, step in zip(receipts, plan["steps"]))):
+                problems.append(row["case"] + ":" + side + ":step_membership")
+            all_signatures[side].extend(receipt["signature"] for receipt in receipts)
         transactions += len(row["original"]["receipts"])
         differences, comparison = lifecycle.compare_runs(row["original"], row["candidate"])
         if differences != row.get("mismatch_fields") or comparison != row.get("comparison"):
@@ -52,8 +72,18 @@ def verify(report, candidate):
             oracle.append(row["case"])
         if any(invariants.values()):
             invalid.append(row["case"])
-        if row.get("infrastructure_failures"):
+        observed_infrastructure = [f"{side}:{receipt['step']}" for side in ("original", "candidate")
+                                   for receipt in row[side]["receipts"]
+                                   if lifecycle.failure_class(receipt["error"]) == "infrastructure"]
+        if row.get("infrastructure_failures") != observed_infrastructure:
+            problems.append(row["case"] + ":infrastructure")
+        if observed_infrastructure:
             infrastructure.append(row["case"])
+    for side, signatures in all_signatures.items():
+        if len(signatures) != len(set(signatures)):
+            problems.append(side + ":duplicate_signature")
+    if transactions != sum(len(case["steps"]) for case in planned):
+        problems.append("planned_transaction_count")
     expected = {"transaction_count_per_image": transactions, "mismatch_cases": mismatched, "oracle_mismatch_cases": oracle,
                 "invariant_failure_cases": invalid, "infrastructure_failure_cases": infrastructure}
     for key, value in expected.items():
