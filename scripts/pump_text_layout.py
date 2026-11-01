@@ -214,6 +214,7 @@ def finish(record):
     check(sha(record['script']) == record['script_sha256'], 'link script hash mismatch')
     check(sha(record['real_linker']) == record['real_linker_sha256'], 'real linker hash mismatch')
     check(sha(record['external_wrapper']) == record['external_wrapper_sha256'], 'external wrapper hash mismatch')
+    check(record['helper_sha256'], 'helper hash binding is empty')
     check(all(sha(path) == digest for path, digest in record['helper_sha256'].items()), 'helper hash mismatch')
     inv = json.loads(Path(record['link_receipt']).read_text())
     check_bindings(inv['incoming'], inv['link_inputs'])

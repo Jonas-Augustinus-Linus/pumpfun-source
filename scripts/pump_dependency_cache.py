@@ -483,6 +483,7 @@ class DependencyCache:
         check(r.get("target_library_profile", {}).get("cache_context") == self.context.get("target_library_profile"), (
             "seed target-library profile differs"
         ))
+        check(r["source_sha256"], "cache verification failed: clean build binds no source")
         check(all(sha(self.repo / k) == v for k, v in r["source_sha256"].items()), "cache verification failed: all(sha(self.repo / k) == v for k, v in r['source_sha256'].items())")
         check(sha(build / "candidate.so") == r["comparison"]["candidate_sha256"], "cache verification failed: sha(build / 'candidate.so') == r['comparison']['candidate_sha256']")
         check(sha(build / "unstripped.so") == r["unstripped_sha256"], "cache verification failed: sha(build / 'unstripped.so') == r['unstripped_sha256']")
