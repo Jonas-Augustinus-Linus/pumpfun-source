@@ -12,8 +12,8 @@
     },
     {
       "path": "verify.py",
-      "sha256": "933ee673ee6c650d7d22c08ac93bb5a8c504a0a942086d16ff180a7292e74a63",
-      "bytes": 18105
+      "sha256": "5ab6b7452d6e9b2eb429d6a6b6ec950ecc734705ba320a18a22084dfd1583efc",
+      "bytes": 18139
     },
     {
       "path": "runtime/raw-transactions-part01.jsonl.gz",

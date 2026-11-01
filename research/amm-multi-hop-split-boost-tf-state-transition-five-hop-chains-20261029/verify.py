@@ -529,7 +529,7 @@ def surface(recs):
                 d[str(PAYER_KEY)]["lamports"] = 0
             return d
         out.append({"step": rec["step"], "error": rec["error"],
-                    "events": len(rec["events"]),
+                    "events": len(ev_list(rec["logs"])),
                     "before": strip(rec["before"]), "after": strip(rec["after"])})
     return out
 
@@ -596,8 +596,9 @@ def main():
                 else:
                     if rec["error"] is None or not error_matches(rec["error"], exp["error"]):
                         fail(f"{tag}: expected error {exp['error']}, got {rec['error']}")
-                if len(rec["events"]) != exp["events"]:
-                    fail(f"{tag}: events {len(rec['events'])} != {exp['events']}")
+                events = len(ev_list(rec["logs"]))
+                if events != exp["events"]:
+                    fail(f"{tag}: events {events} != {exp['events']}")
                 if lam_delta(rec, PAYER_KEY) != exp["dPAYER"]:
                     fail(f"{tag}: dPAYER {lam_delta(rec, PAYER_KEY)} != {exp['dPAYER']}")
                 if lam_delta(rec, OUTSIDER_KEY) != exp.get("dOUT", 0):
