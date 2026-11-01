@@ -13,6 +13,7 @@ import struct
 
 from score import sections, body
 from instruction_stream import require_instruction_range
+from original_input import resolve_original
 
 WIDTHS = {0x60: 4, 0x68: 2, 0x70: 1, 0x78: 8}
 
@@ -61,7 +62,7 @@ def compare(original, candidate):
 
 
 def read_range(path, start, size):
-    blob = Path(path).read_bytes()
+    blob = resolve_original(path).read_bytes()
     sec = sections(blob)['.text']
     if struct.unpack_from('<H', blob, 18)[0] not in (247, 263):
         raise ValueError('stack-access decoding expects an EM_BPF or EM_SBPF image')
