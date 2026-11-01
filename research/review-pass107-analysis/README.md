@@ -22,7 +22,10 @@ the historical candidate or prove current whole-program identity.
 The verify-current entry guard also protects its declared objdump path and reads
 the canonical captured original through the existing resolver. Its negative tests
 use private inputs. The distribution-LLVM disassembly fallback preserves win.py's
-executable mode. No program, build recipe, normalization rule or completion count
+executable mode. Its assignment-style output is canonicalized only for census
+argument-write extraction, so branches cannot become writes and real scalar or
+section-pointer arguments remain visible. Retained instruction witnesses and
+actual distribution/SDK disassembly exercise both syntaxes. No program, build recipe, normalization rule or completion count
 changes in this integration.
 
 Output-preservation guards in census, hotness, callid, capture-inline and

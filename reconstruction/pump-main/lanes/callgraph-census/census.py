@@ -129,6 +129,39 @@ class Image:
                        for site, target in self.calls(s) if isinstance(target, tuple))
 
 
+def argument_text(raw, text):
+    """Use SBF argument spelling for distribution LLVM's BPF assignments.
+
+    Display disassembly keeps its native syntax. Only argument-write extraction
+    needs one spelling; branch operands must never be mistaken for writes.
+    """
+    if text.startswith(('if ', 'goto ')):
+        return ''
+    if not re.match(r'^[rw]\d+\s*(?:=|[-+*/|&^]|<<|>>)', text):
+        return text
+    op, regs, offset, immediate = struct.unpack_from('<BBhi', raw)
+    destination, source = regs & 15, regs >> 4
+    if op == 0x18:
+        value = struct.unpack_from('<I', raw, 4)[0] | struct.unpack_from('<I', raw, 12)[0] << 32
+        return f'lddw r{destination}, {value:#x}'
+    if op & 7 in (4, 7):
+        operation = {0x00: 'add', 0x10: 'sub', 0x20: 'mul', 0x30: 'div',
+                     0x40: 'or', 0x50: 'and', 0x60: 'lsh', 0x70: 'rsh',
+                     0x80: 'neg', 0x90: 'mod', 0xa0: 'xor', 0xb0: 'mov',
+                     0xc0: 'arsh'}.get(op & 0xf0)
+        if operation:
+            operand = f'r{source}' if op & 8 else f'{immediate:#x}'
+            suffix = 64 if op & 7 == 7 else 32
+            return f'{operation}{suffix} r{destination}' + ('' if operation == 'neg' else ', ' + operand)
+        if op & 0xf0 == 0xd0:
+            return f"{'be' if op & 8 else 'le'}{immediate} r{destination}"
+    if op & 7 == 1 and op & 0xe0 == 0x60:
+        width = {0x00: 'w', 0x08: 'h', 0x10: 'b', 0x18: 'dw'}[op & 0x18]
+        sign = '-' if offset < 0 else '+'
+        return f'ldx{width} r{destination}, [r{source} {sign} {abs(offset):#x}]'
+    return text
+
+
 def arg_setup(img, s, call_sites):
     """For each call site: normalized text of insns since the previous call that write r1-r5 (last write per reg)."""
     txt = img.text(s)
@@ -148,7 +181,9 @@ def arg_setup(img, s, call_sites):
                 # calls also invalidate earlier caller-saved argument writes.
                 regs.clear()
                 continue
-            t = txt[a]
+            if raw[0] == 0x18:
+                raw = body(img.blob, img.secs, a, 16)
+            t = argument_text(raw, txt[a])
             m = ARG_RE.match(t)
             if m:
                 pointer = False

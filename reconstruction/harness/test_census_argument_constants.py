@@ -30,6 +30,8 @@ class CensusArgumentByteTests(unittest.TestCase):
         self.assertIn(scalar_call, dict(image.calls(scalar_start)))
         image._txt[scalar_start] = {scalar_at: 'mov64 r3, 0x10001', scalar_call: 'call 0x0'}
         self.assertEqual(census.arg_setup(image, scalar_start, [scalar_call])[scalar_call], ['mov64 r3, 0x10001'])
+        image._txt[scalar_start] = {scalar_at: 'r3 = 0x10001', scalar_call: 'call 0x0'}
+        self.assertEqual(census.arg_setup(image, scalar_start, [scalar_call])[scalar_call], ['mov64 r3, 0x10001'])
 
         pointer_start, pointer_at, pointer_call = 0x340, 0x428, 0x460
         image = census.Image(path, {pointer_start: (0x878 - pointer_start, [])})
@@ -40,6 +42,9 @@ class CensusArgumentByteTests(unittest.TestCase):
         self.assertIn(pointer_call, dict(image.calls(pointer_start)))
         image._txt[pointer_start] = {pointer_at: f'lddw r1, {value:#x}', pointer_call: 'call 0x0'}
         self.assertEqual(census.arg_setup(image, pointer_start, [pointer_call])[pointer_call], ['lddw r1, ADDR'])
+        image._txt[pointer_start] = {pointer_at: f'r1 = {value:#x} ll', pointer_call: 'call 0x0'}
+        self.assertEqual(census.arg_setup(image, pointer_start, [pointer_call])[pointer_call], ['lddw r1, ADDR'])
+        self.assertEqual(census.argument_text(bytes(8), 'if r1 == r2 goto +0x1'), '')
 
 
 class CensusArgumentTests(unittest.TestCase):
