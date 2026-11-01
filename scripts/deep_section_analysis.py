@@ -638,7 +638,7 @@ def analyze_math_patterns(elf):
             else:
                 # Check for overflow detection pattern:
                 # comparison after arithmetic followed by error branch
-                if opcode in (0x25, 0x35, 0xa5, 0xb5) and prev_op in ("add", "sub", "mul"):
+                if opcode in (0x25, 0x2d, 0x35, 0x3d, 0xa5, 0xad, 0xb5, 0xbd) and prev_op in ("add", "sub", "mul"):
                     overflow_checks += 1
                 prev_op = None
 

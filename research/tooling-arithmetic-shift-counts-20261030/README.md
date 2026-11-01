@@ -64,3 +64,15 @@ source-bound successor. It does not correct these shift counts. Its pinned
 adapter's source admission would require its own reviewed transition if combined
 with changes to the archived helper. This correction makes no runtime,
 overflow-protection, reconstruction-equivalence or security claim.
+
+## Reviewed current-report transition (2026-11-01)
+
+The historical discussion above predates the merge of happysonny1's #1618.
+The maintained default CLI now includes that accepted register-comparison
+predicate; its separately archived source-bound successor remains unchanged.
+Following the #2535 receipt review, only the four `unrelated_report_sha256`
+values were refreshed for this intentional math-report change. Capture hashes,
+baseline shifts, the original source identity and this packet's test remain
+unchanged. All shift counts are unchanged. The old and new receipt values,
+four full CLI comparisons and archive identities are retained in
+[`../math-register-default-20261101/results.json`](../math-register-default-20261101/results.json).
