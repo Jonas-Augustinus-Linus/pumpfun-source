@@ -11,6 +11,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[2]
 HELPERS = {
     "scripts/analyze_program.py": {
+        "9f2073520c319ca8db15d683da038590cd2da16304d1550e95648b89b3213083",
         "4f32c8013e9359d32d2685860cc0c3628c2c44887d89cecf94609f360e038b73",
         "038de3a138c8fb2b55a7ef870064b4f1cd39f104f45a182b49d44d05f8654bd5",
         "646aadd3a8eb0f8da7131da81461921fef7e9b1f0928d988a51998599e390471",
@@ -30,6 +31,7 @@ HELPERS = {
         "bf3ae0bb3c3d57638b22d379b44674be5098c9a9a59243f38fb2d04e081df55c",
     },
     "scripts/deep_disassembly.py": {
+        "6203189864fd7c2a9cd8ad7363f78542c2f419b6f4388f416d9286f0ff67932f",
         "d2b9873473bbeea33bb5d953d0c6385b1127d81aedba652bb1b82de636849aa5",
         "47cfa5cf9b7e271ad2ea399220930ad238713b465b030181f74a1990a34275ce",
         "17b35e60802ef12f0c452bcb65d2f74e0325ae310dc0041cd764edc8667ed97c",
