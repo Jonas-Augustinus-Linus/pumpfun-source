@@ -49,6 +49,16 @@ cleanup and pin report line endings. The swap-hop measurement is a single
 aligned function range and the recorded numbers are unaffected; only the
 checker bytes moved.
 
+The recorded `score.sections` identity also follows `9d394470d`, which keys
+each unnamed section by its table index instead of rejecting a second unnamed
+section. The recorded `elf_symbols.function_symbols` identity follows
+`2c09db5cf`, which rejects an ELF header whose `e_version` is not 1. Both
+changes only add admission or rejection for malformed inputs. The measurement
+reads `.text` and sections with a non-zero address, so the null section's key
+does not reach it. Under the previous and current helpers, the original-window
+measurement is byte-identical, and so are the named-section maps and function
+symbol lists of all 23 distinct ELF images retained in the repository.
+
 ## Limits and author-reported work
 
 The original contributor reported a native-Linux candidate with 125 raw and
